@@ -1,0 +1,2 @@
+#ifndef MISC_H_DEFINED
+#define MISC_H_DEFINED
