@@ -91,9 +91,6 @@ $$(sort $$(OBJDIR_BASE)/$2/ \
         ):
 	mkdir -p $$@
 
-
-
-
 $$(GINC_$1): | $$(GINCDIR_BASE)/$2
 $$(GSRC_$1): | $$(GSRCDIR_BASE)/$2
 
