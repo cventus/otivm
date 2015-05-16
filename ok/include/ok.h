@@ -14,3 +14,7 @@ extern struct test {
 
 extern size_t n_tests;
 
+/* Global flag that can override the result of a function. Always initialized
+   to zero before a test is run. */
+extern int ok;
+

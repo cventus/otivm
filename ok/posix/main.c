@@ -14,6 +14,9 @@
 #include "private.h"
 #include "check.h"
 
+/* Definition of global test status flag. */
+int ok = 0;
+
 static void usage(const char *argv0)
 {
 	printf("\
@@ -159,8 +162,9 @@ int main(int argc, char **argv)
 			print_skipped(i);
 			continue;
 		}
+		ok = 0;
 		srand((unsigned int)seed);
-		if ((can_fork ? fork_test : run_test)(i, fd, prefix)) {
+		if ((can_fork ? fork_test : run_test)(i, fd, prefix) || ok) {
 			n_fail++;
 		}
 	}
