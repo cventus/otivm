@@ -66,3 +66,9 @@
 #define fmaxM MANGLE(fmax)
 #undef fminM
 #define fminM MANGLE(fmin)
+#undef nextafterM
+#define nextafterM MANGLE(nextafter)
+#undef frexpM
+#define frexpM MANGLE(frexp)
+#undef ldexpM
+#define ldexpM MANGLE(ldexp)

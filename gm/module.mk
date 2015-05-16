@@ -5,15 +5,7 @@ MOD=ok
 GINC=$(addprefix $(GINCDIR)/,matrix.h vector.h quaternion.h misc.h array.h)
 
 # List of type generic tests
-tests=
-
-# Register tests with Makefile
-TEST_OBJ:=$(foreach T,$(tests),$(addprefix $(OBJDIR)/test/$T,f.o .o l.o))
-
-# Specify type specific targets' SOURCEs
-$(foreach F,$(tests),\
-$(foreach X,f.o .o l.o,\
-$(eval $$(OBJDIR)/test/$F$X: SOURCE:=$$(MDIR)/generic-test/$F.g.c)))
+tests=	matrix44 matrix44x
 
 gfiles=	vector2 \
 	vector3 vector3x \
@@ -28,6 +20,7 @@ gfiles=	vector2 \
 # Register new targets 
 OBJ+=$(foreach F,$(gfiles),$(foreach X,f.o .o l.o,$(OBJDIR)/$F$X))
 GSRC+=$(foreach F,$(gfiles),$(foreach X,f.h .h l.h,$(GSRCDIR)/$F$X))
+TEST_OBJ+=$(foreach T,$(tests),$(addprefix $(OBJDIR)/test/$T,f.o .o l.o))
 
 # $1: list of target files, $2: source file
 def_osource=$(foreach F,$1,$(foreach X,f.o .o l.o,\
@@ -37,6 +30,10 @@ $(eval $(OBJDIR)/$F$X: SOURCE:=$(MDIR)/generic/$(if $2,$2,$1).g.c)))
 def_hsource=$(foreach F,$1,$(foreach X,f.h .h l.h,\
 $(eval $(GSRCDIR)/$F$X: $(MDIR)/generic/$(if $2,$2,$1).g.h)\
 $(eval $(GSRCDIR)/$F$X: SOURCE:=$(MDIR)/generic/$(if $2,$2,$1).g.h)))
+
+# $1: list of test files, $2: source file
+def_test_source=$(foreach F,$1,$(foreach X,f.o .o l.o,\
+$(eval $(OBJDIR)/test/$F$X: SOURCE:=$(MDIR)/generic-test/$(if $2,$2,$1).g.c)))
 
 # Define SOURCE for objects and generated header files
 def_source=$(call def_osource,$1,$2) $(call def_hsource,$1,$2)
@@ -49,6 +46,10 @@ $(call def_source,matrix44x)
 $(call def_source,quaternionx)
 $(call def_source,misc)
 $(call def_source,array)
+
+$(call def_test_source,matrix22 matrix33 matrix44,matrix)
+$(call def_test_source,matrix44x)
+$(call def_test_source,equals)
 
 # float
 $(foreach F,$(gfiles),$(GSRCDIR)/$Ff.h) \
@@ -86,6 +87,7 @@ $(foreach F,$(tests),$(OBJDIR)/test/$Fl.o): \
 # Add common CPPFLAGS for a set of files
 def_cpp=$(foreach F,$1,\
 $(eval $(foreach X,f.o .o l.o,$(OBJDIR)/$F$X) \
+       $(foreach X,f.o .o l.o,$(OBJDIR)/test/$F$X) \
        $(foreach X,f.h .h l.h,$(GSRCDIR)/$F$X): CPPFLAGS+=$2))
 
 $(call def_cpp,vector2,-D'L=2')
