@@ -2,6 +2,9 @@
 /* Skip the currently executing test */
 void skip_test(const char *message);
 
+/* Mark test as unfinished for the given reason, but continue execution */
+void todo(const char *message);
+
 /* Stop all testing because continuing tests do not make sense (e.g. necessary
    external resource is unavailable) */
 void bail_out(const char *message);

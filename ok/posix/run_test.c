@@ -25,12 +25,12 @@ static struct state
 
 struct test_result
 {
-	enum { TEST = 0, SKIP, BAIL_OUT } mode;
+	enum { TEST = 0, SKIP, BAIL_OUT, TODO } mode;
 	int success;
 	char message[1000];
 };
 
-static void stop_test(const char *message, int mode)
+static void set_message(const char *message)
 {
 	if (g_state.init) {
 		if (message) {
@@ -38,7 +38,22 @@ static void stop_test(const char *message, int mode)
 			strncpy(g_state.result->message, message, sz);
 			g_state.result->message[sz - 1] = 0;
 		}
+	}
+}
+
+static void stop_test(const char *message, int mode)
+{
+	if (g_state.init) {
+		set_message(message);
 		longjmp(g_state.skip, mode);
+	}
+}
+
+void todo(const char *message)
+{
+	if (g_state.init) {
+		set_message(message);
+		g_state.result->mode = TODO;
 	}
 }
 
@@ -73,6 +88,19 @@ static void echo_file(int fd, const char *prefix)
 	}
 	CHECK(n == 0);
 }
+
+static void print_directive(int directive, const char *msg)
+{
+	const char *ds = 0;
+
+	if (directive == SKIP) { ds = "SKIPPED"; }
+	if (directive == TODO) { ds = "TODO"; }
+
+	if (ds) {
+		printf(" # %s%s%s", ds, msg && *msg ? " " : "", msg);
+	}
+}
+
 
 static int read_all(int fd, void *buf, int sz)
 {
@@ -155,10 +183,7 @@ int run_test(int id, int fd, const char *prefix)
 	/* Print primary test result output */
 	printf("%sok %d %s", result.success ? "not " : "", id + 1,
 	       t->description);
-	if (result.mode == SKIP) {
-		printf(" # SKIPPED%s%s", result.message[0] ? " " : "",
-		       result.message);
-	}
+	print_directive(result.mode, result.message);
 	printf("\n");
 
 	/* Write child output to stdout as additional diagnostics, prefixing
@@ -236,11 +261,7 @@ int fork_test(int id, int fd, const char *prefix)
 	/* Print primary test result output */
 	printf("%sok %d%s %s", result.success ? "not " : "", id + 1, sigmsg,
 	       t->description);
-
-	if (result.mode == SKIP) {
-		printf(" # SKIPPED%s%s", result.message[0] ? " " : "",
-		       result.message);
-	}
+	print_directive(result.mode, result.message);
 	printf("\n");
 
 	/* Write child output to stdout as additional diagnostics, prefixing
