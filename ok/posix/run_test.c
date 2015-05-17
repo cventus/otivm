@@ -69,6 +69,12 @@ void bail_out(const char *message)
 	stop_test(message, BAIL_OUT);
 }
 
+static void do_bail_out(const char *msg)
+{
+	printf("Bail out!%s%s\n", msg && msg[0] ? " " : "", msg);
+	exit(EXIT_FAILURE);
+}
+
 /* Write file contents to stdout, prefixed */
 static void echo_file(int fd, const char *prefix)
 {
@@ -142,7 +148,7 @@ static void exec_test(int (*fn)(void), struct test_result *result)
 		result->success = -1;
 		break;
 
-		default:
+	default:
 		/* Unkown case */
 		abort();
 	}
@@ -175,9 +181,7 @@ int run_test(int id, int fd, const char *prefix)
 
 	/* In case of a bail out, exit as soon as possible */
 	if (result.mode == BAIL_OUT) {
-		printf("Bail out!%s%s\n", result.message[0] ? " " : "",
-		       result.message);
-		exit(EXIT_FAILURE);
+		do_bail_out(result.message);
 	}
 
 	/* Print primary test result output */
@@ -247,9 +251,7 @@ int fork_test(int id, int fd, const char *prefix)
 
 	/* In case of a bail out, exit as soon as possible */
 	if (result.mode == BAIL_OUT) {
-		printf("Bail out!%s%s\n", result.message[0] ? " " : "",
-		       result.message);
-		exit(EXIT_FAILURE);
+		do_bail_out(result.message);
 	}
 
 	/* Did the test terminate by an unhandled signal? */
