@@ -19,6 +19,11 @@ T *mrand(T dest[static M*N]);
 #define mzero MAT(zero)
 T *mzero(T a[static M*N]);
 
+/* Make every element one */
+#undef mone
+#define mone MAT(one)
+T *mone(T a[static M*N]);
+
 /* Make identity matrix */
 #undef mid
 #define mid MAT(id)

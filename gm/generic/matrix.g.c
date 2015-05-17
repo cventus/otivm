@@ -24,22 +24,22 @@ static T rnd(T init)
 
 T *mrand(T dest[static M*N])
 {
-	amapu(dest, M*N, dest, &rnd);
-	return dest;
+	return amapu(dest, M*N, dest, &rnd);
 }
 
 T *mzero(T a[static M*N])
 {
-	int i;
-	for (i = 0; i < M*N; i++) {
-		a[i] = LIT(0.);
-	}
-	return a;
+	return aset(a, LIT(0.0), M*N);
+}
+
+T *mone(T a[static M*N])
+{
+	return aset(a, LIT(1.0), M*N);
 }
 
 T *mid(T a[static M*N])
 {
-	return msid(a, LIT(1.));
+	return msid(a, LIT(1.0));
 }
 
 T *msid(T a[static M*N], T s)
@@ -116,7 +116,7 @@ T mmse(T const a[static M*N], T const b[static M*N])
 	T e, se;
 	unsigned i;
 
-	for (se = LIT(0.), i = 0; i < M*N; i++) {
+	for (se = LIT(0.0), i = 0; i < M*N; i++) {
 		e = a[i] - b[i];
 		se += e*e;
 	}
