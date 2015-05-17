@@ -17,6 +17,16 @@ T *amaps(T dest[], size_t n, T const a[], T t, T (*fn)(T a, T t));
 #define amapb MANGLE(amapb)
 T *amapb(T dest[], size_t n, T const a[], T const b[], T (*fn)(T a, T b));
 
+/* Set each element, dest[i] = b  */
+#undef aset
+#define aset MANGLE(aset)
+T *aset(T dest[], T b, size_t n);
+
+/* Set each element, dest[i] = a[i]  */
+#undef acopy
+#define acopy MANGLE(acopy)
+T *acopy(T dest[], T const a[], size_t n);
+
 /* Element-wise addition by scalar, dest[i] = a[i]+b  */
 #undef aadds
 #define aadds MANGLE(aadds)

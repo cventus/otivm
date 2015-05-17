@@ -4,6 +4,7 @@
 
 #include <stddef.h>
 #include <float.h>
+#include <string.h>
 #include "array.g.h"
 #include "misc.g.h"
 
@@ -37,6 +38,18 @@ T *amapb(T dest[], size_t n, T const a[], T const b[], T (*fn)(T a, T b))
 		dest[i] = fn(a[i], b[i]);
 	}
 	return dest;
+}
+
+T *aset(T dest[], T b, size_t n)
+{
+	size_t i;
+	for (i = 0; i < n; i++) { dest[i] = b; }
+	return dest;
+}
+
+T *acopy(T dest[], T const a[], size_t n)
+{
+	return memmove(dest,  a, n*sizeof(T));
 }
 
 T *aadds(T dest[], size_t n, T const a[], T b)
