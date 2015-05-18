@@ -4,9 +4,9 @@
 #include <gm/matrix.h>
 #include <float.h>
 
-#include "../generic/generic.h"
-#include "../generic/misc.g.h"
-#include "../generic/matrix.g.h"
+#include "../gen/generic.h"
+#include "../gen/misc.g.h"
+#include "../gen/matrix.g.h"
 
 static int assert_equal(T const prod[static M*N], T const exp[static M*N])
 {

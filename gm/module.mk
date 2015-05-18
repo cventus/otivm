@@ -24,16 +24,16 @@ TEST_OBJ+=$(foreach T,$(tests),$(addprefix $(OBJDIR)/test/$T,f.o .o l.o))
 
 # $1: list of target files, $2: source file
 def_osource=$(foreach F,$1,$(foreach X,f.o .o l.o,\
-$(eval $(OBJDIR)/$F$X: SOURCE:=$(MDIR)/generic/$(if $2,$2,$1).g.c)))
+$(eval $(OBJDIR)/$F$X: SOURCE:=$(MDIR)/gen/$(if $2,$2,$1).g.c)))
 
 # $1: list of generated header files, $2: source header file
 def_hsource=$(foreach F,$1,$(foreach X,f.h .h l.h,\
-$(eval $(GSRCDIR)/$F$X: $(MDIR)/generic/$(if $2,$2,$1).g.h)\
-$(eval $(GSRCDIR)/$F$X: SOURCE:=$(MDIR)/generic/$(if $2,$2,$1).g.h)))
+$(eval $(GSRCDIR)/$F$X: $(MDIR)/gen/$(if $2,$2,$1).g.h)\
+$(eval $(GSRCDIR)/$F$X: SOURCE:=$(MDIR)/gen/$(if $2,$2,$1).g.h)))
 
 # $1: list of test files, $2: source file
 def_test_source=$(foreach F,$1,$(foreach X,f.o .o l.o,\
-$(eval $(OBJDIR)/test/$F$X: SOURCE:=$(MDIR)/generic-test/$(if $2,$2,$1).g.c)))
+$(eval $(OBJDIR)/test/$F$X: SOURCE:=$(MDIR)/test-gen/$(if $2,$2,$1).g.c)))
 
 # Define SOURCE for objects and generated header files
 def_source=$(call def_osource,$1,$2) $(call def_hsource,$1,$2)
@@ -99,13 +99,13 @@ $(call def_cpp,matrix44 matrix44x,-D'M=4' -D'N=4')
 
 # $1=file name, $2=list of generated, typed headers to concatenate
 def_header=$(eval $$(GINCDIR)/$1.h: \
-		$$(MDIR)/generic/$1_prefix.h \
+		$$(MDIR)/gen/$1_prefix.h \
 		$(foreach F,$2,$$(foreach X,f.h .h l.h,$$(GSRCDIR)/$F$$X)) \
-		$$(MDIR)/generic/$1_suffix.h) \
-$(eval $$(GINCDIR)/$1.h: SOURCES+=$$(MDIR)/generic/$1_prefix.h) \
+		$$(MDIR)/gen/$1_suffix.h) \
+$(eval $$(GINCDIR)/$1.h: SOURCES+=$$(MDIR)/gen/$1_prefix.h) \
 $(foreach F,$2,\
 $(eval $$(GINCDIR)/$1.h: SOURCES+=$$(foreach X,f.h .h l.h,$$(GSRCDIR)/$F$$X))) \
-$(eval $$(GINCDIR)/$1.h: SOURCES+=$$(MDIR)/generic/$1_suffix.h)
+$(eval $$(GINCDIR)/$1.h: SOURCES+=$$(MDIR)/gen/$1_suffix.h)
 
 $(call def_header,vector,vector2 vector3 vector3x)
 $(call def_header,quaternion,quaternion quaternionx)

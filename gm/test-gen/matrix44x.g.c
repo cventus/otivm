@@ -7,11 +7,11 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "../generic/generic.h"
-#include "../generic/matrix.g.h"
-#include "../generic/square-matrix.g.h"
-#include "../generic/matrix44x.g.h"
-#include "../generic/misc.g.h"
+#include "../gen/generic.h"
+#include "../gen/matrix.g.h"
+#include "../gen/square-matrix.g.h"
+#include "../gen/matrix44x.g.h"
+#include "../gen/misc.g.h"
 
 #define lengthof(arr) (sizeof (arr) / sizeof 0[arr])
 
