@@ -1,10 +1,12 @@
 #if defined(L) && L != 3
 #error "Cross product only defined for vectors of length 3"
 #endif
-#undef VECTOR_TAG
-#define L 3
-#include "vector.h"
+#ifndef VECTOR_G_H_INCLUDED
 #include "vector.g.h"
+#endif
+#ifndef VECTOR_H_INCLUDED
+#include "vector.h"
+#endif
 
 /* Cross-product w = u x v */
 #undef vcross

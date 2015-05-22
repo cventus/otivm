@@ -1,4 +1,4 @@
-#ifndef GENERIC_H
+#ifndef GENERIC_H_INCLUDED
 #include "generic.h"
 #endif
 

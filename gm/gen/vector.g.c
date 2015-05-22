@@ -1,9 +1,11 @@
 #ifndef GENERIC_H
 #include "generic.h"
 #endif
-#ifndef VECTOR_H
+#ifndef VECTOR_H_INCLUDED
 #include "vector.h"
 #endif
+
+#include "vector.g.h"
 
 #include <string.h>
 #include <math.h>

@@ -1,3 +1,4 @@
+#define GENERIC_H_INCLUDED
 #ifndef L
 #error "Vector length L not defined!"
 #endif

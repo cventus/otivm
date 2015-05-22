@@ -1,4 +1,4 @@
-#define GENERIC_H
+#define GENERIC_H_INCLUDED
 #ifndef T
 #error "Type T is not defined!"
 #endif

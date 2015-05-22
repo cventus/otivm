@@ -1,7 +1,10 @@
 #ifndef GENERIC_H
 #include "generic.h"
 #endif
+#ifndef VECTOR_H_INCLUDED
 #include "vector.h"
+#endif
+#define VECTOR_G_H_INCLUDED
 
 /* Copy vector: w = u, return w */
 #undef vcopy
