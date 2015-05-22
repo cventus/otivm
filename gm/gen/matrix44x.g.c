@@ -36,8 +36,21 @@
 
 T mdet(T const a[static M*N])
 {
-	(void)a;
-	return 0;
+#define DET3x3(c0, c1, c2) \
+	( MREF(a, c0, 1) * MREF(a, c1, 2) * MREF(a, c2, 3) \
+	+ MREF(a, c0, 2) * MREF(a, c1, 3) * MREF(a, c2, 1) \
+	+ MREF(a, c0, 3) * MREF(a, c1, 1) * MREF(a, c2, 2) \
+	- MREF(a, c0, 3) * MREF(a, c1, 2) * MREF(a, c2, 1) \
+	- MREF(a, c0, 1) * MREF(a, c1, 3) * MREF(a, c2, 2) \
+	- MREF(a, c0, 2) * MREF(a, c1, 1) * MREF(a, c2, 3) )
+
+	const T x = mref(a, 0, 0) * DET3x3(1, 2, 3);
+	const T y = mref(a, 0, 1) * DET3x3(0, 2, 3);
+	const T z = mref(a, 0, 2) * DET3x3(0, 1, 3);
+	const T w = mref(a, 0, 3) * DET3x3(0, 1, 2);
+
+	return x - y + z - w;
+#undef DET3x3
 }
 
 T mtrace(T const a[static M*N])
