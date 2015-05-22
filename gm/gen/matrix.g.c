@@ -108,7 +108,7 @@ T *mdivs(T dest[M*N], T const a[static M*N], T b)
 
 T mref(T const a[static M*N], unsigned row, unsigned column)
 {
-	return a[column * N + row];
+	return MREF(a, column, row);
 }
 
 T mmse(T const a[static M*N], T const b[static M*N])

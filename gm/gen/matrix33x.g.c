@@ -21,13 +21,12 @@
 
 T mdet(T const a[static M*N])
 {
-	return (mref(a, 0, 0) * mref(a, 1, 1) * mref(a, 2, 2) +
-	        mref(a, 0, 1) * mref(a, 1, 2) * mref(a, 2, 0) +
-	        mref(a, 0, 2) * mref(a, 1, 0) * mref(a, 2, 1))
-	       -
-	       (mref(a, 0, 2) * mref(a, 1, 1) * mref(a, 2, 0) +
-	        mref(a, 0, 1) * mref(a, 1, 0) * mref(a, 2, 2) +
-	        mref(a, 0, 0) * mref(a, 1, 2) * mref(a, 2, 1));
+	return MREF(a, 0, 0) * MREF(a, 1, 1) * MREF(a, 2, 2)
+	     + MREF(a, 0, 1) * MREF(a, 1, 2) * MREF(a, 2, 0)
+	     + MREF(a, 0, 2) * MREF(a, 1, 0) * MREF(a, 2, 1)
+	     - MREF(a, 0, 2) * MREF(a, 1, 1) * MREF(a, 2, 0)
+	     - MREF(a, 0, 1) * MREF(a, 1, 0) * MREF(a, 2, 2)
+	     - MREF(a, 0, 0) * MREF(a, 1, 2) * MREF(a, 2, 1);
 }
 
 T mtrace(T const a[static M*N])

@@ -2,6 +2,7 @@
 #include "generic.h"
 #endif
 #include "matrix.h"
+#define MREF(a, column, row) ((a)[(column) * N + (row)])
 
 /* Copy src matrix into dest */
 #undef mcopy
