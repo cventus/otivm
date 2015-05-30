@@ -213,6 +213,9 @@ int fork_test(int id, int fd, const char *prefix)
 	/* Create pipe for IPC */
 	CHECK(pipe(pipefd) == 0);
 
+	/* Flush streams before forking */
+	CHECK(err = fflush(NULL), err == 0);
+
 	/* Create sub-process to run test in */
 	CHECK(pid = fork(), pid >= 0);
 	if (pid == 0) {
