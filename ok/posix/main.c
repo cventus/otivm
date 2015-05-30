@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
@@ -17,9 +18,19 @@
 /* Definition of global test status flag. */
 int ok = 0;
 
+static void die(const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	exit(EXIT_FAILURE);
+}
+
 static void usage(const char *argv0)
 {
-	printf("\
+	die("\
 Usage: %s [-n] [-l] [-v] [-p <line prefix>] [-s seed] [<test id>...]\n\
  -n\tNo fork; run all tests in the same process (simpler for debugging)\n\
  -l\tList tests, but do not run them\n\
@@ -28,7 +39,6 @@ Usage: %s [-n] [-l] [-v] [-p <line prefix>] [-s seed] [<test id>...]\n\
  -p\tUse the specified prefix instead of a tab on each line\n\
  -s\tRandom seed used to seed srand() before each test (default 1)\n\
 ", argv0);
-	exit(EXIT_FAILURE);
 }
 
 static int bisset(unsigned char *mask, unsigned bit)
@@ -86,7 +96,7 @@ static void print_skipped(unsigned id)
 	printf("ok %u %s # SKIPPED\n", id + 1, tests[id].description);
 }
 
-/* create file to redirect stdout and stderr into */
+/* Create file to redirect test stdout and stderr into. */
 static int open_temp_file(void)
 {
 	char template[] = "/tmp/test-output.XXXXXX";
@@ -103,7 +113,7 @@ int main(int argc, char **argv)
 	char *endp;
 	const char *prefix;
 	unsigned char *test_mask;
-	int n_fail, can_fork, list, invert, fd, opt;
+	int n_fail, can_fork, list, invert, fd, opt, err;
 	unsigned long seed;
 	size_t i;
 
@@ -124,13 +134,11 @@ int main(int argc, char **argv)
 		case 's':
 			seed = strtoul(optarg, &endp, 0);
 			if (endp == optarg || *endp != '\0') {
-				fprintf(stderr, "Bad seed: %s\n", optarg);
-				exit(EXIT_FAILURE);
+				die("Bad random seed: %s\n", optarg);
 			}
-			if (seed > UINT_MAX) {
-				fprintf(stderr, "Seed out of range: %s\n",
-				        optarg);
-				exit(EXIT_FAILURE);
+			if (seed > RAND_MAX) {
+				die("Random seed out of range [0, %lu]: %s\n",
+				    (unsigned long)RAND_MAX, optarg);
 			}
 			break;
 		default: usage(argv[0]); break;
@@ -146,17 +154,7 @@ int main(int argc, char **argv)
 
 	CHECK(fd = open_temp_file(), fd >= 0);
 	n_fail = 0;
-				
-	test_mask = parse_test_mask(argv + optind, argc - optind, invert);
-
-	if (list) {
-		list_tests(test_mask);
-		exit(EXIT_SUCCESS);
-	} 
-
-	CHECK(fd = open_temp_file(), fd >= 0);
-	n_fail = 0;
-	printf("%d..%zd\n", 1, n_tests);
+	printf("1..%zd\n", n_tests);
 	for (i = 0; i < n_tests; i++) {
 		if (!bisset(test_mask, i)) {
 			print_skipped(i);
@@ -164,6 +162,7 @@ int main(int argc, char **argv)
 		}
 		ok = 0;
 		srand((unsigned int)seed);
+		CHECK(err = ftruncate(fd, 0), err == 0);
 		if ((can_fork ? fork_test : run_test)(i, fd, prefix) || ok) {
 			n_fail++;
 		}

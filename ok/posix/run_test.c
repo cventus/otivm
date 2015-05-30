@@ -72,7 +72,8 @@ void bail_out(const char *message)
 
 static void do_bail_out(const char *msg)
 {
-	printf("Bail out!%s%s\n", msg && msg[0] ? " " : "", msg);
+	if (!msg) msg = "";
+	printf("Bail out!%s%s\n", msg[0] ? " " : "", msg);
 	exit(EXIT_FAILURE);
 }
 
@@ -166,9 +167,6 @@ int run_test(int id, int fd, const char *prefix)
 
 	t = tests + id;
 
-	/* clear test output file */
-	CHECK(ftruncate(fd, 0) == 0);
-
 	/* Redirect stdout to file */
 	CHECK(outfd = dup(STDOUT_FILENO), outfd >= 0);
 	CHECK(err = dup2(fd, STDOUT_FILENO), err != -1);
@@ -211,7 +209,6 @@ int fork_test(int id, int fd, const char *prefix)
 	struct test *t;
 
 	t = tests + id;
-	CHECK(ftruncate(fd, 0) == 0);
 
 	/* Create pipe for IPC */
 	CHECK(pipe(pipefd) == 0);
