@@ -39,12 +39,14 @@ function print_test(label, id, text, is_first) {
 }
 
 function print_table(msg, table, text, first) {
-	first = 1
-	for (id in table) {
-		print_test(msg, id, text, first)
-		first = 0
+	if (length(table)) {
+		first = 1
+		for (id in table) {
+			print_test(msg, id, text, first)
+			first = 0
+		}
+		printf "\n"
 	}
-	printf "\n"
 }
 
 BEGIN {
@@ -101,17 +103,18 @@ $1 ~ /(not )?ok/ {
 	# The test has passed
 	message[id] = $3
 	explain[id] = $5
+	fail = $1 ~ /^not/
 
 	if (is_todo($4)) {
 		# TODO directive. These tests count as passed no matter what
 		passed[id] = 1
-
 		# If it was successful, then notify user at the end
 		if (!fail) done[id] = 1
 	} else if (is_skip($4)) {
 		# SKIP directive
 		skipped[id] = 1
-	} else if ($1 ~ /^not/) {
+		skip_msg[id] = message[id] "-- " explain[id]
+	} else if (fail) {
 		# Test failed
 		failed[id] = 1
 		print_test(failcol("FAILED"), id, message, length(failed) == 1)
@@ -122,7 +125,9 @@ $1 ~ /(not )?ok/ {
 
 /Bail out!/ {
 	# Bail out
-	print
+	bail_out = 1
+	bail_out_message = $0
+	sub(/^[^!]*![ 	]*/, "", bail_out_message)
 	exit
 }
 
@@ -138,55 +143,50 @@ END {
 		print_test(failcol("FAILED"), id, message, length(failed) == 1)
 	}
 
-	# End line of failures
-	nfail = length(failed)
-	if (nfail > 0) {
-		printf "\n"
-	}
-
-	# Check whether there was a plan at all
-	if (length(planned) == 0 && !skip_all) {
-		print failcol("NO PLAN")
-	}
-
-	if (info) {
-		# Check special cases
-		if (length(repeat)) {
-			print_table(failcol("Repeated"), repeat, repeat_text);
-		}
-		if (length(skipped)) {
-			print_table(noticecol("Skipped"), skipped, explain);
-		}
-		if (length(done)) {
-			print_table(warncol("Passed"), done, explain);
-		}
-	}
-
-	# Were there any unplanned tests?
-	first = 1
+	# Check for tests that aren't part of any plan
 	for (id in passed) {
-		if (!(id in planned)) {
-			print_test(warncol("Not planned"), id, message, first)
-			first = 0
-		}
+		if (!(id in planned)) { noplan[i] = 1 }
 	}
-	if (!first) printf "\n"
 
-	# Print test summary
+	# Print test summary (finish failed tests)
+	no_plan = length(planned) == 0 && !skip_all
+	nfail = length(failed)
 	npass = length(passed) + length(skipped)
-	ndone = length(done) # Not exclusive list
 	n = npass + nfail
 	if (n > 0) {
 		if (nfail) {
-			percent = npass*100.0/n
-			printf "Failed %d/%d tests\n", nfail, n
+			printf (verbose ? "\n\t" : " ")
 		} else {
-			print okcol("OK")
+			if (length(done) || length(repeat) || length(noplan)) {
+				printf warncol("OK")
+			} else if (length (skipped)) {
+				printf noticecol("OK")
+			} else {
+				printf okcol("OK")
+			}
+			printf " "
 		}
+		printf "(%d/%s)\n", npass, (no_plan ? failcol("???") : n "")
 	} else if (skip_all) {
-		print okcol("OK")
+		print noticecol("OK") " (" noticecol("skip") ")"
 	} else {
 		print warncol("NO TESTS")
 	}
+
+	# Print additional information (possibly one line each)
+	if (info) {
+		print_table(noticecol("Skipped"), skipped, skip_msg);
+		print_table(warncol("Repeated"), repeat, repeat_text);
+		print_table(warncol("Passed"), done, explain);
+		print_table(warncol("Not planned"), noplan, explain);
+	}
+
+	# Did the test intentionally exit early?
+	if (bail_out) {
+		print failcol("BAILED") " " bail_out_message
+	}
+
+	# Report the number of failed tests in the exit code
+	exit nfail
 }
 
