@@ -72,7 +72,8 @@ MOD_$1:=$$(MOD)
 LIB_$1:=$$(LIB)
 GINC_$1:=$$(GINC)
 GSRC_$1:=$$(GSRC)
-TEST_SRC_$1:=$$(filter $2/test/%.c,$3)
+TEST_SRC_$1:=$$(wildcard $2/test/*.c) \
+             $(foreach T,$(TAGS),$$(wildcard $2/test/$T/*.c))
 TEST_OBJ_$1:=$$(patsubst %.c,$(OBJDIR_BASE)/%.o,$$(TEST_SRC_$1)) $$(TEST_OBJ)
 
 $$(sort $$(OBJDIR_BASE)/$2/ \
@@ -162,7 +163,7 @@ $$(TESTDIR_BASE)/$2/bin/$3: $$(AR_DIR)/lib$2.a \
                             $$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$4) \
                             $$(call arrec,$1) \
                             | $$(TESTDIR_BASE)/$2/bin/
-	echo hi; $$(CC) $$(LDFLAGS) \
+	$$(CC) $$(LDFLAGS) \
                $$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$4) \
                $$(TEST_LDLIBS) \
                -L$$(AR_DIR) \
@@ -200,7 +201,7 @@ $$(BIN_DIR)/$2: $$(OBJ_$1) $$(call arrec,$1) | $$(BIN_DIR)
                $$(OBJ_$1) \
                -L$$(AR_DIR) \
                $$(addprefix -l,$$(call ar_mod,$$(call modrec,$1))) \
-               $$(call librec,$$(call modrec,$1)) \
+               $$(call librec,$1) \
                $$(LDLIBS) \
                -o $$@ 
 
