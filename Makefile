@@ -55,6 +55,7 @@ OBJ:=
 MOD:=
 LIB:=
 GINC:=
+GSRC:=
 OBJDIR:=$$(OBJDIR_BASE)/$2
 GINCDIR:=$$(GINCDIR_BASE)/$2/$2
 GSRCDIR:=$$(GSRCDIR_BASE)/$2
@@ -296,14 +297,14 @@ list-tests:
 # header files an object file depends on. Whenever this rule is invoked the
 # target specific variable SOURCE needs to be set.
 $(DEPDIR_BASE)/%.d:
-	set -e; \
-$(CC) $(CPPFLAGS) -E -MM "$(SOURCE)" >$@.$$$$; \
-sed 's,^[^:]*:,$@ $(patsubst $(DEPDIR_BASE)/%.d,$(OBJDIR_BASE)/%.o,$@):,' \
--i $@.$$$$; \
-echo "$@: SOURCE=$(SOURCE)" >$@; \
-echo "$@: CPPFLAGS=$(CPPFLAGS)" >>$@; \
-cat "$@.$$$$" >>$@; \
-rm -f "$@.$$$$"
+	@set -e; \
+	  $(CC) $(CPPFLAGS) -E -MM "$(SOURCE)" >$@.$$$$; \
+	  sed 's,^[^:]*:,$@ $(patsubst $(DEPDIR_BASE)/%.d,$(OBJDIR_BASE)/%.o,$@):,' \
+	  -i $@.$$$$; \
+	  echo "$@: SOURCE=$(SOURCE)" >$@; \
+	  echo "$@: CPPFLAGS=$(CPPFLAGS)" >>$@; \
+	  cat "$@.$$$$" >>$@; \
+	  rm -f "$@.$$$$"
 
 # Rule for building object files
 #
@@ -322,14 +323,14 @@ print-%:
 
 # Rule for building intermediate header files with the C pre-processor
 $(GSRCDIR_BASE)/%.h: $(SOURCE)
-	$(CPP) -C -nostdinc $(CPPFLAGS) "$(SOURCE)" | \
-	sed '/^#/d' | \
-	tr '\n' '#' | \
-	sed 's/##*/\n/g' | \
-	sed 's/;/;\n/' >"$@"
+	@$(CPP) -C -nostdinc $(CPPFLAGS) "$(SOURCE)" | \
+	  sed '/^#/d' | \
+	  tr '\n' '#' | \
+	  sed 's/##*/\n/g' | \
+	  sed 's/;/;\n/' >"$@"
 
 # A generated header consists of several files (generated headers) concatenated
 # together
 $(GINCDIR_BASE)/%.h: $(SOURCES)
-	cat $(foreach S,$(SOURCES),"$S") >"$@"
+	@cat $(foreach S,$(SOURCES),"$S") >"$@"
 
