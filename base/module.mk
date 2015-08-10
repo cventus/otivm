@@ -1,0 +1,3 @@
+OUT=archive
+MOD=ok
+
