@@ -41,41 +41,25 @@ Usage: %s [-n] [-l] [-v] [-p <line prefix>] [-s seed] [<test id>...]\n\
 ", argv0);
 }
 
-static int bisset(unsigned char *mask, unsigned bit)
+static int is_listed(int id, char *ids[], int n_ids, int invert, size_t m)
 {
-	return mask[bit / CHAR_BIT] & (1 << (bit % CHAR_BIT));
-}
-
-static void bset(unsigned char *mask, unsigned bit)
-{
-	mask[bit / CHAR_BIT] |= (1 << (bit % CHAR_BIT));
-}
-
-static void bclear(unsigned char *mask, unsigned bit)
-{
-	mask[bit / CHAR_BIT] &= ~(1 << (bit % CHAR_BIT));
-}
-
-static unsigned char *parse_test_mask(char *ids[], int n, int invert, size_t m)
-{
-	unsigned char *mask;
-	char *end;
-	size_t sz, id;
 	int i;
+	char *end;
+	long val;
 
-	sz = (m + CHAR_BIT - 1) / CHAR_BIT;
-	CHECK(mask = malloc(sz), mask);
-	memset(mask, n == 0 || invert ? ~0 : 0, sz);
+	if (n_ids == 0) { return 1; }
 
-	for (i = 0; i < n; i++) {
-		id = (size_t)strtol(ids[i], &end, 0);
-		if (ids[i] == '\0' || *end != '\0' || id < 1 || id > m) {
-			fprintf(stderr, "invalid id: \"%s\"\n", ids[i]);
-			exit(EXIT_FAILURE);
+	for (i = 0; i < n_ids; i++) {
+		val = strtol(ids[i], &end, 0);
+		if (ids[i] == '\0' || *end != '\0') {
+			die("invalid id: \"%s\"\n", ids[i]);
 		}
-		(invert ? bclear : bset)(mask, id - 1);
+		if (val < 1 || (size_t)val > m) {
+			die("id %ld out of range [1..%zd]\n", val, m);
+		}
+		if (val == id) { return !invert; }
 	}
-	return mask;
+	return invert;
 }
 
 static size_t count_tests(struct test const *t)
@@ -83,24 +67,7 @@ static size_t count_tests(struct test const *t)
 	size_t i;
 
 	for (i = 0; t[i].fn; i++) { }
-
 	return i;
-}
-
-static void list_tests(unsigned char *mask)
-{
-	size_t i;
-
-	for (i = 0; tests[i].fn; i++) {
-		if (bisset(mask, i)) {
-			printf("%zd\t%s\n", i + 1, tests[i].desc);
-		}
-	}
-}
-
-static void print_skipped(unsigned id)
-{
-	printf("ok %u %s # SKIPPED\n", id + 1, tests[id].desc);
 }
 
 /* Create file to redirect test stdout and stderr into. */
@@ -115,29 +82,33 @@ static int open_temp_file(void)
 	return fd;
 }
 
-int main(int argc, char **argv)
+struct options
+{
+	int can_fork, list, invert;
+	unsigned int seed;
+	char const *prefix;
+};
+
+static int parse_options(int argc, char **argv, struct options *options)
 {
 	char *endp;
-	const char *prefix;
-	unsigned char *test_mask;
-	int n_fail, can_fork, list, invert, fd, opt, err;
+	int opt;
 	unsigned long seed;
-	size_t i, n_tests;
 
 	/* set default options */
-	can_fork = 1;
-	list = 0;
-	invert = 0;
-	prefix = "\t";
-	seed = 1;
+	options->can_fork = 1;
+	options->list = 0;
+	options->invert = 0;
+	options->prefix = "\t";
+	options->seed = 1;
 
 	/* parse command line arguments */
 	while ((opt = getopt(argc, argv, "nlvp:s:")) != -1) {
 		switch (opt) {
-		case 'n': can_fork = 0; break;
-		case 'v': invert = 1; break;
-		case 'l': list = 1; break;
-		case 'p': prefix = optarg; break;
+		case 'n': options->can_fork = 0; break;
+		case 'v': options->invert = 1; break;
+		case 'l': options->list = 1; break;
+		case 'p': options->prefix = optarg; break;
 		case 's':
 			seed = strtoul(optarg, &endp, 0);
 			if (endp == optarg || *endp != '\0') {
@@ -147,37 +118,52 @@ int main(int argc, char **argv)
 				die("Random seed out of range [0, %lu]: %s\n",
 				    (unsigned long)RAND_MAX, optarg);
 			}
+			options->seed = (unsigned int)seed;
 			break;
 		default: usage(argv[0]); break;
 		}
 	}
 
-	n_tests = count_tests(tests);
-	test_mask = parse_test_mask(argv+optind, argc-optind, invert, n_tests);
+	return optind;
+}
 
-	if (list) {
-		list_tests(test_mask);
-		free(test_mask);
+int main(int argc, char **argv)
+{
+	struct options o;
+	char **ids;
+	int n_ids, n_fail, fd, opts, err;
+	size_t i, n_tests;
+
+	opts = parse_options(argc, argv, &o);
+	ids = argv + opts;
+	n_ids = argc - opts;
+	n_tests = count_tests(tests);
+
+	/* List tests */
+	if (o.list) {
+		for (i = 0; i < n_tests; i++) {
+			if (is_listed(i + 1, ids, n_ids, o.invert, n_tests)) {
+				printf("%zd\t%s\n", i + 1, tests[i].desc);
+			}
+		}
 		exit(0);
 	} 
 
+	/* Run tests */
 	CHECK(fd = open_temp_file(), fd >= 0);
 	n_fail = 0;
 	printf("1..%zd\n", n_tests);
 	for (i = 0; i < n_tests; i++) {
-		if (!bisset(test_mask, i)) {
-			print_skipped(i);
+		if (!is_listed(i + 1, ids, n_ids, o.invert, n_tests)) {
+			printf("ok %zd %s # SKIPPED\n", i + 1, tests[i].desc);
 			continue;
 		}
 		ok = 0;
-		srand((unsigned int)seed);
+		srand(o.seed);
 		CHECK(err = ftruncate(fd, 0), err == 0);
-		err = (can_fork ? fork_test : run_test)(i, fd, prefix);
-		if (err || ok) {
-			n_fail++;
-		}
+		err = (o.can_fork ? fork_test : run_test)(i, fd, o.prefix);
+		if (err || ok) { n_fail++; }
 	}
-	free(test_mask);
 	exit(n_fail);
 } 
 
