@@ -38,8 +38,14 @@ function print_test(label, id, text, is_first) {
 	system("") # Flush output buffer
 }
 
+function arrlen(arr,   elem, n) {
+	n = 0
+	for (elem in arr) n++
+	return n
+}
+
 function print_table(msg, table, text, first) {
-	if (length(table)) {
+	if (arrlen(table)) {
 		first = 1
 		for (id in table) {
 			print_test(msg, id, text, first)
@@ -117,7 +123,7 @@ $1 ~ /(not )?ok/ {
 	} else if (fail) {
 		# Test failed
 		failed[id] = 1
-		print_test(failcol("FAILED"), id, message, length(failed) == 1)
+		print_test(failcol("FAILED"), id, message, arrlen(failed) == 1)
 	} else {
 		passed[id] = 1
 	}
@@ -140,7 +146,7 @@ END {
 	for (id in planned) {
 		if (id in passed || id in skipped || id in failed) continue;
 		failed[id] = 1
-		print_test(failcol("FAILED"), id, message, length(failed) == 1)
+		print_test(failcol("FAILED"), id, message, arrlen(failed) == 1)
 	}
 
 	# Check for tests that aren't part of any plan
@@ -149,17 +155,17 @@ END {
 	}
 
 	# Print test summary (finish failed tests)
-	no_plan = length(planned) == 0 && !skip_all
-	nfail = length(failed)
-	npass = length(passed) + length(skipped)
+	no_plan = arrlen(planned) == 0 && !skip_all
+	nfail = arrlen(failed)
+	npass = arrlen(passed) + arrlen(skipped)
 	n = npass + nfail
 	if (n > 0) {
 		if (nfail) {
 			printf (verbose ? "\n\t" : " ")
 		} else {
-			if (length(done) || length(repeat) || length(noplan)) {
+			if (arrlen(done) || arrlen(repeat) || arrlen(noplan)) {
 				printf warncol("OK")
-			} else if (length (skipped)) {
+			} else if (arrlen(skipped)) {
 				printf noticecol("OK")
 			} else {
 				printf okcol("OK")
