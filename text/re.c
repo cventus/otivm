@@ -35,10 +35,10 @@ static matchfn
 	match_complement;
 
 /* Match next (quantified) expression */
-static int match_exp(struct slice, struct slice, int, struct recap []);
+static int match_exp(struct slice, struct slice, int, struct recap [], int);
 
 /* Match any of the branches in the regular expression */
-static int match_alt(struct slice, struct slice, int, struct recap []);
+static int match_alt(struct slice, struct slice, int, struct recap [], int);
 
 static struct slice mkslicen(char const *p, size_t len)
 {
@@ -53,8 +53,7 @@ static struct slice mkslice(char const *p)
 /* Return suffix of `s` where the first `n` characters have been removed. */
 static struct slice advance(struct slice s, size_t n)
 {
-	size_t m = (n > s.len) ? s.len : n;
-	return mkslicen(s.p + m, s.len - m);
+	return mkslicen(s.p + n, s.len - n);
 }
 
 /* Return prefix of `s` where the last `n` characters have been removed. */
@@ -184,8 +183,6 @@ static struct slice get_groupre(char const *p, int len, unsigned flags)
 		return mkslicen(p + 3, len - 4);
 	}
 }
-
-
 
 static int parse_builtin(struct slice const re, matchfn **match)
 {
@@ -497,7 +494,8 @@ static int greedy_exp(
 	struct slice rest_re,
 	struct slice text,
 	size_t offset,
-	struct recap cap[])
+	struct recap cap[],
+	int anchor)
 {
 	size_t i;
 	int n;
@@ -509,7 +507,8 @@ static int greedy_exp(
 	while (1) {
 		/* Note: alternation is handled before this function is called
 		   because we're matching a single character */
-		n = match_exp(rest_re, advance(text, i), offset + i, cap);
+		n = match_exp(rest_re, advance(text, i), offset + i, cap,
+		              anchor);
 		if (n >= 0) { return n + (int)i; }
 		else if (i == q->min) { return -1; }
 		else { i--; }
@@ -523,7 +522,8 @@ static int lazy_exp(
 	struct slice rest_re,
 	struct slice text,
 	size_t offset,
-	struct recap cap[])
+	struct recap cap[],
+	int anchor)
 {
 	size_t i;
 	int n;
@@ -537,7 +537,8 @@ static int lazy_exp(
 		if (!q->more && i == q->max) { return -1; }
 		/* Note: alternation is handled before this function is called
 		   because we're matching a single character */
-		n = match_exp(rest_re, advance(text, i), offset + 1, cap);
+		n = match_exp(rest_re, advance(text, i), offset + 1, cap,
+		              anchor);
 		if (n >= 0) { return n + (int)i; }
 	} while (++i < text.len && match(re, advance(text, i)));
 	return -1;
@@ -545,7 +546,7 @@ static int lazy_exp(
 
 /* Array of *_exp functions, indexed by `quantpol` */
 static int (*expfn[])(struct quant const *, struct slice, matchfn *,
-	struct slice, struct slice, size_t, struct recap []) =
+	struct slice, struct slice, size_t, struct recap [], int) =
 {
 	greedy_exp,
 	lazy_exp
@@ -557,13 +558,14 @@ static int group_done(
 	struct slice re,
 	struct slice const text,
 	size_t const offset,
-	struct recap cap[])
+	struct recap cap[],
+	int anchor)
 {
 	if (matches < q->min) {
 		/* Unable to match enough times */
 		return -1;
 	} else {
-		return match_exp(re, text, offset, cap);
+		return match_exp(re, text, offset, cap, anchor);
 	}
 }
 
@@ -576,7 +578,8 @@ static int greedy_group_rec(
 	size_t offset,
 	struct recap cap[],
 	struct slice r_re,
-	struct recap r_cap[])
+	struct recap r_cap[],
+	int anchor)
 {
 	size_t i;
 	int m, n;
@@ -586,7 +589,7 @@ static int greedy_group_rec(
 		for (i = 0; i <= text.len ; i++) {
 			/* Match group expression for the current match */
 			n = match_alt(re, shrink(text, i), offset,
-			              nextcap(cap, flags, 1));
+			              nextcap(cap, flags, 1), 0);
 
 			/* No match, */
 			if (n < 0) { break; }
@@ -595,7 +598,7 @@ static int greedy_group_rec(
 			   would yield zero as well, cut it short here. */
 			if (n == 0) {
 				m = group_done(matches + 1, q, r_re, text,
-				               offset, r_cap);
+				               offset, r_cap, anchor);
 				if (m < 0) { return -1; }
 			} else {
 				/* Try to match the rest of the repetitions
@@ -606,7 +609,7 @@ static int greedy_group_rec(
 				m = greedy_group_rec(matches + 1, flags, q,
 				                     re, advance(text, n),
 				                     offset + n, NULL,
-				                     r_re, r_cap);
+				                     r_re, r_cap, anchor);
 				if (m < 0) { continue; }
 			}
 			if (matches == 0) {
@@ -615,7 +618,7 @@ static int greedy_group_rec(
 			return n + m;
 		}
 	}
-	return group_done(matches, q, r_re, text, offset, r_cap);
+	return group_done(matches, q, r_re, text, offset, r_cap, anchor);
 }
 
 static int greedy_group(
@@ -624,6 +627,7 @@ static int greedy_group(
 	struct slice re,
 	struct slice text,
 	size_t off,
+	int anchor,
 	struct recap cap[],
 	struct slice r_re,
 	struct recap r_cap[])
@@ -633,7 +637,8 @@ static int greedy_group(
 	   it is possible to backtrack by jumping back with a fixed length
 	   offset, like `greedy_exp()`, rather than storing the backtrack
 	   information on the stack as in the following recursive function. */
-	return greedy_group_rec(0, flags, q, re, text, off, cap, r_re, r_cap);
+	return greedy_group_rec(0, flags, q, re, text, off, cap, r_re, r_cap,
+	                        anchor);
 }
 
 static int lazy_group(
@@ -642,6 +647,7 @@ static int lazy_group(
 	struct slice re,
 	struct slice text,
 	size_t offset,
+	int anchor,
 	struct recap cap[],
 	struct slice r_re,
 	struct recap r_cap[])
@@ -650,13 +656,14 @@ static int lazy_group(
 	int n, m;
 
 	for (n = i = j = 0; j <= text.len; i++, j += n) {
-		m = group_done(i, q, r_re, advance(text, j), offset + j, r_cap);
+		m = group_done(i, q, r_re, advance(text, j), offset + j,
+		               r_cap, anchor);
 		if (m >= 0) {
 			return j + m;
 		}
 		if (!q->more && i == q->max) { break; }
 		n = match_alt(re, advance(text, j), offset + j,
-		              i == 0 ? nextcap(cap, flags, 1) : NULL);
+		              i == 0 ? nextcap(cap, flags, 1) : NULL, 0);
 		if (n < 0) { break; }
 		if (i == 0) { setcap(cap, flags, offset, n); }
 	}
@@ -665,7 +672,8 @@ static int lazy_group(
 
 /* Array of *_group functions, indexed by `quantpol` */
 static int (*groupfn[])(unsigned, struct quant const *, struct slice,
-	struct slice, size_t, struct recap [], struct slice, struct recap []) =
+	struct slice, size_t, int, struct recap [], struct slice,
+	struct recap []) =
 {
 	greedy_group,
 	lazy_group
@@ -673,15 +681,15 @@ static int (*groupfn[])(unsigned, struct quant const *, struct slice,
 
 /* Match the next regular-expression in the current branch */
 static int match_exp(struct slice re, struct slice text,
-                     int offset, struct recap cap[])
+                     int offset, struct recap cap[], int anchor)
 {
-	int relen, qlen;
+	int relen, qlen, n;
 	matchfn *match;
 	struct quant q;
 	struct slice next, rest;
 
 	if (re.len == 0) { /* end of regex or branch */
-		return 0;
+		return anchor && text.len ? -1 : 0;
 	}
 
 	if (re.p[0] == '(') { /* group */
@@ -697,8 +705,13 @@ static int match_exp(struct slice re, struct slice text,
 		next = get_groupre(re.p, relen, flags);
 		rest = advance(re, relen + qlen);
 	
-		return groupfn[q.policy](flags, &q, next, text, offset, cap,
-		                         rest, nextcap(cap, flags, ncap));
+		n = groupfn[q.policy](flags, &q, next, text, offset, anchor,
+		                      cap, rest, nextcap(cap, flags, ncap));
+		if (n > 0 && anchor && rest.len == 0) {
+			return (size_t)n == text.len ? n : -1;
+		} else {
+			return n;
+		}
 	}
 
 	/* single character */
@@ -721,24 +734,39 @@ static int match_exp(struct slice re, struct slice text,
 	next = mkslicen(re.p, relen);
 	rest = advance(re, relen + qlen);
 
-	return expfn[q.policy](&q, next, match, rest, text, offset, cap);
+	return expfn[q.policy](&q, next, match, rest, text, offset, cap,
+	                       anchor);
+}
+
+static void clear_captures(unsigned index, unsigned n, struct recap cap[])
+{
+	size_t i;
+
+	if (cap) {
+		for (i = 0; i < n; i++) {
+			cap[index + i].offset = -1;
+			cap[index + i].length = 0;
+		}
+	}
 }
 
 /* Match the first possible branch */
 static int match_alt(struct slice re, struct slice text,
-                     int offset, struct recap cap[])
+                     int offset, struct recap cap[], int anchor)
 {
 	size_t off;
-	int n, m;
+	int n, m, l;
 	struct slice s;
-	unsigned i, j, ncap;
+	unsigned i, j, ncap, mcap;
 
 	off = 0;
-	n = -1;
-	ncap = 0;
+	l = n = -1;
+	mcap = 0;
 	j = i = 0;
 
 	do {
+		ncap = 0;
+
 		/* Skip past previous branches */
 		s = advance(re, off);
 
@@ -748,29 +776,26 @@ static int match_alt(struct slice re, struct slice text,
 		off += m + 1;
 	
 		/* Clear out capture groups within branch */
-		if (cap) {
-			j = i;
-			for (; i < ncap; i++) {
-				cap[i].offset = -1;
-				cap[i].length = 0;
-			}
-		}
-
-		/* Stick with first branch that matches */
-		if (n >= 0) { continue; }
+		clear_captures(i, ncap, cap);
 		n = match_exp(prefix(s, m), text, offset,
-		              nextcap(cap, CAPTURE, j));
+		              nextcap(cap, CAPTURE, i), anchor);
 
-		/* Clear out capture groups in branch that didn't match */
-		if (cap && n < 0) {
-			for (; j < ncap; j++) {
-				cap[j].offset = -1;
-				cap[j].length = 0;
-			}
+		if (n < 0) {
+			/* Clear out capture groups in branch that didn't
+			   match */
+			clear_captures(i, ncap, cap);
+		} else if (l < n) {
+			/* Clear out captures from the previously longest
+			   branch */
+			clear_captures(j, mcap, cap);
+			l = n;
+			j = i;
+			mcap = ncap;
 		}
+		i += ncap;
 	} while (off <= re.len);
 
-	return n;
+	return l;
 }
 
 static size_t has_end_anchor(char const *str)
@@ -791,22 +816,22 @@ static size_t has_end_anchor(char const *str)
 int recapn(char const *re, char const *text, size_t textn, struct recap cap[])
 {
 	size_t i;
-	int len, dollar;
+	int len, anchor;
 	struct slice restr, textstr;
 	struct recap *subcap;
 
 	if (!re || !text) { return 0; }
 
-	dollar = has_end_anchor(re);
-	restr = shrink(mkslice(re), dollar);
+	anchor = has_end_anchor(re);
+	restr = shrink(mkslice(re), anchor);
 	textstr = mkslicen(text, textn);
 	subcap = nextcap(cap, CAPTURE, 1);
 	setcap(cap, CAPTURE, -1, 0);
 
 	if (re[0] == '^') {
 		/* Only match at start of string */
-		len = match_alt(advance(restr, 1), textstr, 0, subcap);
-		if (len < 0 || (dollar && (size_t)len < textn)) {
+		len = match_alt(advance(restr, 1), textstr, 0, subcap, anchor);
+		if (len < 0) {
 			setcap(cap, CAPTURE, -1, 0);
 			return 0;
 		} else {
@@ -817,8 +842,9 @@ int recapn(char const *re, char const *text, size_t textn, struct recap cap[])
 		/* Attempt to match at every location */
 		i = 0;
 		do {
-			len = match_alt(restr, advance(textstr, i), i, subcap);
-			if (len >= 0 && (!dollar || (i + len == textn))) {
+			len = match_alt(restr, advance(textstr, i), i, subcap,
+			                anchor);
+			if (len >= 0) {
 				setcap(cap, CAPTURE, i, len);
 				return 1;
 			}

@@ -352,7 +352,15 @@ static int alternate(void)
 static int useful(void)
 {
 	char const *fp = "^[+-]?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)([eE]-?[0-9]+)?$";
-	char const *bin = "[01]?(10|01)*|(10|01)*[01]";
+	char const *bin = "^[01]?(10|01)*|(10|01)*[01]$";
+
+	/* Groups and anchors */
+	check_match("^(a|b*)fo+(bar|baz)?...|something else$", "bbfoo123");
+	check_match("^test|(not)?(this)?(a|c{2,3}|b)+$", "bcccbbcccccaccccaaa");
+	check_match("^(a|(b*|cc)|ccc)+$", "bcccbbcccccaccccaaa");
+	check_mismatch("^(a|(b*|cc)|ccc)+$", "bcccbbcccccdaccccaaa");
+	check_match("^(xyz|abc)(a*|b*)aa$", "abcaa");
+	check_match("^(cc|ccc)*$", "ccc");
 
 	/* Flexible floating point */
 	check_matchn(fp, 7, "0", "1.0", "1.", "1e6", "3.14", ".22500", "1e-4");
@@ -362,7 +370,7 @@ static int useful(void)
 
 	/* A phony balanced binary code */
 	check_matchn(bin, 4, "0", "1001", "01011010", "10101001");
-	check_mismatchn(bin, 4, "11", "1001", "10110100", "1010110001");
+	check_mismatchn(bin, 4, "11", "10001", "10110100", "1010110001");
 
 	return ok;
 }
