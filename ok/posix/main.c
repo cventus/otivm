@@ -31,7 +31,7 @@ static void die(const char *fmt, ...)
 static void usage(const char *argv0)
 {
 	die("\
-Usage: %s [-n] [-l] [-v] [-p <line prefix>] [-s seed] [<test id>...]\n\
+Usage: %s [-n] [-l] [-v] [-p <line prefix>] [-s seed] [<test>...]\n\
  -n\tNo fork; run all tests in the same process (simpler for debugging)\n\
  -l\tList tests, but do not run them\n\
  -v\tInvert selection, only run or list tests not specified in the command\n\
@@ -39,6 +39,18 @@ Usage: %s [-n] [-l] [-v] [-p <line prefix>] [-s seed] [<test id>...]\n\
  -p\tUse the specified prefix instead of a tab on each line\n\
  -s\tRandom seed used to seed srand() before each test (default 1)\n\
 ", argv0);
+}
+
+static int match_description(char const *pattern)
+{
+	int i;
+
+	for (i = 0; tests[i].fn && tests[i].desc; i++) {
+		if (strstr(tests[i].desc, pattern)) {
+			return i;
+		}
+	}
+	return -1;
 }
 
 static int is_listed(int id, char *ids[], int n_ids, int invert, size_t m)
@@ -52,7 +64,11 @@ static int is_listed(int id, char *ids[], int n_ids, int invert, size_t m)
 	for (i = 0; i < n_ids; i++) {
 		val = strtol(ids[i], &end, 0);
 		if (ids[i] == '\0' || *end != '\0') {
-			die("invalid id: \"%s\"\n", ids[i]);
+			val = match_description(ids[i]);
+			if (val < 0) {
+				die("no such test: \"%s\"\n", ids[i]);
+			}
+			val++; /* Index zero based, ids one based */
 		}
 		if (val < 1 || (size_t)val > m) {
 			die("id %ld out of range [1..%zd]\n", val, m);
