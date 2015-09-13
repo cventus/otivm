@@ -56,6 +56,7 @@ static void *create_node(void *node, size_t size, linkfn *link)
 void *list_head(void *node)
 {
 	struct link *p;
+	if (!node) { return NULL; }
 	for (p = get_link(node); p->prev; p = p->prev);
 	return get_node(p);
 }
@@ -63,6 +64,7 @@ void *list_head(void *node)
 void *list_tail(void *node)
 {
 	struct link *p;
+	if (!node) { return NULL; }
 	for (p = get_link(node); p->next; p = p->next);
 	return get_node(p);
 }
