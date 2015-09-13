@@ -15,6 +15,9 @@ void fail_test(char const *fmt, ...);
    external resource is unavailable). This function doesn't return. */
 void bail_out(char const *fmt, ...);
 
+/* Open string as a temporary read-only stream. */
+FILE *open_str(char const *string);
+
 extern struct test {
 	int (*fn)(void); /* test function; zero is success */
 	char const *desc;
