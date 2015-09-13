@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdalign.h>
 
 #include <ok/ok.h>
 #include <base/wbuf.h>
@@ -221,12 +222,47 @@ static int copy(void)
 	return ok;
 }
 
+static int align(void)
+{
+	/* This test might end with a unaligned memory access error on some
+	   systems, if the implementaiton is faulty. Otherwise at least
+	   valgrind should notice if something's wrong. */
+	struct wbuf buf;
+	char c = 1;
+	short int s = 2;
+	int i = 3;
+	long int l = 4;
+	double d = 5;
+
+	wbuf_init(&buf);
+
+	if (wbuf_align(&buf, alignof(c))) { fail_test("out of memory\n"); }
+	wbuf_write(&buf, &c, sizeof c);
+
+	if (wbuf_align(&buf, alignof(s))) { fail_test("out of memory\n"); }
+	wbuf_write(&buf, &s, sizeof s);
+
+	if (wbuf_align(&buf, alignof(i))) { fail_test("out of memory\n"); }
+	wbuf_write(&buf, &i, sizeof i);
+
+	if (wbuf_align(&buf, alignof(l))) { fail_test("out of memory\n"); }
+	wbuf_write(&buf, &l, sizeof l);
+
+	if (wbuf_align(&buf, alignof(d))) { fail_test("out of memory\n"); }
+	wbuf_write(&buf, &d, sizeof d);
+
+	wbuf_free(&buf);
+
+	return ok;
+}
+
 struct test const tests[] = {
 	{ init, 	"Initialization" },
 	{ reserve, 	"Memory reservation" },
 	{ alloc, 	"Memory allocation" },
 	{ write, 	"Writing data" },
 	{ copy, 	"Copying data" },
+	{ align, 	"Align write pointer" },
 	{ NULL, NULL }
 };
 

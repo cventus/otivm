@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "include/wbuf.h"
+#include "include/mem.h"
 #define MINSIZE sizeof(double)
 
 static size_t newsize(size_t size, size_t hint)
@@ -90,13 +91,9 @@ void *wbuf_get(struct wbuf buf[static 1], size_t offset)
 int wbuf_align(struct wbuf buf[static 1], size_t align)
 {
 	size_t off, pad;
-
-	if (align == 0) return 0;
-
-	off = wbuf_used(buf) % align;
-	if (off == 0) return 0;
-
-	pad = align - off;
+	if (align == 0 || buf->begin == NULL) return 0;
+	off = wbuf_used(buf);
+	pad = align_to(off, align) - off;
 	return wbuf_alloc(buf, pad) ? 0 : -1;
 }
 
