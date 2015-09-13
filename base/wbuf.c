@@ -82,6 +82,11 @@ size_t wbuf_capacity(struct wbuf const buf[static 1])
 	return buf->begin ? (char *)buf->bound - (char *)buf->begin : 0;
 }
 
+void *wbuf_get(struct wbuf buf[static 1], size_t offset)
+{
+	return (char *)buf->begin + offset;
+}
+
 int wbuf_align(struct wbuf buf[static 1], size_t align)
 {
 	size_t off, pad;
@@ -115,9 +120,9 @@ void *wbuf_write(struct wbuf buf[static 1], void const *data, size_t size)
 	return result;
 }
 
-int wbuf_concat(struct wbuf dest[static 1], struct wbuf const src[static 1])
+void *wbuf_concat(struct wbuf dest[static 1], struct wbuf const src[static 1])
 {
-	return wbuf_write(dest, src->begin, wbuf_used(src)) ? 0 : -1;
+	return wbuf_write(dest, src->begin, wbuf_used(src));
 }
 
 void *wbuf_copy(void *dest, struct wbuf const src[static 1])

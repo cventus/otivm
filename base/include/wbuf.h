@@ -1,11 +1,6 @@
-#ifndef BUF_H_INCLUDED
-#define BUF_H_INCLUDED
 
 /* Write buffer structure for appending data. */
-struct wbuf
-{
-	void *begin, *end, *bound;
-};
+struct wbuf { void *begin, *end, *bound; };
 
 /* Initialize an empty write buffer. */
 void wbuf_init(struct wbuf buf[static 1]);
@@ -24,7 +19,8 @@ int wbuf_trim(struct wbuf buf[static 1]);
 void wbuf_free(struct wbuf buf[static 1]);
 
 /* Return the amount of used space in the buffer, i.e. the number of chars that
-   have been allocated or written. */
+   have been allocated or written. This is the offset of the current end
+   pointer. */
 size_t wbuf_used(struct wbuf const buf[static 1]);
 
 /* Return the amount of available space in the buffer, i.e. how much can be
@@ -33,6 +29,9 @@ size_t wbuf_available(struct wbuf const buf[static 1]);
 
 /* Total size of the write buffer array, pointed to by `buf->begin`. */
 size_t wbuf_capacity(struct wbuf const buf[static 1]);
+
+/* Get a pointer that points `offset` bytes into the buffer. */
+void *wbuf_get(struct wbuf buf[static 1], size_t offset);
 
 /* Insert padding at the end of the buffer, if necessary, so that the next
    allocation has the specified alignment. Return zero on success. */
@@ -47,12 +46,10 @@ void *wbuf_alloc(struct wbuf buf[static 1], size_t size);
    allocation fails. */
 void *wbuf_write(struct wbuf buf[static 1], void const *data, size_t size);
 
-/* Concatenate the data from `src` to the end of `dest`. Return zero on
-   success. */
-int wbuf_concat(struct wbuf dest[static 1], struct wbuf const src[static 1]);
+/* Concatenate the data from `src` to the end of `dest`. Return the address of
+   the area in dest into which `src` was copied, or NULL if allocation fails. */
+void *wbuf_concat(struct wbuf dest[static 1], struct wbuf const src[static 1]);
 
 /* Copy `wbuf_use(src)` bytes from the buffer to `dest`. */
 void *wbuf_copy(void *dest, struct wbuf const src[static 1]);
-
-#endif
 
