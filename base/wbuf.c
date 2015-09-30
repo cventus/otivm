@@ -36,7 +36,7 @@ int wbuf_reserve(struct wbuf buf[static 1], size_t alloc_size)
 
 	if (wbuf_available(buf) < alloc_size) {
 		size = wbuf_capacity(buf);
-		use = wbuf_used(buf);
+		use = wbuf_size(buf);
 		do {
 			size = newsize(size, alloc_size);
 			if (size == 0) { return -1; }
@@ -52,7 +52,7 @@ int wbuf_reserve(struct wbuf buf[static 1], size_t alloc_size)
 
 int wbuf_trim(struct wbuf buf[static 1])
 {
-	size_t use = wbuf_used(buf);
+	size_t use = wbuf_size(buf);
 	char *p = realloc(buf->begin, use);
 	if (!p) { return -1; }
 	buf->begin = p;
@@ -68,7 +68,12 @@ void wbuf_free(struct wbuf buf[static 1])
 	}
 }
 
-size_t wbuf_used(struct wbuf const buf[static 1])
+size_t wbuf_nmemb(struct wbuf const buf[static 1], size_t elem_size)
+{
+	return wbuf_size(buf) / elem_size;
+}
+
+size_t wbuf_size(struct wbuf const buf[static 1])
 {
 	return buf->begin ? (char *)buf->end - (char *)buf->begin : 0;
 }
@@ -92,7 +97,7 @@ int wbuf_align(struct wbuf buf[static 1], size_t align)
 {
 	size_t off, pad;
 	if (align == 0 || buf->begin == NULL) return 0;
-	off = wbuf_used(buf);
+	off = wbuf_size(buf);
 	pad = align_to(off, align) - off;
 	return wbuf_alloc(buf, pad) ? 0 : -1;
 }
@@ -119,11 +124,11 @@ void *wbuf_write(struct wbuf buf[static 1], void const *data, size_t size)
 
 void *wbuf_concat(struct wbuf dest[static 1], struct wbuf const src[static 1])
 {
-	return wbuf_write(dest, src->begin, wbuf_used(src));
+	return wbuf_write(dest, src->begin, wbuf_size(src));
 }
 
 void *wbuf_copy(void *dest, struct wbuf const src[static 1])
 {
-	return src->begin ? memcpy(dest, src->begin, wbuf_used(src)) : dest;
+	return src->begin ? memcpy(dest, src->begin, wbuf_size(src)) : dest;
 }
 

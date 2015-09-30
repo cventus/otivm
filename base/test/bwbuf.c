@@ -11,7 +11,7 @@ static void assert_sizes(struct wbuf const *buf)
 	size_t capacity, used, available;
 
 	capacity = wbuf_capacity(buf);
-	used = wbuf_used(buf);
+	used = wbuf_size(buf);
 	available = wbuf_available(buf);
 
 	if (capacity != used + available) {
@@ -54,7 +54,7 @@ static void assert_quantity_ge(
 
 static void assert_used(struct wbuf const *buf, size_t expected)
 {
-	assert_quantity(buf, wbuf_used, "Used", expected);
+	assert_quantity(buf, wbuf_size, "Used", expected);
 }
 
 static void assert_capacity(struct wbuf const *buf, size_t expected)

@@ -21,7 +21,7 @@ void wbuf_free(struct wbuf buf[static 1]);
 /* Return the amount of used space in the buffer, i.e. the number of chars that
    have been allocated or written. This is the offset of the current end
    pointer. */
-size_t wbuf_used(struct wbuf const buf[static 1]);
+size_t wbuf_size(struct wbuf const buf[static 1]);
 
 /* Return the amount of available space in the buffer, i.e. how much can be
    written until before the buffer have to be expanded. */
@@ -29,6 +29,10 @@ size_t wbuf_available(struct wbuf const buf[static 1]);
 
 /* Total size of the write buffer array, pointed to by `buf->begin`. */
 size_t wbuf_capacity(struct wbuf const buf[static 1]);
+
+/* Return the number of elements in `buf`, if its contents is interpreted as
+   an array of objects of size `elem_size`. */
+size_t wbuf_nmemb(struct wbuf const buf[static 1], size_t elem_size);
 
 /* Get a pointer that points `offset` bytes into the buffer. */
 void *wbuf_get(struct wbuf buf[static 1], size_t offset);

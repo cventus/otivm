@@ -198,7 +198,7 @@ static int fix_pos(struct wbuf *idxbuf)
 	size_t i, nind;
 
 	ind = idxbuf->begin;
-	nind = wbuf_used(idxbuf) / sizeof *ind;
+	nind = wbuf_nmemb(idxbuf, sizeof *ind);
 
 	for (i = 0; i < nind; i++) {
 		triangle = ind[i];
@@ -218,7 +218,7 @@ static int fix_uv(struct obj_buffer *obj, struct wbuf *idxbuf)
 
 	has_defuv = 0;
 	ind = idxbuf->begin;
-	nind = wbuf_used(idxbuf) / sizeof *ind;
+	nind = wbuf_nmemb(idxbuf, sizeof *ind);
 
 	for (i = 0; i < nind; i++) {
 		triangle = ind[i];
@@ -249,7 +249,7 @@ static int fix_norm(struct obj_buffer *obj, struct wbuf *idxbuf)
 
 	pos = obj->pos.begin;
 	ind = idxbuf->begin;
-	nind = wbuf_used(idxbuf) / sizeof *ind;
+	nind = wbuf_nmemb(idxbuf, sizeof *ind);
 
 	/* Scan through each vertex */
 	for (i = 0; i < nind; i++) {
@@ -515,16 +515,16 @@ static struct wf_object const *alloc_obj_block(struct obj_buffer *obj)
 
 	/* 2. Array of pointer to string and string of strings */
 	wbuf_alignj(&block, alignof(*result->mtllib), errbuf);
-	off_mtllib = wbuf_used(&block);
+	off_mtllib = wbuf_size(&block);
 	wbuf_allocj(&block, sizeof *result->mtllib * obj->nmtllib, errbuf);
-	off_mtlstr = wbuf_used(&block);
+	off_mtlstr = wbuf_size(&block);
 	wbuf_concatj(&block, &obj->mtllib, errbuf);
 
 	/* 3. Array of struct wf_triangles */
 	wbuf_alignj(&block, alignof(*result->groups), errbuf);
-	off_groups = wbuf_used(&block);
+	off_groups = wbuf_size(&block);
 	wbuf_allocj(&block, sizeof *result->groups * ngroups, errbuf);
-	off_grpstr = wbuf_used(&block);
+	off_grpstr = wbuf_size(&block);
 	for (g = obj->groups; g; g = list_next(g)) {
 		if (g->mtlname) { 
 			wbuf_write_str0j(&block, g->mtlname, errbuf);
@@ -533,18 +533,18 @@ static struct wf_object const *alloc_obj_block(struct obj_buffer *obj)
 
 	/* 4. Arrays of unsigned[3][3] */
 	wbuf_alignj(&block, alignof(unsigned), errbuf);
-	off_grpidx = wbuf_used(&block);
+	off_grpidx = wbuf_size(&block);
 	for (g = obj->groups; g; g = list_next(g)) {
 		wbuf_concatj(&block, &g->vertices, errbuf);
 	}
 
 	/* 5. Arrays of float - pos, norm and uv */
 	wbuf_alignj(&block, alignof(float), errbuf);
-	off_pos = wbuf_used(&block);
+	off_pos = wbuf_size(&block);
 	wbuf_concatj(&block, &obj->pos, errbuf);
-	off_uv = wbuf_used(&block);
+	off_uv = wbuf_size(&block);
 	wbuf_concatj(&block, &obj->uv, errbuf);
-	off_norm = wbuf_used(&block);
+	off_norm = wbuf_size(&block);
 	wbuf_concatj(&block, &obj->norm, errbuf);
 	wbuf_trim(&block);
 
@@ -588,7 +588,7 @@ static struct wf_object const *alloc_obj_block(struct obj_buffer *obj)
 			} else {
 				groups[i].mtlname = NULL;
 			}
-			used = wbuf_used(&g->vertices) / sizeof *indicies;
+			used = wbuf_size(&g->vertices) / sizeof *indicies;
 			groups[i].n = used;
 			if (used) {
 				groups[i].indicies = indicies;
