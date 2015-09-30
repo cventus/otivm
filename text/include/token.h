@@ -6,16 +6,18 @@
  * Punctuation and delimiters separate tokens. Return length of token read. A
  * value of zero indicates end of stream.
  */
-size_t read_token(char *buffer, size_t n, char const *delm, char const *punct, FILE *fp);
+size_t read_token(
+	char *buffer,
+	size_t n,
+	char const *delm,
+	char const *punct,
+	FILE *fp);
 
-/* Tokenize a single string
- *
- * Space separates tokens, except when within a quote or escaped with a
- * backslash. White space is removed and tokens are moved to the beginning of
- * the line. Tokens are separated with a '\0' character and the number of
- * tokens is returned.
- */
-int tokenize(char *dest, char const *src, char const *delim);
+/* Parse tokens in `src` and store them sequentially in `dest`, separated by
+   `sep` and return the number of tokens read. `dest` and `src` should either
+   be equal or point to non overlapping regions of space, in which case `dest`
+   must be at least as big as `src`. */
+int tokenize(char *dest, char const *src, int sep);
 
 int tokenize_line(char *buffer, size_t n, int sep, FILE *fp);
 
