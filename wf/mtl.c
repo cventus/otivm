@@ -373,10 +373,23 @@ static struct wf_mtllib *alloc_block(struct mtl_buffer *buffer)
 	return mtllib;
 }
 
-struct wf_mtllib const *wf_parse_mtllib(FILE *fp)
+struct wf_mtllib const *wf_parse_mtllib(char const *filename)
+{
+	FILE *fp;
+	struct wf_mtllib const *result;
+
+	fp = fopen(filename, "r");
+	result = fp ? wf_fparse_mtllib(fp) : NULL;
+	fclose(fp);
+	return result;
+}
+
+struct wf_mtllib const *wf_fparse_mtllib(FILE *fp)
 {
 	struct wf_mtllib *result;
 	struct mtl_buffer buffer = { NULL, NULL };
+
+	assert(fp != NULL);
 
 	result = NULL;
 	if (parse_mtllib(&buffer, fp)) { goto clean; }
@@ -386,6 +399,17 @@ clean:	list_free(buffer.mtl_list);
 	list_free(buffer.str_list);
 
 	return result;
+}
+
+struct wf_material const *wf_get_material(struct wf_mtllib const *mtllib,
+                                          char const *name)
+{
+	size_t i;
+	assert(mtllib != NULL);
+	for (i = 0; i < mtllib->n; i++) {
+		if (streq(mtllib->m[i].name, name)) { return mtllib->m + i; }
+	}
+	return NULL;
 }
 
 void wf_free_mtllib(struct wf_mtllib const *mtllib)

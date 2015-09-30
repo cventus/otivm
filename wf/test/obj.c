@@ -91,7 +91,7 @@ static struct wf_object const *parse_string(char const *str)
 	struct wf_object const *obj;
 
 	fp = open_str(str);
-	obj = wf_parse_object(fp);
+	obj = wf_fparse_object(fp);
 	fclose(fp);
 	return obj;
 }

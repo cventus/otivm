@@ -603,12 +603,24 @@ static struct wf_object const *alloc_obj_block(struct obj_buffer *obj)
 	return result;
 }
 
-struct wf_object const *wf_parse_object(FILE *fp)
+struct wf_object const *wf_parse_object(char const *filename)
+{
+	FILE *fp;
+	struct wf_object const *result;
+
+	fp = fopen(filename, "r");
+	result = fp ? wf_fparse_object(fp) : NULL;
+	fclose(fp);
+	return result;
+}
+
+struct wf_object const *wf_fparse_object(FILE *fp)
 {
 	struct wf_object const *result;
 	struct obj_buffer obj;
 	struct tgroup *t;
 
+	assert(fp != NULL);
 	init_obj_buffer(&obj);
 
 	result = NULL;

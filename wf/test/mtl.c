@@ -132,7 +132,7 @@ static struct wf_mtllib const *parse_string(char const *str)
 	struct wf_mtllib const *mtllib;
 
 	fp = open_str(str);
-	mtllib = wf_parse_mtllib(fp);
+	mtllib = wf_fparse_mtllib(fp);
 	fclose(fp);
 	return mtllib;
 }

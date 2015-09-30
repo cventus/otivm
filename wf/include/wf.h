@@ -44,9 +44,14 @@ struct wf_object
 	size_t nmtllib, npos, nuv, nnorm, ngroups;
 };
 
-struct wf_mtllib const *wf_parse_mtllib(FILE *fp);
-struct wf_object const *wf_parse_object(FILE *fp);
-
-void wf_free_object(struct wf_object const *obj);
+struct wf_mtllib const *wf_parse_mtllib(char const *filename);
+struct wf_mtllib const *wf_fparse_mtllib(FILE *fp);
 void wf_free_mtllib(struct wf_mtllib const *obj);
+
+struct wf_material const *wf_get_material(struct wf_mtllib const *mtllib,
+                                          char const *name);
+
+struct wf_object const *wf_parse_object(char const *filename);
+struct wf_object const *wf_fparse_object(FILE *fp);
+void wf_free_object(struct wf_object const *obj);
 
