@@ -1,0 +1,24 @@
+newmtl one
+Ka 0 0.5 1
+map_Kd my-texture.tm
+
+newmtl two
+Ka 0.0435 0.0435 0.0435
+Kd 0.1086 0.1086 0.1086
+Ks 0.0000 0.0000 0.0000
+illum 6
+d 0.6600
+Ns 10.0000
+map_Ka chrome.mpc
+map_Kd chrome.mpc
+map_Ks chrome.mpc
+map_Ns wisp.mps
+map_d wisp.mps
+bump sand.mpb
+
+newmtl three
+Ka 0.0000 0.0000 0.0000
+Kd 0.0000 0.0000 0.0000
+Ks 0.6180 0.8760 0.1430
+Ns 200
+
