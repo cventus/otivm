@@ -5,6 +5,7 @@
 #include <stdarg.h>
 
 #include <ok/ok.h>
+#include <ok/io.h>
 #include <gm/misc.h>
 #include <gm/vector.h>
 #include <base/fwd.h>

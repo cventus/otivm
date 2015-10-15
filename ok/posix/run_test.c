@@ -46,6 +46,7 @@ static void set_message(const char *fmt, va_list ap)
 static void stop_test(int mode)
 {
 	if (g_state.init) { longjmp(g_state.skip, mode); }
+	else { abort(); }
 }
 
 void fail_test(char const *fmt, ...)

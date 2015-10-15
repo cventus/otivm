@@ -1,5 +1,3 @@
-#ifndef OK_H_INCLUDED
-#define OK_H_INCLUDED
 
 /* Skip the currently executing test */
 void skip_test(char const *fmt, ...);
@@ -15,9 +13,6 @@ void fail_test(char const *fmt, ...);
    external resource is unavailable). This function doesn't return. */
 void bail_out(char const *fmt, ...);
 
-/* Open string as a temporary read-only stream. */
-FILE *open_str(char const *string);
-
 extern struct test {
 	int (*fn)(void); /* test function; zero is success */
 	char const *desc;
@@ -26,6 +21,4 @@ extern struct test {
 /* Global flag that can override the result of a function. Always initialized
    to zero before a test is run. */
 extern int ok;
-
-#endif
 
