@@ -379,8 +379,12 @@ struct wf_mtllib const *wf_parse_mtllib(char const *filename)
 	struct wf_mtllib const *result;
 
 	fp = fopen(filename, "r");
-	result = fp ? wf_fparse_mtllib(fp) : NULL;
-	fclose(fp);
+	if (fp) {
+		result = wf_fparse_mtllib(fp);
+		fclose(fp);
+	} else {
+		result = NULL;
+	}
 	return result;
 }
 

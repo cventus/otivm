@@ -609,8 +609,12 @@ struct wf_object const *wf_parse_object(char const *filename)
 	struct wf_object const *result;
 
 	fp = fopen(filename, "r");
-	result = fp ? wf_fparse_object(fp) : NULL;
-	fclose(fp);
+	if (fp) {
+		result = wf_fparse_object(fp);
+		fclose(fp);
+	} else {
+		result = NULL;
+	}
 	return result;
 }
 
