@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <string.h>
+#include <assert.h>
 
 #include "include/wbuf.h"
 #include "include/mem.h"
@@ -96,7 +97,8 @@ void *wbuf_get(struct wbuf buf[static 1], size_t offset)
 int wbuf_align(struct wbuf buf[static 1], size_t align)
 {
 	size_t off, pad;
-	if (align == 0 || buf->begin == NULL) return 0;
+	assert(is_power_of_2(align));
+	if (align == 1 || buf->begin == NULL) return 0;
 	off = wbuf_size(buf);
 	pad = align_to(off, align) - off;
 	return wbuf_alloc(buf, pad) ? 0 : -1;
