@@ -50,24 +50,24 @@ $1: | $(dir $1)
 endef
 
 # Template to load module config
-# name=$1, path=$2
+# name=$1
 define MODULE_CONFIG
-# $2 config
+# $1 config
 OUT:=
 OBJ:=
 MOD:=
 LIB:=
 GINC:=
 GSRC:=
-OBJDIR:=$$(OBJDIR_BASE)/$2
-GINCDIR:=$$(GINCDIR_BASE)/$2/$2
-GSRCDIR:=$$(GSRCDIR_BASE)/$2
-MDIR:=$$(MODULE_DIR)/$2
+OBJDIR:=$$(OBJDIR_BASE)/$1
+GINCDIR:=$$(GINCDIR_BASE)/$1/$1
+GSRCDIR:=$$(GSRCDIR_BASE)/$1
+MDIR:=$$(MODULE_DIR)/$1
 TEST_OBJ:=
 TEST_MOD:=
 
 # Check include during template expansion and include during evaluation
-$(if $(wildcard $(MODULE_DIR)/$2/module.mk),-include $(MODULE_DIR)/$2/module.mk)
+$(if $(wildcard $(MODULE_DIR)/$1/module.mk),-include $(MODULE_DIR)/$1/module.mk)
 
 # Store module specific variables
 SRC_$1:=$$(patsubst $$(MODULE_DIR)/%,%,\
@@ -85,14 +85,14 @@ TEST_SRC_$1:=$$(patsubst $$(MODULE_DIR)/%,%,\
 TEST_OBJ_$1:=$$(patsubst %.c,$(OBJDIR_BASE)/%.o,$$(TEST_SRC_$1)) $$(TEST_OBJ)
 TEST_MOD_$1:=$$(TEST_MOD)
 
-$$(sort $$(OBJDIR_BASE)/$2/ \
-	$$(OBJDIR_BASE)/$2/test/ \
-        $$(DEPDIR_BASE)/$2/ \
-	$$(DEPDIR_BASE)/$2/test/ \
-        $$(INCDIR_BASE)/$2/ \
-        $$(GINCDIR_BASE)/$2/ \
-        $$(GSRCDIR_BASE)/$2/ \
-	$$(TESTDIR_BASE)/$2/bin/ \
+$$(sort $$(OBJDIR_BASE)/$1/ \
+	$$(OBJDIR_BASE)/$1/test/ \
+        $$(DEPDIR_BASE)/$1/ \
+	$$(DEPDIR_BASE)/$1/test/ \
+        $$(INCDIR_BASE)/$1/ \
+        $$(GINCDIR_BASE)/$1/ \
+        $$(GSRCDIR_BASE)/$1/ \
+	$$(TESTDIR_BASE)/$1/bin/ \
         $$(dir $$(OBJ_$1)) \
         $$(dir $$(call obj2dep,$$(OBJ_$1))) \
         $$(dir $$(TEST_OBJ_$1)) \
@@ -101,15 +101,15 @@ $$(sort $$(OBJDIR_BASE)/$2/ \
         ):
 	mkdir -p $$@
 
-$$(GINC_$1): | $$(GINCDIR_BASE)/$2
-$$(GSRC_$1): | $$(GSRCDIR_BASE)/$2
+$$(GINC_$1): | $$(GINCDIR_BASE)/$1
+$$(GSRC_$1): | $$(GSRCDIR_BASE)/$1
 
 $$(foreach I,$$(GINC_$1),\
   $$(eval $$(call FILEDIR_TEMPLATE,$$I)))
 
 ifneq ($$(wildcard $$(MDIR)/include),)
-$$(INCDIR_BASE)/$2/$2: | $$(INCDIR_BASE)/$2
-	ln -rs $$(MODULE_DIR)/$2/include $$@
+$$(INCDIR_BASE)/$1/$1: | $$(INCDIR_BASE)/$1
+	ln -rs $$(MODULE_DIR)/$1/include $$@
 endif
 endef
 
@@ -127,7 +127,7 @@ endef
 # foo. Running tests, and converntions used by tests is up to whatever test
 # harness is used.
 #
-# name=$1, path=$2
+# name=$1
 define TEST_TEMPLATE
 
 # Are the any tests at all?
@@ -135,7 +135,7 @@ ifneq ($$(TEST_OBJ_$1),)
 
 # Add rule for each test binary
 $(foreach T,$(TEST_OBJ_$1),\
-$(call TESTBIN_TEMPLATE,$1,$2,$(patsubst $(OBJDIR_BASE)/$2/test/%.o,%,$T),$T))
+$(call TESTBIN_TEMPLATE,$1,$(patsubst $(OBJDIR_BASE)/$1/test/%.o,%,$T),$T))
 
 clean-test-$1:
 test-$1:
@@ -153,24 +153,24 @@ endef
 # Binary tests are compiled into separate executables and linked against the
 # module object files and its dependencies.
 #
-# name=$1, path=$2, test=$3, source=$4
+# name=$1, test=$2, source=$3
 define TESTBIN_TEMPLATE
 
-TESTS_$1 += $$(TESTDIR_BASE)/$2/bin/$3
+TESTS_$1 += $$(TESTDIR_BASE)/$1/bin/$2
 
-clean-test-$1-$3:
-	rm -f $$(TESTDIR_BASE)/$2/bin/$3
-clean-test-$1: clean-test-$1-$3
-test-$1-$3: $$(TESTDIR_BASE)/$2/bin/$3
-test-$1: test-$1-$3
+clean-test-$1-$2:
+	rm -f $$(TESTDIR_BASE)/$1/bin/$2
+clean-test-$1: clean-test-$1-$2
+test-$1-$2: $$(TESTDIR_BASE)/$1/bin/$2
+test-$1: test-$1-$2
 
 # Rule to link test executable
-$$(TESTDIR_BASE)/$2/bin/$3: $$(AR_DIR)/lib$2.a \
-                            $$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$4) \
+$$(TESTDIR_BASE)/$1/bin/$2: $$(AR_DIR)/lib$1.a \
+                            $$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$3) \
                             $$(call arrec,$1) \
-                            | $$(TESTDIR_BASE)/$2/bin/
+                            | $$(TESTDIR_BASE)/$1/bin/
 	$$(CC) $$(LDFLAGS) \
-               $$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$4) \
+               $$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$3) \
                $$(addprefix -l,$$(call ar_mod,$$(call testmodrec,$1))) \
                $$(TEST_LDLIBS) \
                -L$$(AR_DIR) \
@@ -183,12 +183,12 @@ $$(TESTDIR_BASE)/$2/bin/$3: $$(AR_DIR)/lib$2.a \
 endef
 
 # Template to create rules for archives and binaries
-# name=$1, path=$2
+# name=$1
 define MODULE_TARGET
-# $2 targets
+# $1 targets
 
 # Add rules for each test
-$(call TEST_TEMPLATE,$1,$2)
+$(call TEST_TEMPLATE,$1)
 
 # Conditionally include dependency files
 $$(if $$(wildcard $$(call obj2dep,$$(OBJ_$1) $$(TEST_OBJ_$1))),\
@@ -196,15 +196,15 @@ $$(if $$(wildcard $$(call obj2dep,$$(OBJ_$1) $$(TEST_OBJ_$1))),\
                                                    $$(TEST_OBJ_$1)))))
 
 # Rule to create and update the module archive
-$$(AR_DIR)/lib$2.a: $$(OBJ_$1) | $$(AR_DIR)
+$$(AR_DIR)/lib$1.a: $$(OBJ_$1) | $$(AR_DIR)
 	$$(AR) $$(ARFLAGS) $$@ $$?
 
-$2: $$(AR_DIR)/lib$2.a
+$1: $$(AR_DIR)/lib$1.a
 
 # For binary targets add rule to build it
 ifneq ($$(filter bin%,$$(OUT_$1)),)
 
-$$(BIN_DIR)/$2: $$(OBJ_$1) $$(call arrec,$1) | $$(BIN_DIR)
+$$(BIN_DIR)/$1: $$(OBJ_$1) $$(call arrec,$1) | $$(BIN_DIR)
 	$$(CC) $$(LDFLAGS) \
                $$(OBJ_$1) \
                -L$$(AR_DIR) \
@@ -214,7 +214,7 @@ $$(BIN_DIR)/$2: $$(OBJ_$1) $$(call arrec,$1) | $$(BIN_DIR)
                -o $$@ 
 
 # Default binary module target also builds archive
-$2: $$(BIN_DIR)/$2
+$1: $$(BIN_DIR)/$1
 endif
 
 # Add include directories for self and other modules
@@ -254,9 +254,9 @@ $$(foreach S,$$(basename $$(SRC_$1) $$(TEST_SRC_$1)),\
 endef
 
 define MODULE_RULES
-$2-rules:
-	$$(info $$(call MODULE_CONFIG,$1,$2))
-	$$(info $$(call MODULE_TARGET,$1,$2))
+$1-rules:
+	$$(info $$(call MODULE_CONFIG,$1))
+	$$(info $$(call MODULE_TARGET,$1))
 endef
 
 all:
@@ -299,9 +299,9 @@ $(GINCDIR_BASE) \
 
 MODULE_DIR?=.
 
-$(foreach M,$(MODULES),$(eval $(call MODULE_CONFIG,$M,$M)))
-$(foreach M,$(MODULES),$(eval $(call MODULE_TARGET,$M,$M)))
-$(foreach M,$(MODULES),$(eval $(call MODULE_RULES,$M,$M)))
+$(foreach M,$(MODULES),$(eval $(call MODULE_CONFIG,$M)))
+$(foreach M,$(MODULES),$(eval $(call MODULE_TARGET,$M)))
+$(foreach M,$(MODULES),$(eval $(call MODULE_RULES,$M)))
 
 list-tests:
 	@for test in $(TESTS); do \
