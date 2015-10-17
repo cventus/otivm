@@ -1,3 +1,3 @@
 OUT=archive
-MOD=ok
+TEST_MOD=ok
 

@@ -1,2 +1,3 @@
-MOD=base text ok gm
+MOD=base text gm
 LIB=-lm
+TEST_MOD=ok

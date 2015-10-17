@@ -1,2 +1,3 @@
-MOD=base ok
+MOD=base
 OUT=ar
+TEST_MOD=ok

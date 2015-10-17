@@ -1,1 +1,1 @@
-MOD=ok
+TEST_MOD=ok

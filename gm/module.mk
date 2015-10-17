@@ -1,7 +1,7 @@
 # generic math routines for graphics
 OUT=archive
 LIB=-lm
-MOD=ok
+TEST_MOD=ok
 GINC=$(addprefix $(GINCDIR)/,\
 	matrix.h vector.h quaternion.h misc.h array.h plane.h)
 
