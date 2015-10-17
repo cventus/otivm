@@ -10,6 +10,9 @@ obj2dep=$(subst $(OBJDIR_BASE),$(DEPDIR_BASE),$(1:.o=.d))
 # function : list of modules -> module dependencies
 modrec=$(foreach M,$(MOD_$1),$M $(call modrec,$M))
 
+# function : list of modules -> module dependencies
+testmodrec=$(foreach M,$(TEST_MOD_$1),$M $(call testmodrec,$M))
+
 # function : module -> list of archive files
 arrec=$(patsubst %,$(AR_DIR)/lib%.a,$(call modrec,$1))
 
@@ -61,6 +64,7 @@ GINCDIR:=$$(GINCDIR_BASE)/$2/$2
 GSRCDIR:=$$(GSRCDIR_BASE)/$2
 MDIR:=$$(MODULE_DIR)/$2
 TEST_OBJ:=
+TEST_MOD:=
 
 # Check include during template expansion and include during evaluation
 $(if $(wildcard $(MODULE_DIR)/$2/module.mk),-include $(MODULE_DIR)/$2/module.mk)
@@ -79,6 +83,7 @@ TEST_SRC_$1:=$$(patsubst $$(MODULE_DIR)/%,%,\
 	$$(wildcard $$(MDIR)/test/*.c) \
 	$(foreach T,$(TAGS),$$(wildcard $$(MDIR)/test/$T/*.c)))
 TEST_OBJ_$1:=$$(patsubst %.c,$(OBJDIR_BASE)/%.o,$$(TEST_SRC_$1)) $$(TEST_OBJ)
+TEST_MOD_$1:=$$(TEST_MOD)
 
 $$(sort $$(OBJDIR_BASE)/$2/ \
 	$$(OBJDIR_BASE)/$2/test/ \
@@ -122,11 +127,8 @@ endef
 # foo. Running tests, and converntions used by tests is up to whatever test
 # harness is used.
 #
-# name=$1, path=$2, testfiles=$3
+# name=$1, path=$2
 define TEST_TEMPLATE
-
-# TEST_SRC_$1:=$(filter $2/test/%.c,$3)
-# TEST_OBJ_$1+=$(patsubst %.c,$(OBJDIR_BASE)/%.o,$(TEST_SRC_$1))
 
 # Are the any tests at all?
 ifneq ($$(TEST_OBJ_$1),)
@@ -169,6 +171,7 @@ $$(TESTDIR_BASE)/$2/bin/$3: $$(AR_DIR)/lib$2.a \
                             | $$(TESTDIR_BASE)/$2/bin/
 	$$(CC) $$(LDFLAGS) \
                $$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$4) \
+               $$(addprefix -l,$$(call ar_mod,$$(call testmodrec,$1))) \
                $$(TEST_LDLIBS) \
                -L$$(AR_DIR) \
                -l$1 \
@@ -185,8 +188,9 @@ define MODULE_TARGET
 # $2 targets
 
 # Add rules for each test
-$(call TEST_TEMPLATE,$1,$2,$(wildcard $2/test/*))
+$(call TEST_TEMPLATE,$1,$2)
 
+# Conditionally include dependency files
 $$(if $$(wildcard $$(call obj2dep,$$(OBJ_$1) $$(TEST_OBJ_$1))),\
       $$(eval -include $$(wildcard $$(call obj2dep,$$(OBJ_$1) \
                                                    $$(TEST_OBJ_$1)))))
@@ -220,10 +224,23 @@ $$(OBJ_$1) $$(TEST_OBJ_$1): \
     | $$(foreach M,$$(call modinc,$1 $$(MOD_$1)),$$(INCDIR_BASE)/$$M/$$M)
 endif
 
+# Add include directories for test modules
+ifneq ($$(strip $$(call modinc,$1 $$(TEST_MOD_$1))),)
+$$(TEST_OBJ_$1): CPPFLAGS+=$$(call incdir,$1 $$(TEST_MOD_$1))
+$$(TEST_OBJ_$1): \
+    | $$(foreach M,$$(call modinc,$1 $$(TEST_MOD_$1)),$$(INCDIR_BASE)/$$M/$$M)
+endif
+
 # Depend on all generated headers from dependent modules
 ifneq ($$(strip $$(call modginc,$1 $$(MOD_$1))),)
 $$(OBJ_$1) $$(TEST_OBJ_$1): CPPFLAGS+=$$(call gincdir,$1 $$(MOD_$1))
 $$(OBJ_$1) $$(TEST_OBJ_$1): $$(sort $$(foreach M,$1 $$(MOD_$1),$$(GINC_$$M)))
+endif
+
+# Depend on all generated headers from dependent test modules
+ifneq ($$(strip $$(call modginc,$1 $$(TEST_MOD_$1))),)
+$$(TEST_OBJ_$1): CPPFLAGS+=$$(call gincdir,$1 $$(TEST_MOD_$1))
+$$(TEST_OBJ_$1): $$(sort $$(foreach M,$1 $$(TEST_MOD_$1),$$(GINC_$$M)))
 endif
 
 # Add directory and dependency file rules for each object
