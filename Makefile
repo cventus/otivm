@@ -92,7 +92,10 @@ $$(sort $$(OBJDIR_BASE)/$1/ \
         $$(INCDIR_BASE)/$1/ \
         $$(GINCDIR_BASE)/$1/ \
         $$(GSRCDIR_BASE)/$1/ \
-	$$(TESTDIR_BASE)/$1/bin/ \
+	$$(TESTDIR_BASE)/$1/ \
+        $$(dir $$(foreach T,$$(TEST_OBJ_$1),\
+                 $$(patsubst $$(OBJDIR_BASE)/$1/test/%.o,\
+                             $$(TESTDIR_BASE)/$1/%,$$T))) \
         $$(dir $$(OBJ_$1)) \
         $$(dir $$(call obj2dep,$$(OBJ_$1))) \
         $$(dir $$(TEST_OBJ_$1)) \
@@ -156,19 +159,19 @@ endef
 # name=$1, test=$2, source=$3
 define TESTBIN_TEMPLATE
 
-TESTS_$1 += $$(TESTDIR_BASE)/$1/bin/$2
+TESTS_$1 += $$(TESTDIR_BASE)/$1/$2
 
 clean-test-$1-$2:
-	rm -f $$(TESTDIR_BASE)/$1/bin/$2
+	rm -f $$(TESTDIR_BASE)/$1/$2
 clean-test-$1: clean-test-$1-$2
-test-$1-$2: $$(TESTDIR_BASE)/$1/bin/$2
+test-$1-$2: $$(TESTDIR_BASE)/$1/$2
 test-$1: test-$1-$2
 
 # Rule to link test executable
-$$(TESTDIR_BASE)/$1/bin/$2: $$(AR_DIR)/lib$1.a \
-                            $$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$3) \
-                            $$(call arrec,$1) \
-                            | $$(TESTDIR_BASE)/$1/bin/
+$$(TESTDIR_BASE)/$1/$2: $$(AR_DIR)/lib$1.a \
+                        $$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$3) \
+                        $$(call arrec,$1) \
+                      | $$(dir $$(TESTDIR_BASE)/$1/$2)
 	$$(CC) $$(LDFLAGS) \
                $$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$3) \
                $$(addprefix -l,$$(call ar_mod,$$(call testmodrec,$1))) \
