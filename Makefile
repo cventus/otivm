@@ -17,7 +17,7 @@ arrec=$(patsubst %,$(AR_DIR)/lib%.a,$(call modrec,$1))
 librec=$(foreach M,$1,$(call librec,$(MOD_$M))) $(LIB_$M)
 
 # function : list of modules -> modules that have an include directory
-modinc=$(foreach M,$1,$(if $(wildcard $M/include),$M))
+modinc=$(foreach M,$1,$(if $(wildcard $(MODULE_DIR)/$M/include),$M))
 
 # function : list of modules -> module include directories
 incdir=$(foreach M,$(call modinc,$1),-I'$(INCDIR_BASE)/$M')
@@ -37,7 +37,7 @@ endef
 # Template rule to set default object source parameter used by implicit rule
 # stem=$1
 define OBJECT_TEMPLATE
-$(OBJDIR_BASE)/$1.o: SOURCE=$1.c
+$(OBJDIR_BASE)/$1.o: SOURCE=$(MODULE_DIR)/$1.c
 endef
 
 # Template rule to add a file's path directories as order-only prerequisites
@@ -59,22 +59,25 @@ GSRC:=
 OBJDIR:=$$(OBJDIR_BASE)/$2
 GINCDIR:=$$(GINCDIR_BASE)/$2/$2
 GSRCDIR:=$$(GSRCDIR_BASE)/$2
-MDIR:=$2
+MDIR:=$$(MODULE_DIR)/$2
 TEST_OBJ:=
 
 # Check include during template expansion and include during evaluation
-$(if $(wildcard ./$2/module.mk),-include ./$2/module.mk)
+$(if $(wildcard $(MODULE_DIR)/$2/module.mk),-include $(MODULE_DIR)/$2/module.mk)
 
 # Store module specific variables
-SRC_$1:=$$(wildcard $2/*.c) $(foreach T,$(TAGS),$$(wildcard $2/$T/*.c))
+SRC_$1:=$$(patsubst $$(MODULE_DIR)/%,%,\
+	$$(wildcard $$(MDIR)/*.c) \
+        $(foreach T,$(TAGS),$$(wildcard $$(MDIR)/$T/*.c)))
 OBJ_$1:=$$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$$(SRC_$1)) $$(OBJ)
 OUT_$1:=$$(OUT)
 MOD_$1:=$$(MOD)
 LIB_$1:=$$(LIB)
 GINC_$1:=$$(GINC)
 GSRC_$1:=$$(GSRC)
-TEST_SRC_$1:=$$(wildcard $2/test/*.c) \
-             $(foreach T,$(TAGS),$$(wildcard $2/test/$T/*.c))
+TEST_SRC_$1:=$$(patsubst $$(MODULE_DIR)/%,%,\
+	$$(wildcard $$(MDIR)/test/*.c) \
+	$(foreach T,$(TAGS),$$(wildcard $$(MDIR)/test/$T/*.c)))
 TEST_OBJ_$1:=$$(patsubst %.c,$(OBJDIR_BASE)/%.o,$$(TEST_SRC_$1)) $$(TEST_OBJ)
 
 $$(sort $$(OBJDIR_BASE)/$2/ \
@@ -99,9 +102,9 @@ $$(GSRC_$1): | $$(GSRCDIR_BASE)/$2
 $$(foreach I,$$(GINC_$1),\
   $$(eval $$(call FILEDIR_TEMPLATE,$$I)))
 
-ifneq ($$(wildcard $2/include),)
+ifneq ($$(wildcard $$(MDIR)/include),)
 $$(INCDIR_BASE)/$2/$2: | $$(INCDIR_BASE)/$2
-	ln -rs $2/include $$@
+	ln -rs $$(MODULE_DIR)/$2/include $$@
 endif
 endef
 
@@ -276,6 +279,8 @@ $(GSRCDIR_BASE) \
 $(GINCDIR_BASE) \
 	:
 	mkdir -p $@
+
+MODULE_DIR?=.
 
 $(foreach M,$(MODULES),$(eval $(call MODULE_CONFIG,$M,$M)))
 $(foreach M,$(MODULES),$(eval $(call MODULE_TARGET,$M,$M)))
