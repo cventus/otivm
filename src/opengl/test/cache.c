@@ -10,6 +10,8 @@
 #include "../types.h"
 #include "../decl.h"
 
+#define run(fn) gl_run_test(is_test_interactive() ? __func__ : NULL, fn)
+
 static void white(void)
 {
 	glClearColor(1.f, 1.f, 1.f, 1.f);
@@ -24,7 +26,7 @@ static int init_cache_(struct glstate *state, struct gltest *test)
 	gl_test_swap_buffers(test);
 	return 0;
 }
-static int init_cache(void) { return gl_run_test(__func__, init_cache_); }
+static int init_cache(void) { return run(init_cache_); }
 
 static void check_shader(
 	struct glstate *state,
@@ -81,7 +83,7 @@ static int load_shader_(struct glstate *state, struct gltest *test)
 
 	return ok;
 }
-static int load_shader(void) { return gl_run_test(__func__, load_shader_); }
+static int load_shader(void) { return run(load_shader_); }
 
 static int load_material_(struct glstate *state, struct gltest *test)
 {
@@ -100,7 +102,7 @@ static int load_material_(struct glstate *state, struct gltest *test)
 
 	return ok;
 }
-static int load_material(void) { return gl_run_test(__func__, load_material_); }
+static int load_material(void) { return run(load_material_); }
 
 struct test const tests[] = {
 	{ init_cache, "Create the cache" },
