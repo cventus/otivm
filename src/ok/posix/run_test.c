@@ -78,6 +78,17 @@ void skip_test(char const *fmt, ...)
 	stop_test(SKIP);
 }
 
+void interactive_test(char const *fmt, ...)
+{
+	if (is_test_interactive()) {
+		va_list ap;
+		va_start(ap, fmt);
+		set_message(fmt ? fmt : "interactive only", ap);
+		va_end(ap);
+		stop_test(SKIP);
+	}
+}
+
 void bail_out(char const *fmt, ...)
 {
 	va_list ap;

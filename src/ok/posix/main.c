@@ -15,8 +15,9 @@
 #include "private.h"
 #include "check.h"
 
-/* Definition of global test status flag. */
+/* Definition of global test status flags. */
 int ok = 0;
+static int is_interactive = 0;
 
 static void die(const char *fmt, ...)
 {
@@ -100,7 +101,7 @@ static int open_temp_file(void)
 
 struct options
 {
-	int can_fork, list, invert;
+	int can_fork, list, invert, interactive;
 	unsigned int seed;
 	char const *prefix;
 };
@@ -117,10 +118,12 @@ static int parse_options(int argc, char **argv, struct options *options)
 	options->invert = 0;
 	options->prefix = "\t";
 	options->seed = 1;
+	options->interactive = 0;
 
 	/* parse command line arguments */
-	while ((opt = getopt(argc, argv, "nlvp:s:")) != -1) {
+	while ((opt = getopt(argc, argv, "inlvp:s:")) != -1) {
 		switch (opt) {
+		case 'i': options->interactive = 1; break;
 		case 'n': options->can_fork = 0; break;
 		case 'v': options->invert = 1; break;
 		case 'l': options->list = 1; break;
@@ -143,6 +146,11 @@ static int parse_options(int argc, char **argv, struct options *options)
 	return optind;
 }
 
+int is_test_interactive(void)
+{
+	return is_interactive;
+}
+
 int main(int argc, char **argv)
 {
 	struct options o;
@@ -154,6 +162,7 @@ int main(int argc, char **argv)
 	ids = argv + opts;
 	n_ids = argc - opts;
 	n_tests = count_tests(tests);
+	is_interactive = o.interactive;
 
 	/* List tests */
 	if (o.list) {

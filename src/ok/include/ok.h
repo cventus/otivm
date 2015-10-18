@@ -13,6 +13,16 @@ void fail_test(char const *fmt, ...);
    external resource is unavailable). This function doesn't return. */
 void bail_out(char const *fmt, ...);
 
+/* Mark the test as interactive, and end the test immediately (as skipped with
+   the provided message) in case the test isn't running in interactive mode. */
+void interactive_test(char const *fmt, ...);
+
+/* Check if the test is running in interactive mode (e.g. as specified by a
+   command line flag). */
+int is_test_interactive(void);
+
+/* Test structure, and test array. Define this in your tests and terminate it
+   with { NULL, NULL }. */
 extern struct test {
 	int (*fn)(void); /* test function; zero is success */
 	char const *desc;
