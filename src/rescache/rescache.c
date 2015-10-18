@@ -8,33 +8,51 @@
 
 #include "include/rescache.h"
 
-typedef int ctor(char const *key, void *data, void *link);
-typedef void dtor(char const *key, void *data, void *link);
+typedef int ctor(void const *key, size_t key_size, void *data, void *link);
+typedef void dtor(void const *key, size_t key_size, void *data, void *link);
 
 struct resource
 {
 	struct resource *next;
 	unsigned int refc;
+	size_t key_size;
 };
 
 struct rescache
 {
 	struct resource *reslist;
-	size_t const nmake, data_size, data_offset;
+	size_t const nmake, data_size, data_offset, key_offset;
 	void *const link;
 	dtor *const free;
 	ctor *const make[];
 };
 
-struct rescache *make_rescache(size_t data_size, size_t data_align,
-			       ctor *const make, dtor *free, void *link)
+struct rescache *make_rescache(
+	size_t data_size,
+	size_t data_align,
+	size_t key_align,
+	ctor *const make,
+	dtor *free,
+	void *link)
 {
-	return make_rescachen(data_size, data_align, &make, 1, free, link);
+	return make_rescachen(
+		data_size,
+		data_align,
+		key_align,
+		&make,
+		1,
+		free,
+		link);
 }
 
-struct rescache *make_rescachen(size_t data_size, size_t data_align,
-			        ctor *const make[], size_t nmake, dtor *free,
-                                void *link)
+struct rescache *make_rescachen(
+	size_t data_size,
+	size_t data_align,
+	size_t key_align,
+	ctor *const make[],
+	size_t nmake,
+	dtor *free,
+	void *link)
 {
 	struct rescache *cache;
 
@@ -52,16 +70,19 @@ struct rescache *make_rescachen(size_t data_size, size_t data_align,
 	*(size_t *)&cache->data_offset = align_to(
 		sizeof (struct resource),
 		data_align);
+	*(size_t *)&cache->key_offset = align_to(
+		cache->data_offset + cache->data_size,
+		key_align);
 	*(void **)&cache->link = link;
 	memcpy((ctor **)cache->make, make, nmake * sizeof *make);
 	return cache;
 }
 
-static char *res_key(struct rescache *cache, struct resource *res)
+static void *res_key(struct rescache *cache, struct resource *res)
 {
 	assert(cache);
 	assert(res);
-	return (char *)res + cache->data_offset + cache->data_size;
+	return (char *)res + cache->key_offset;
 }
 
 static void *res_data(struct rescache *cache, struct resource *res)
@@ -71,7 +92,10 @@ static void *res_data(struct rescache *cache, struct resource *res)
 	return (char *)res + cache->data_offset;
 }
 
-static struct resource *add_res(struct rescache *cache, char const *key)
+static struct resource *add_res(
+	struct rescache *cache,
+	void const *key,
+	size_t key_size)
 {
 	struct resource *res;
 	size_t i;
@@ -81,15 +105,15 @@ static struct resource *add_res(struct rescache *cache, char const *key)
 	assert(cache);
 	assert(key);
 
-	if (!key) { return NULL; }
-	res = malloc(cache->data_offset + cache->data_size + strlen(key) + 1);
+	res = malloc(cache->key_offset + key_size);
 	if (!res) { return NULL; }
-	rkey = strcpy(res_key(cache, res), key);
+	rkey = memcpy(res_key(cache, res), key, key_size);
 	data = res_data(cache, res);
 	for (i = 0; i < cache->nmake; i++) {
-		if (cache->make[i](rkey, data, cache->link) == 0) {
+		if (cache->make[i](rkey, key_size, data, cache->link) == 0) {
 			res->refc = 1;
 			res->next = cache->reslist;
+			res->key_size = key_size;
 			cache->reslist = res;
 			return res;
 		}
@@ -98,7 +122,10 @@ static struct resource *add_res(struct rescache *cache, char const *key)
 	return NULL;
 }
 
-static struct resource **find_res(struct rescache *cache, char const *key)
+static struct resource **find_res(
+	struct rescache *cache,
+	char const *key,
+	size_t const ksz)
 {
 	struct resource **res;
 
@@ -106,7 +133,10 @@ static struct resource **find_res(struct rescache *cache, char const *key)
 	assert(key);
 
 	for (res = &cache->reslist; *res; res = &(*res)->next) {
-		if (strcmp(key, res_key(cache, *res)) == 0) { break; }
+		size_t const sz = (*res)->key_size;
+		if (ksz == sz && !memcmp(key, res_key(cache, *res), ksz)) {
+			break;
+		}
 	}
 	return res;
 }
@@ -167,7 +197,11 @@ static void free_res(struct rescache *cache, struct resource **res)
 
 	s = *res;
 	*res = (*res)->next;
-	cache->free(res_key(cache, s), res_data(cache, s), cache->link);
+	cache->free(
+		res_key(cache, s),
+		s->key_size,
+		res_data(cache, s),
+		cache->link);
 	free(s);
 }
 
@@ -189,32 +223,58 @@ size_t rescache_clean(struct rescache *cache)
 	return n;
 }
 
-void *rescache_load(struct rescache *cache, char const *key)
+void *rescache_load(struct rescache *cache, void const *key, size_t key_size)
 {
 	struct resource *res;
 
 	assert(cache);
-	if (!key) { return NULL; }
+	if (!key && key_size > 0) { return NULL; }
 
-	res = *find_res(cache, key);
+	res = *find_res(cache, key, key_size);
 	if (res) {
 		res->refc++;
 	} else {
-		res = add_res(cache, key);
+		res = add_res(cache, key, key_size);
 		if (!res) { return NULL; }
 	}
 	return res_data(cache, res);
 }
 
-void rescache_release(struct rescache *cache, void const *data)
+void *rescache_loads(struct rescache *cache, char const *key)
+{
+	assert(cache);
+	if (!key) { return NULL; }
+	return rescache_load(cache, key, strlen(key) + 1);
+}
+
+static struct resource **release(struct rescache *cache, void const *data)
 {
 	struct resource **res, *s;
 
 	assert(cache);
-	if (!data) { return; }
+	if (!data) { return NULL; }
 	res = find_data(cache, data);
-	if (!(s = *res)) { return; }
+	if (!(s = *res)) { return NULL; }
 	assert(s->refc > 0);
 	s->refc--;
+
+	return res;
+}
+
+void rescache_release(struct rescache *cache, void const *data)
+{
+	assert(cache);
+	(void)release(cache, data);
+}
+
+void rescache_release_and_free(struct rescache *cache, void const *data)
+{
+	struct resource **res;
+
+	assert(cache);
+	res = release(cache, data);
+	if (res && (*res)->refc == 0) {
+		free_res(cache, res);
+	}
 }
 

@@ -20,8 +20,8 @@
 	{ offsetof(struct glcache, name), #name, make_##name##_cache }
 #define get_cache_field(c,f) (struct rescache **)((char *)&(c) + (f).offset)
 
-typedef int loadfn(char const *, void *, void *);
-typedef void freefn(char const *, void *, void *);
+typedef int loadfn(void const *, size_t, void *, void *);
+typedef void freefn(void const *, size_t, void *, void *);
 typedef struct rescache *makecache(struct glstate *);
 
 struct field
@@ -69,11 +69,13 @@ static struct field const cache_fields[] = {
 
 static struct rescache *make_textures_cache(struct glstate *state)
 {
-	static loadfn *const load_texture[] = { load_png, load_tga };
+	loadfn *load_texture[] = { load_png, load_tga };
 
+	/* key: filename string */
 	return make_rescachen(
 		sizeof(struct gltexture),
 		alignof(struct gltexture),
+		alignof(char),
 		load_texture,
 		length_of(load_texture),
 		free_texture,
@@ -82,9 +84,11 @@ static struct rescache *make_textures_cache(struct glstate *state)
 
 static struct rescache *make_vshaders_cache(struct glstate *state)
 {
+	/* key: filename string */
 	return make_rescache(
 		sizeof(struct glshader),
 		alignof(struct glshader),
+		alignof(char),
 		load_vshader,
 		free_shader,
 		state);
@@ -92,9 +96,11 @@ static struct rescache *make_vshaders_cache(struct glstate *state)
 
 static struct rescache *make_fshaders_cache(struct glstate *state)
 {
+	/* key: filename */
 	return make_rescache(
 		sizeof(struct glshader),
 		alignof(struct glshader),
+		alignof(char),
 		load_fshader,
 		free_shader,
 		state);
@@ -102,9 +108,11 @@ static struct rescache *make_fshaders_cache(struct glstate *state)
 
 static struct rescache *make_programs_cache(struct glstate *state)
 {
+	/* key: programkey */
 	return make_rescachen(
 		sizeof(struct glprogram),
 		alignof(struct glprogram),
+		alignof(char),
 		NULL,
 		0,
 		free_program,
@@ -116,6 +124,7 @@ static struct rescache *make_materials_cache(struct glstate *state)
 	return make_rescache(
 		sizeof(struct glmaterial),
 		alignof(struct glmaterial),
+		alignof(char),
 		load_wf_material,
 		free_material,
 		state);
@@ -123,9 +132,11 @@ static struct rescache *make_materials_cache(struct glstate *state)
 
 static struct rescache *make_geometries_cache(struct glstate *state)
 {
+	/* key: filename string */
 	return make_rescache(
 		sizeof(struct glgeometries *),
 		alignof(struct glgeometries *),
+		alignof(char),
 		load_wf_obj,
 		free_geometry,
 		state);
@@ -133,9 +144,11 @@ static struct rescache *make_geometries_cache(struct glstate *state)
 
 static struct rescache *make_wf_mtllibs_cache(struct glstate *state)
 {
+	/* key: filename string */
 	return make_rescache(
 		sizeof(struct wf_mtllib *),
 		alignof(struct wf_mtllib *),
+		alignof(char),
 		load_wf_mtllib,
 		free_wf_mtllib,
 		state);
@@ -207,7 +220,7 @@ int gl_free_cache(struct glcache *cache)
 
 struct gltexture *gl_load_texture(struct glcache *cache, char const *filename)
 {
-	return rescache_load(cache->textures, filename);
+	return rescache_loads(cache->textures, filename);
 }
 
 void gl_release_texture(struct glcache *cache, struct gltexture *texture)
@@ -219,7 +232,7 @@ struct glshader *gl_load_vertex_shader(
 	struct glcache *cache,
 	char const *filename)
 {
-	return rescache_load(cache->vshaders, filename);
+	return rescache_loads(cache->vshaders, filename);
 }
 
 void gl_release_vertex_shader(struct glcache *cache, struct glshader *shader)
@@ -231,7 +244,7 @@ struct glshader *gl_load_fragment_shader(
 	struct glcache *cache,
 	char const *filename)
 {
-	return rescache_load(cache->fshaders, filename);
+	return rescache_loads(cache->fshaders, filename);
 }
 
 void gl_release_fragment_shader(struct glcache *cache, struct glshader *shader)
@@ -243,7 +256,7 @@ struct glmaterial const *gl_load_material(
 	struct glcache *cache,
 	char const *key)
 {
-	return rescache_load(cache->materials, key);
+	return rescache_loads(cache->materials, key);
 }
 
 void gl_release_material(
@@ -257,7 +270,7 @@ struct glgeometries const *const *gl_load_geometry(
 	struct glcache *cache,
 	char const *filename)
 {
-	return rescache_load(cache->geometries, filename);
+	return rescache_loads(cache->geometries, filename);
 }
 
 void gl_release_geometry(
@@ -271,7 +284,7 @@ struct wf_mtllib const **gl_load_wf_mtllib(
 	struct glcache *cache,
 	char const *key)
 {
-	return rescache_load(cache->wf_mtllibs, key);
+	return rescache_loads(cache->wf_mtllibs, key);
 }
 
 void gl_release_wf_mtllib(
@@ -281,69 +294,97 @@ void gl_release_wf_mtllib(
 	rescache_release(cache->wf_mtllibs, mtllib);
 }
 
-static int load_png(char const *filename, void *data, void *link)
+static int load_png(void const *filename, size_t len, void *data, void *link)
 {
 	(void)filename;
+	(void)len;
 	(void)data;
 	(void)link;
 	return 0;
 }
 
-static int load_tga(char const *filename, void *data, void *link)
+static int load_tga(void const *filename, size_t len, void *data, void *link)
 {
 	(void)filename;
+	(void)len;
 	(void)data;
 	(void)link;
 	return 0;
 }
 
-static void free_texture(char const *filename, void *data, void *link)
+static void free_texture(
+	void const *filename,
+	size_t len,
+	void *data,
+	void *link)
 {
 	(void)filename;
+	(void)len;
 	(void)data;
 	(void)link;
 }
 
-static int load_fshader(char const *filename, void *data, void *link)
+static int load_fshader(
+	void const *filename,
+	size_t len,
+	void *data,
+	void *link)
 {
 	struct glstate *state = link;
+	(void)len;
 	return gl_make_shader(state, filename, GL_FRAGMENT_SHADER, data);
 }
 
-static int load_vshader(char const *filename, void *data, void *link)
+static int load_vshader(
+	void const *filename,
+	size_t len,
+	void *data,
+	void *link)
 {
 	struct glstate *state = link;
+	(void)len;
 	return gl_make_shader(state, filename, GL_VERTEX_SHADER, data);
 }
 
-static void free_shader(char const *filename, void *data, void *link)
+static void free_shader(
+	void const *filename,
+	size_t len,
+	void *data,
+	void *link)
 {
+	(void)filename;
+	(void)len;
 	struct glstate *state = link;
 	struct glshader *shader = data;
 	state->f.glDeleteShader(shader->name);
-	(void)filename;
 }
 
-static int load_wf_mtllib(char const *filename, void *data, void *link)
+static int load_wf_mtllib(
+	void const *filename,
+	size_t len,
+	void *data,
+	void *link)
 {
 	struct wf_mtllib const **p;
 
 	(void)link;
+	(void)len;
 	p = data;
 	*p = wf_parse_mtllib(filename);
 	return *p ? 0 : -1;
 }
 
-static void free_wf_mtllib(char const *filename, void *data, void *link)
+static void free_wf_mtllib(void const *key, size_t len, void *data, void *link)
 {
-	wf_free_mtllib(*(struct wf_mtllib const **)data);
-	(void)filename;
+	(void)key;
+	(void)len;
 	(void)link;
+	wf_free_mtllib(*(struct wf_mtllib const **)data);
 }
 
 /* Load a glmaterial from a .mtl library file. The key has the form
    "path/to/file.mtl:mtlname". */
-static int load_wf_material(char const *key, void *data, void *link)
+static int load_wf_material(void const *key, size_t len, void *data, void *link)
 {
 	struct glstate *state;
 	struct recap cap;
@@ -351,6 +392,8 @@ static int load_wf_material(char const *key, void *data, void *link)
 	struct wf_mtllib const **mtllib;
 	struct wf_material const *wfmtl;
 	struct glmaterial *mtl;
+
+	(void)len;
 
 	if (!recap("\\(.+\\)$", key, &cap)) { return -1; }
 	assert(cap.length > 2);
@@ -361,7 +404,7 @@ static int load_wf_material(char const *key, void *data, void *link)
 	free(filename);
 	if (!mtllib) { return -1; }
 
-	mtlname = strdup_prefix(key + cap.offset + 1, cap.length - 2);
+	mtlname = strdup_prefix((char *)key + cap.offset + 1, cap.length - 2);
 	wfmtl = wf_get_material(*mtllib, mtlname);
 	free(mtlname);
 	if (!wfmtl) {
@@ -374,35 +417,41 @@ static int load_wf_material(char const *key, void *data, void *link)
 	return 0;
 }
 
-static void free_material(char const *key, void *data, void *link)
+static void free_material(void const *key, size_t len, void *data, void *link)
 {
 	(void)key;
+	(void)len;
 	(void)data;
 	(void)link;
 }
 
-static void free_program(char const *key, void *data, void *link)
+static void free_program(void const *key, size_t len, void *data, void *link)
 {
 	(void)key;
+	(void)len;
 	(void)data;
 	(void)link;
 }
 
-static int load_wf_obj(char const *filename, void *data, void *link)
+static int load_wf_obj(void const *filename, size_t len, void *data, void *link)
 {
 	struct glgeometries const **p = data;
 	struct glstate *state = link;
+
+	(void)len;
 
 	*p = gl_load_wfobj(state, filename);
 	return *p ? 0 : -1;
 }
 
-static void free_geometry(char const *key, void *data, void *link)
+static void free_geometry(void const *key, size_t len, void *data, void *link)
 {
 	struct glgeometries const **geos = data;
 	struct glstate *state = link;
 
-	gl_free_wfgeo(state, *geos);
 	(void)key;
+	(void)len;
+
+	gl_free_wfgeo(state, *geos);
 }
 

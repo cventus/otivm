@@ -24,37 +24,47 @@ static int ends_with(char const *str, char const *suffix)
 	return p && p - str + strlen(suffix) == len;
 }
 
-static int make_text(char const *key, void *data, void *link)
+static int load_txt(void const *key, size_t keysz, void *data, void *link)
 {
 	struct tally *tally = link;
 	struct text *text = data;
 	if (!ends_with(key, ".txt")) return -1;
+	if (strlen(key) + 1 != keysz) {
+		printf("%s: invalid key size\n", __func__);
+		ok = -1;
+	}
 	text->filename = key;
 	text->type = plain;
 	tally->plain_count++;
 	return 0;
 }
 
-static int make_rich_text(char const *key, void *data, void *link)
+static int load_rtf(void const *key, size_t keysz, void *data, void *link)
 {
 	struct tally *tally = link;
 	struct text *text = data;
 	if (!ends_with(key, ".rtf")) return -1;
+	if (strlen(key) + 1 != keysz) {
+		printf("%s: invalid key size\n", __func__);
+		ok = -1;
+	}
 	text->filename = key;
 	text->type = rich;
 	tally->rich_count++;
 	return 0;
 }
 
-static int (*const make_documents[])(char const *, void *, void *) = {
-	make_text,
-	make_rich_text
+static int (*const make_documents[])(void const *, size_t, void *, void *) = {
+	load_txt,
+	load_rtf
 };
 
-static void free_document(char const *key, void *data, void *link)
+static void free_doc(void const *key, size_t key_size, void *data, void *link)
 {
 	struct tally *tally = link;
 	struct text *text = data;
+
+	(void)key_size;
 
 	if (strcmp(text->filename, key) != 0) {
 		printf("filename-key mismatch\n");
@@ -77,9 +87,10 @@ static int empty(void)
 	r = make_rescachen(
 		sizeof (struct text),
 		alignof (struct text),
+		alignof (char),
 		make_documents,
 		sizeof make_documents / sizeof make_documents[0],
-		free_document,
+		free_doc,
 		NULL);
 
 	if (!r) fail_test("out of memory\n");
@@ -99,13 +110,14 @@ static int create(void)
 	r = make_rescachen(
 		sizeof (struct text),
 		alignof (struct text),
+		alignof (char),
 		make_documents,
 		sizeof make_documents / sizeof make_documents[0],
-		free_document,
+		free_doc,
 		&counts);
 
 	/* Create resource */
-	text = rescache_load(r, "file.txt");
+	text = rescache_loads(r, "file.txt");
 	if (!text) fail_test("unable to load txt file\n");
 	if (strcmp(text->filename, "file.txt") != 0) {
 		printf("text file not initialized properly\n");
@@ -142,7 +154,7 @@ static int create(void)
 	}
 
 	/* Reload resource */
-	if (rescache_load(r, "file.txt") != text) {
+	if (rescache_loads(r, "file.txt") != text) {
 		fail_test("resource not reused\n");
 	}
 	rescache_release(r, text);
