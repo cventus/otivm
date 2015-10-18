@@ -87,7 +87,7 @@ runtests() {
   echo "$TESTS" | while read TEST
   do
     if [ -n "$ALWAYS" -o \
-         -e "$TEST.fail" -o \
+         \( -e "$TEST.fail" -a "$TEST.fail" -ot "$TEST" \) -o \
          ! -e "$TEST.out" -o \
         "$TEST.out" -ot "$TEST" ]
     then
