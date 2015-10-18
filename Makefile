@@ -16,6 +16,9 @@ testmodrec=$(foreach M,$(TEST_MOD_$1),$M $(call testmodrec,$M))
 # function : module -> list of archive files
 arrec=$(patsubst %,$(AR_DIR)/lib%.a,$(call modrec,$1))
 
+# function : module -> list of archive files
+testarrec=$(patsubst %,$(AR_DIR)/lib%.a,$(call testmodrec,$1))
+
 # function : list of modules -> library dependencies
 librec=$(foreach M,$1,$(call librec,$(MOD_$M))) $(LIB_$M)
 
@@ -171,6 +174,7 @@ test-$1: test-$1-$2
 $$(TESTDIR_BASE)/$1/$2: $$(AR_DIR)/lib$1.a \
                         $$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$3) \
                         $$(call arrec,$1) \
+                        $$(call testarrec,$1) \
                       | $$(dir $$(TESTDIR_BASE)/$1/$2)
 	$$(CC) $$(LDFLAGS) \
                $$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$3) \
