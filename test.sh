@@ -5,13 +5,15 @@ COLOR=""
 if test -t 1; then
   COLOR="-vcolor=1"
 fi
+WATCH=""
 VERBOSE=""
 INFO=""
 ALWAYS=""
 RUNNER=""
 TESTOPTS=""
-while getopts "ivBCMx:o:" o; do
+while getopts "wivBCMx:o:" o; do
   case "$o" in
+    w)    WATCH="1";;
     B)    ALWAYS="1";;
     i)    INFO="-vinfo=1";;
     v)    VERBOSE="-vverbose=1";;
@@ -19,7 +21,7 @@ while getopts "ivBCMx:o:" o; do
     M)    COLOR="";;
     x)    RUNNER="$OPTARG";;
     o)    TESTOPTS="$OPTARG";;
-   \?)    echo >&2 "Usage: $0 [-B] [-i] [-v] [-C] [-M] " \
+   \?)    echo >&2 "Usage: $0 [-B] [-w] [-i] [-v] [-C] [-M] " \
                    "[-x <runner>] [-o <test options>] [pattern ...]";
           exit 1;;
   esac
@@ -66,7 +68,10 @@ compile() {
         fi
         ID=$(expr 1 + $ID)
       done 
-     } | parsetest
+    } | parsetest
+    true
+  else
+    false
   fi
 }
 
@@ -97,6 +102,24 @@ runtests() {
   done
 }
 
-compile
-runtests
+if [ -n "$WATCH" ]; then
+  inotifywait -mrq --timefmt '%a %H:%M' --format '%T %w %f' \
+              --exclude 'sw[op]|~$' \
+              -e modify,move,delete ./src/ |
+  while read day time dir file; do
+    case "$file" in
+      *.c | *.h)
+        if compile; then
+          runtests
+          echo
+        fi
+        ;;
+
+      *) ;;
+    esac
+  done
+else
+  compile
+  runtests
+fi
 
