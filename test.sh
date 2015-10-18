@@ -8,14 +8,19 @@ fi
 VERBOSE=""
 INFO=""
 ALWAYS=""
-while getopts ivBCM o; do
+RUNNER=""
+TESTOPTS=""
+while getopts "ivBCMx:o:" o; do
   case "$o" in
     B)    ALWAYS="1";;
     i)    INFO="-vinfo=1";;
     v)    VERBOSE="-vverbose=1";;
     C)    COLOR="-vcolor=1";;
     M)    COLOR="";;
-   \?)    echo >&2 "Usage: $0 [-B] [-i] [-v] [-C] [-M] [pattern ...]";
+    x)    RUNNER="$OPTARG";;
+    o)    TESTOPTS="$OPTARG";;
+   \?)    echo >&2 "Usage: $0 [-B] [-i] [-v] [-C] [-M] " \
+                   "[-x <runner>] [-o <test options>] [pattern ...]";
           exit 1;;
   esac
 done
@@ -84,7 +89,7 @@ runtests() {
       printf '% -39s ' "$TEST"
       if [ -e "$TEST" ]
       then
-        $TEST | tee $TEST.out
+        $(echo "$RUNNER" | sed "s;%t;$TEST;g") $TEST $TESTOPTS | tee $TEST.out
       else
         echo 'Bail out! Test does not exist.'
       fi | parsetest && clearfail "$TEST" || setfail "$TEST"
