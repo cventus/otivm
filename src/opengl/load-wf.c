@@ -17,6 +17,8 @@
 
 #include "types.h"
 #include "decl.h"
+#include "load-material.h"
+#include "load-mtllib.h"
 
 static void set_gl_attrib_pointer(
 	struct glfn const *f,
@@ -36,7 +38,7 @@ struct material_map
 	size_t n;
 	struct {
 		char const *filename;
-		struct wf_mtllib const **mtl;
+		struct wf_mtllib const *const *mtl;
 	} entries[];
 };
 
@@ -139,25 +141,18 @@ static struct glmaterial const *const *load_materials(
 				*libmap->entries[j].mtl,
 				group->mtlname);
 			if (mtl) {
-				mtlfilename =libmap->entries[i].filename;
+				mtlfilename = libmap->entries[i].filename;
 				break;
 			}
 		}
 		if (mtl && mtlfilename) {
-			/* Material name found in at least one library. OpenGL
-			   materials loaded from a .mtl file are assigned names
-			   such as path/foo.mtl(mtlname) */
-			char *name = strfmt(
-				namebuf,
-				namebufsz,
-				"%s(%s)",
+			mtllist[i] = gl_load_wf_material(
+				cache,
 				mtlfilename,
 				mtl->name);
-			mtllist[i] = gl_load_material(cache, name);
-			if (name != namebuf) { free(name); }
 			if (mtllist[i]) { continue; }
 		}
-		/* mtl == NULL || mtllist[i] == NULL */
+		/* mtl == NULL || mtlfilename == NULL || mtllist[i] == NULL */
 		free_materials(cache, mtllist, i);
 		tstack_fail(&ts); /* longjmps away */
 	}

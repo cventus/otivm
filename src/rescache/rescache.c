@@ -21,27 +21,27 @@ struct resource
 struct rescache
 {
 	struct resource *reslist;
-	size_t const nmake, data_size, data_offset, key_offset;
+	size_t const nloaders, data_size, data_offset, key_offset;
 	void *const link;
-	dtor *const free;
-	ctor *const make[];
+	dtor *const unload;
+	ctor *const loaders[];
 };
 
 struct rescache *make_rescache(
 	size_t data_size,
 	size_t data_align,
 	size_t key_align,
-	ctor *const make,
-	dtor *free,
+	ctor *const load,
+	dtor *unload,
 	void *link)
 {
 	return make_rescachen(
 		data_size,
 		data_align,
 		key_align,
-		&make,
+		&load,
 		1,
-		free,
+		unload,
 		link);
 }
 
@@ -49,23 +49,23 @@ struct rescache *make_rescachen(
 	size_t data_size,
 	size_t data_align,
 	size_t key_align,
-	ctor *const make[],
-	size_t nmake,
-	dtor *free,
+	ctor *const loaders[],
+	size_t nloaders,
+	dtor *unload,
 	void *link)
 {
 	struct rescache *cache;
 
 	assert(data_size > 0);
-	assert(make || nmake == 0);
-	assert(free);
+	assert(loaders || nloaders == 0);
+	assert(unload);
 
-	if (!(cache = malloc(sizeof *cache + nmake*sizeof *make))) {
+	if (!(cache = malloc(sizeof *cache + nloaders*sizeof *loaders))) {
 		return NULL;
 	}
 	cache->reslist = NULL;
-	*(dtor **)&cache->free = free;
-	*(size_t *)&cache->nmake = nmake;
+	*(dtor **)&cache->unload = unload;
+	*(size_t *)&cache->nloaders = nloaders;
 	*(size_t *)&cache->data_size = data_size;
 	*(size_t *)&cache->data_offset = align_to(
 		sizeof (struct resource),
@@ -74,7 +74,7 @@ struct rescache *make_rescachen(
 		cache->data_offset + cache->data_size,
 		key_align);
 	*(void **)&cache->link = link;
-	memcpy((ctor **)cache->make, make, nmake * sizeof *make);
+	memcpy((ctor **)cache->loaders, loaders, nloaders * sizeof *loaders);
 	return cache;
 }
 
@@ -109,8 +109,8 @@ static struct resource *add_res(
 	if (!res) { return NULL; }
 	rkey = memcpy(res_key(cache, res), key, key_size);
 	data = res_data(cache, res);
-	for (i = 0; i < cache->nmake; i++) {
-		if (cache->make[i](rkey, key_size, data, cache->link) == 0) {
+	for (i = 0; i < cache->nloaders; i++) {
+		if (cache->loaders[i](rkey, key_size, data, cache->link) == 0) {
 			res->refc = 1;
 			res->next = cache->reslist;
 			res->key_size = key_size;
@@ -197,7 +197,7 @@ static void free_res(struct rescache *cache, struct resource **res)
 
 	s = *res;
 	*res = (*res)->next;
-	cache->free(
+	cache->unload(
 		res_key(cache, s),
 		s->key_size,
 		res_data(cache, s),
@@ -267,7 +267,7 @@ void rescache_release(struct rescache *cache, void const *data)
 	(void)release(cache, data);
 }
 
-void rescache_release_and_free(struct rescache *cache, void const *data)
+void rescache_unload(struct rescache *cache, void const *data)
 {
 	struct resource **res;
 

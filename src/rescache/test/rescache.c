@@ -54,12 +54,12 @@ static int load_rtf(void const *key, size_t keysz, void *data, void *link)
 	return 0;
 }
 
-static int (*const make_documents[])(void const *, size_t, void *, void *) = {
+static int (*const load_docs[])(void const *, size_t, void *, void *) = {
 	load_txt,
 	load_rtf
 };
 
-static void free_doc(void const *key, size_t key_size, void *data, void *link)
+static void unload_doc(void const *key, size_t key_size, void *data, void *link)
 {
 	struct tally *tally = link;
 	struct text *text = data;
@@ -88,9 +88,9 @@ static int empty(void)
 		sizeof (struct text),
 		alignof (struct text),
 		alignof (char),
-		make_documents,
-		sizeof make_documents / sizeof make_documents[0],
-		free_doc,
+		load_docs,
+		sizeof load_docs / sizeof load_docs[0],
+		unload_doc,
 		NULL);
 
 	if (!r) fail_test("out of memory\n");
@@ -111,9 +111,9 @@ static int create(void)
 		sizeof (struct text),
 		alignof (struct text),
 		alignof (char),
-		make_documents,
-		sizeof make_documents / sizeof make_documents[0],
-		free_doc,
+		load_docs,
+		sizeof load_docs / sizeof load_docs[0],
+		unload_doc,
 		&counts);
 
 	/* Create resource */

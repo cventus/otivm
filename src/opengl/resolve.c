@@ -35,6 +35,8 @@ int gl_resolve_functions(struct glfn *glfn)
 	resolve(void,glDeleteProgram,(GLuint));
 	resolve(void,glAttachShader,(GLuint, GLuint));
 	resolve(void,glDetachShader,(GLuint, GLuint));
+	resolve(void,glGetProgramiv,(GLuint, GLenum, GLint *));
+	resolve(void,glGetProgramInfoLog,(GLuint, GLsizei, GLsizei *, GLchar *));
 	resolve(GLint,glGetFragDataLocation,(GLuint, GLchar const *));
 	resolve(void,glBindFragDataLocation,(GLuint, GLuint, GLchar const *));
 	resolve(void,glLinkProgram,(GLuint));

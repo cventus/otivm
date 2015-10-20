@@ -1,4 +1,6 @@
 
+typedef int loadfn(void const *, size_t, void *, void *);
+
 struct glcontext;
 
 struct glcache
@@ -7,8 +9,7 @@ struct glcache
 	struct rescache *materials;
 	struct rescache *textures;
 
-	struct rescache *vshaders;
-	struct rescache *fshaders;
+	struct rescache *shaders;
 	struct rescache *programs;
 
 	struct rescache *wf_mtllibs;
@@ -69,6 +70,8 @@ struct glfn
 	void (*glDeleteProgram)(GLuint);
 	void (*glAttachShader)(GLuint, GLuint);
 	void (*glDetachShader)(GLuint, GLuint);
+	void (*glGetProgramiv)(GLuint, GLenum, GLint *);
+	void (*glGetProgramInfoLog)(GLuint, GLsizei, GLsizei *, GLchar *);
 	GLint (*glGetFragDataLocation)(GLuint, GLchar const *);
 	void (*glBindFragDataLocation)(GLuint, GLuint, GLchar const *);
 	void (*glLinkProgram)(GLuint);
@@ -98,6 +101,8 @@ struct glprogram
 	GLuint name;
 };
 
+struct gl_programkey;
+
 struct glstate
 {
 	struct glfn f;
@@ -114,5 +119,4 @@ struct glvertexattrib
 	GLsizei stride;
 	GLvoid const *pointer;
 };
-
 
