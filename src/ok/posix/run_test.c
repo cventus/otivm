@@ -137,7 +137,6 @@ static void print_directive(int directive, const char *msg)
 	}
 }
 
-
 static int read_all(int fd, void *buf, int sz)
 {
 	char *p;
@@ -201,6 +200,9 @@ int run_test(int id, int fd, const char *prefix)
 
 	t = tests + id;
 
+	/* Flush streams before switching file descriptors */
+	CHECK(err = fflush(stdout), err == 0);
+
 	/* Redirect stdout to file */
 	CHECK(outfd = dup(STDOUT_FILENO), outfd >= 0);
 	CHECK(err = dup2(fd, STDOUT_FILENO), err != -1);
@@ -208,7 +210,10 @@ int run_test(int id, int fd, const char *prefix)
 	/* Run test function */
 	exec_test(t->fn, &result);
 	
-	/* Restore stdout */
+	/* Flush streams again before switching file descriptors */
+	CHECK(err = fflush(stdout), err == 0);
+
+	/* Restore standard output */
 	CHECK(err = dup2(outfd, STDOUT_FILENO), err != -1);
 	close(outfd);
 
@@ -227,7 +232,6 @@ int run_test(int id, int fd, const char *prefix)
 	echo_file(fd, prefix);
 
 	return result.success;
-
 }
 
 /* Run test in sub-process, and store its standard output in a temporary file,
