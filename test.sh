@@ -11,7 +11,7 @@ INFO=""
 ALWAYS=""
 RUNNER=""
 TESTOPTS=""
-while getopts "wivBCMx:o:" o; do
+while getopts "wivBCMx:o:V" o; do
   case "$o" in
     w)    WATCH="1";;
     B)    ALWAYS="1";;
@@ -21,6 +21,9 @@ while getopts "wivBCMx:o:" o; do
     M)    COLOR="";;
     x)    RUNNER="$OPTARG";;
     o)    TESTOPTS="$OPTARG";;
+    V)    RUNNER="valgrind --log-file=%t.valgrind"
+          TESTOPTS="-n";
+          ;;
    \?)    echo >&2 "Usage: $0 [-B] [-w] [-i] [-v] [-C] [-M] " \
                    "[-x <runner>] [-o <test options>] [pattern ...]";
           exit 1;;
