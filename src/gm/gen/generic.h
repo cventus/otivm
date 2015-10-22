@@ -35,6 +35,7 @@
 #define SFMT SFMTFW("")
 #define MIN PASTE(FPFX,_MIN)
 #define MAX PASTE(FPFX,_MAX)
+#define DIG PASTE(FPFX,_DIG)
 #ifndef EPSILON
 #define EPSILON LIT(1e-5)
 #endif
