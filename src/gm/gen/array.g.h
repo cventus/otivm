@@ -88,4 +88,14 @@ int aneareqe(T const a[], T const b[], size_t n, T reps, T aeps);
 #define aneareq MANGLE(aneareq)
 int aneareq(T const a[], T const b[], size_t n);
 
+/* Get maximum value */
+#undef amax
+#define amax MANGLE(amax)
+T amax(T const a[], size_t n);
+
+/* Get minimum value */
+#undef amin
+#define amin MANGLE(amin)
+T amin(T const a[], size_t n);
+
 

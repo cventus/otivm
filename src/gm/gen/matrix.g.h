@@ -95,6 +95,16 @@ void mfprint(FILE *fp, T const a[static M*N]);
 #define mprint MAT(print)
 void mprint(T const a[static M*N]);
 
+/* Maximum element value */
+#undef mmax
+#define mmax MAT(max)
+T mmax(T const a[static M*N]);
+
+/* Minimum element value */
+#undef mmin
+#define mmin MAT(min)
+T mmin(T const a[static M*N]);
+
 /* Fuzzy test for equality with given relative and absolute epsilon values */
 #undef mneareqe
 #define mneareqe MAT(neareqe)

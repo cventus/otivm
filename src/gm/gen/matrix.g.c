@@ -163,6 +163,16 @@ void mprint(T const a[static M*N])
 	mfprint(stdout, a);
 }
 
+T mmax(T const a[static M*N])
+{
+	return amax(a, M*N);
+}
+
+T mmin(T const a[static M*N])
+{
+	return amin(a, M*N);
+}
+
 int mneareqe(T const a[static M*N], T const b[static M*N], T rel_e, T abs_e)
 {
 	return aneareqe(a, b, M*N, rel_e, abs_e);

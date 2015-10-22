@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <float.h>
 #include <string.h>
+#include <math.h>
 #include "array.g.h"
 #include "misc.g.h"
 
@@ -126,5 +127,25 @@ int aneareqe(T const a[], T const b[], size_t n, T reps, T aeps)
 int aneareq(T const a[], T const b[], size_t n)
 {
 	return aneareqe(a, b, n, EQ_REL_EPSILON, EQ_ABS_EPSILON);
+}
+
+T amin(T const a[], size_t n)
+{
+	size_t i;
+	T min = MAX;
+	for (i = 0; i < n; i++) {
+		min = fminM(min, a[i]);
+	}
+	return min;
+}
+
+T amax(T const a[], size_t n)
+{
+	size_t i;
+	T max = -MAX;
+	for (i = 0; i < n; i++) {
+		max = fmaxM(max, a[i]);
+	}
+	return max;
 }
 
