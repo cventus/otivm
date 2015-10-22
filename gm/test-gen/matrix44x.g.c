@@ -236,13 +236,13 @@ static int test_inv(void)
 
 static int test_pinv(void)
 {
-	todo(0);
+	todo_test(0);
 	return -1;
 }
 
 static int test_rotx(void)
 {
-	todo(0);
+	todo_test(0);
 	return -1;
 }
 
@@ -264,49 +264,49 @@ static int test_rotz(void)
 
 static int test_trans(void)
 {
-	todo(0);
+	todo_test(0);
 	return -1;
 }
 
 static int test_scale(void)
 {
-	todo(0);
+	todo_test(0);
 	return -1;
 }
 
 static int test_uscale(void)
 {
-	todo(0);
+	todo_test(0);
 	return -1;
 }
 
 static int test_mul(void)
 {
-	todo(0);
+	todo_test(0);
 	return -1;
 }
 
 static int test_mulv(void)
 {
-	todo(0);
+	todo_test(0);
 	return -1;
 }
 
 static int test_lookat(void)
 {
-	todo(0);
+	todo_test(0);
 	return -1;
 }
 
 static int test_persp(void)
 {
-	todo(0);
+	todo_test(0);
 	return -1;
 }
 
 static int test_quat(void)
 {
-	todo(0);
+	todo_test(0);
 	return -1;
 }
 

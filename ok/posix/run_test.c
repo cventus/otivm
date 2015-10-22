@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -25,49 +26,64 @@ static struct state
 
 struct test_result
 {
-	enum { TEST = 0, SKIP, BAIL_OUT, TODO } mode;
+	enum { TEST = 0, FAIL, SKIP, BAIL_OUT, TODO } mode;
 	int success;
 	int signo;
 	char message[1000];
 };
 
-static void set_message(const char *message)
+static void set_message(const char *fmt, va_list ap)
 {
 	if (g_state.init) {
-		if (message) {
-			const size_t sz = sizeof g_state.result->message;
-			strncpy(g_state.result->message, message, sz);
+		if (fmt) {
+			size_t sz = sizeof g_state.result->message;
+			vsnprintf(g_state.result->message, sz, fmt, ap);
 			g_state.result->message[sz - 1] = 0;
 		}
 	}
 }
 
-static void stop_test(const char *message, int mode)
+static void stop_test(int mode)
 {
-	if (g_state.init) {
-		set_message(message);
-		longjmp(g_state.skip, mode);
+	if (g_state.init) { longjmp(g_state.skip, mode); }
+}
+
+void fail_test(char const *fmt, ...)
+{
+	va_list ap;
+	if (fmt) {
+		va_start(ap, fmt);
+		vprintf(fmt, ap);
+		va_end(ap);
 	}
+	stop_test(FAIL);
 }
 
-void todo(const char *message)
+void todo_test(char const *fmt, ...)
 {
-	if (g_state.init) {
-		set_message(message);
-		g_state.result->mode = TODO;
-	}
+	va_list ap;
+	va_start(ap, fmt);
+	set_message(fmt, ap);
+	va_end(ap);
+	if (g_state.init) { g_state.result->mode = TODO; }
 }
 
-void skip_test(const char *message)
+void skip_test(char const *fmt, ...)
 {
-	stop_test(message, SKIP);
+	va_list ap;
+	va_start(ap, fmt);
+	set_message(fmt, ap);
+	va_end(ap);
+	stop_test(SKIP);
 }
 
-/* Stop all testing because continuing tests do not make sense (e.g. necessary
-   external resource is unavailable) */
-void bail_out(const char *message)
+void bail_out(char const *fmt, ...)
 {
-	stop_test(message, BAIL_OUT);
+	va_list ap;
+	va_start(ap, fmt);
+	set_message(fmt, ap);
+	va_end(ap);
+	stop_test(BAIL_OUT);
 }
 
 static void do_bail_out(const char *msg)
@@ -136,6 +152,12 @@ static void exec_test(int (*fn)(void), struct test_result *result)
 		/* Run test */
 		result->mode = TEST;
 		result->success = (*fn)();
+		break;
+
+	case FAIL:
+		/* Test was prematurely aborted due to failure. */
+		result->mode = FAIL;
+		result->success = -1;
 		break;
 
 	case SKIP: 

@@ -2,14 +2,18 @@
 #define OK_H_INCLUDED
 
 /* Skip the currently executing test */
-void skip_test(const char *message);
+void skip_test(char const *fmt, ...);
 
 /* Mark test as unfinished for the given reason */
-void todo(const char *message);
+void todo_test(char const *fmt, ...);
+
+/* End test early and fail the test. If `fmt` isn't NULL, a message is printed
+   to the output first. */
+void fail_test(char const *fmt, ...);
 
 /* Stop all testing because continuing tests do not make sense (e.g. necessary
    external resource is unavailable). This function doesn't return. */
-void bail_out(const char *message);
+void bail_out(char const *fmt, ...);
 
 extern struct test {
 	int (*fn)(void); /* test function; zero is success */

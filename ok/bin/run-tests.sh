@@ -6,13 +6,13 @@
 
 THISPATH=$(dirname "$0")
 
-while read test;
+while read TEST;
 do
-  echo -n "$test	"
-  OUT_DIR=$(dirname $(dirname $test))/out/
+  echo -n "$TEST	"
+  OUT_DIR=$(dirname $(dirname $TEST))/out
   mkdir -p $OUT_DIR
-  if [ -e "$test" ]; then
-    $test | tee $OUT_DIR/$(basename $test).out | $THISPATH/tap.sh ${*:--c}
+  if [ -e "$TEST" ]; then
+    $TEST | tee $OUT_DIR/$(basename $TEST).out | $THISPATH/tap.sh ${*:--c}
   else
     echo | $THISPATH/tap.sh ${*:--c}
   fi
