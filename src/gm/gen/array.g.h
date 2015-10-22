@@ -70,12 +70,12 @@ T *adiv(T dest[], size_t n, T const a[], T const b[]);
 /* Sum of array elements */
 #undef asum
 #define asum MANGLE(asum)
-T asum(T a[], size_t n);
+T asum(T const a[], size_t n);
 
 /* Product of array elements */
 #undef aprod
 #define aprod MANGLE(aprod)
-T aprod(T a[], size_t n);
+T aprod(T const a[], size_t n);
 
 /* Nearly equal values with relative tolerance `reps` and absolute tolerance
    `aeps`. */

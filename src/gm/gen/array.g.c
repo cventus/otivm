@@ -92,7 +92,7 @@ T *adiv(T dest[], size_t n, T const a[], T const b[])
 	return amapb(dest, n, a, b, div);
 }
 
-T asum(T a[], size_t n)
+T asum(T const a[], size_t n)
 {
 	size_t i;
 	T sum = LIT(0.0);
@@ -102,7 +102,7 @@ T asum(T a[], size_t n)
 	return sum;
 }
 
-T aprod(T a[], size_t n)
+T aprod(T const a[], size_t n)
 {
 	size_t i;
 	T prod = LIT(1.0);
