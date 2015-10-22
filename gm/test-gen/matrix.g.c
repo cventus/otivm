@@ -159,13 +159,12 @@ static int test_transp(void)
 	return ok;
 }
 
-struct test tests[] = {
+struct test const tests[] = {
 	{ test_id,	"produces the identity matrix" },
 	{ test_zero,	"produces a zero matrix" },
 	{ test_eq,	"matrix equality and inequality" },
 	{ test_copy,	"copy a matrix" },
 	{ test_transp,	"matrix transpose" },
+	{ NULL, NULL }
 };
-
-size_t n_tests = sizeof tests / sizeof 0[tests];
 

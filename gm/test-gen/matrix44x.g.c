@@ -311,7 +311,7 @@ static int test_quat(void)
 }
 
 
-struct test tests[] = {
+struct test const tests[] = {
 	{ test_det,	"determinant" },
 	{ test_trace,	"trace" },
 	{ test_inv,	"inverse" },
@@ -327,7 +327,7 @@ struct test tests[] = {
 	{ test_lookat,	"lookat matrix" },
 	{ test_persp,	"perspective matrix" },
 	{ test_quat,	"rotation matrix from quaternion" },
-};
 
-size_t n_tests = lengthof(tests);
+	{ NULL, NULL }
+};
 

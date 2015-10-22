@@ -162,7 +162,7 @@ static void exec_test(int (*fn)(void), struct test_result *result)
 int run_test(int id, int fd, const char *prefix)
 {
 	int err, outfd;
-	struct test *t;
+	struct test const *t;
 	struct test_result result = { TEST, -1, -1, { 0 } };
 
 	t = tests + id;
@@ -172,7 +172,7 @@ int run_test(int id, int fd, const char *prefix)
 	CHECK(err = dup2(fd, STDOUT_FILENO), err != -1);
 
 	/* Run test function */
-	exec_test(t->function, &result);
+	exec_test(t->fn, &result);
 	
 	/* Restore stdout */
 	CHECK(err = dup2(outfd, STDOUT_FILENO), err != -1);
@@ -184,8 +184,7 @@ int run_test(int id, int fd, const char *prefix)
 	}
 
 	/* Print primary test result output */
-	printf("%sok %d %s", result.success ? "not " : "", id + 1,
-	       t->description);
+	printf("%sok %d %s", result.success ? "not " : "", id + 1, t->desc);
 	print_directive(result.mode, result.message);
 	printf("\n");
 
@@ -206,7 +205,7 @@ int fork_test(int id, int fd, const char *prefix)
 	struct test_result result = { TEST, -1, -1, { 0 } };
 	siginfo_t info;
 	pid_t pid;
-	struct test *t;
+	struct test const *t;
 
 	t = tests + id;
 
@@ -227,7 +226,7 @@ int fork_test(int id, int fd, const char *prefix)
 		CHECK(err = dup2(fd, STDERR_FILENO), err != -1);
 
 		/* Run test function */
-		exec_test(t->function, &result);
+		exec_test(t->fn, &result);
 
 		/* Write result to pipe (if we haven't already crashed) */
 		write(pipefd[1], &result, sizeof result);
@@ -262,7 +261,7 @@ int fork_test(int id, int fd, const char *prefix)
 
 	/* Print primary test result output */
 	printf("%sok %d%s %s", result.success ? "not " : "", id + 1, sigmsg,
-	       t->description);
+	       t->desc);
 	print_directive(result.mode, result.message);
 	printf("\n");
 

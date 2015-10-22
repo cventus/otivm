@@ -56,22 +56,20 @@ static void bclear(unsigned char *mask, unsigned bit)
 	mask[bit / CHAR_BIT] &= ~(1 << (bit % CHAR_BIT));
 }
 
-static unsigned char *parse_test_mask(char *ids[], int n, int invert)
+static unsigned char *parse_test_mask(char *ids[], int n, int invert, size_t m)
 {
 	unsigned char *mask;
 	char *end;
 	size_t sz, id;
 	int i;
 
-	/* make bit-mask tests to run or skip */
-	sz = (n_tests + CHAR_BIT - 1) / CHAR_BIT;
+	sz = (m + CHAR_BIT - 1) / CHAR_BIT;
 	CHECK(mask = malloc(sz), mask);
 	memset(mask, n == 0 || invert ? ~0 : 0, sz);
 
-	/* parse test ids */
 	for (i = 0; i < n; i++) {
 		id = (size_t)strtol(ids[i], &end, 0);
-		if (ids[i] == '\0' || *end != '\0' || id < 1 || id > n_tests) {
+		if (ids[i] == '\0' || *end != '\0' || id < 1 || id > m) {
 			fprintf(stderr, "invalid id: \"%s\"\n", ids[i]);
 			exit(EXIT_FAILURE);
 		}
@@ -80,20 +78,29 @@ static unsigned char *parse_test_mask(char *ids[], int n, int invert)
 	return mask;
 }
 
+static size_t count_tests(struct test const *t)
+{
+	size_t i;
+
+	for (i = 0; t[i].fn; i++) { }
+
+	return i;
+}
+
 static void list_tests(unsigned char *mask)
 {
 	size_t i;
 
-	for (i = 0; i < n_tests; i++) {
+	for (i = 0; tests[i].fn; i++) {
 		if (bisset(mask, i)) {
-			printf("%zd\t%s\n", i + 1, tests[i].description);
+			printf("%zd\t%s\n", i + 1, tests[i].desc);
 		}
 	}
 }
 
 static void print_skipped(unsigned id)
 {
-	printf("ok %u %s # SKIPPED\n", id + 1, tests[id].description);
+	printf("ok %u %s # SKIPPED\n", id + 1, tests[id].desc);
 }
 
 /* Create file to redirect test stdout and stderr into. */
@@ -115,7 +122,7 @@ int main(int argc, char **argv)
 	unsigned char *test_mask;
 	int n_fail, can_fork, list, invert, fd, opt, err;
 	unsigned long seed;
-	size_t i;
+	size_t i, n_tests;
 
 	/* set default options */
 	can_fork = 1;
@@ -145,11 +152,13 @@ int main(int argc, char **argv)
 		}
 	}
 
-	test_mask = parse_test_mask(argv + optind, argc - optind, invert);
+	n_tests = count_tests(tests);
+	test_mask = parse_test_mask(argv+optind, argc-optind, invert, n_tests);
 
 	if (list) {
 		list_tests(test_mask);
-		exit(EXIT_SUCCESS);
+		free(test_mask);
+		exit(0);
 	} 
 
 	CHECK(fd = open_temp_file(), fd >= 0);
@@ -163,10 +172,12 @@ int main(int argc, char **argv)
 		ok = 0;
 		srand((unsigned int)seed);
 		CHECK(err = ftruncate(fd, 0), err == 0);
-		if ((can_fork ? fork_test : run_test)(i, fd, prefix) || ok) {
+		err = (can_fork ? fork_test : run_test)(i, fd, prefix);
+		if (err || ok) {
 			n_fail++;
 		}
 	}
+	free(test_mask);
 	exit(n_fail);
 } 
 
