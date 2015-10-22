@@ -2,7 +2,8 @@
 OUT=archive
 LIB=-lm
 MOD=ok
-GINC=$(addprefix $(GINCDIR)/,matrix.h vector.h quaternion.h misc.h array.h)
+GINC=$(addprefix $(GINCDIR)/,\
+	matrix.h vector.h quaternion.h misc.h array.h plane.h)
 
 override common_CPPFLAGS:=$(CPPFLAGS)
 
@@ -17,6 +18,7 @@ gfiles=	vector2 \
 	matrix44 matrix44x \
 	array \
 	misc \
+	plane \
 
 
 EXT_O=f.o .o l.o
@@ -81,6 +83,7 @@ $(call def_source,matrix44x)
 $(call def_source,quaternionx)
 $(call def_source,misc)
 $(call def_source,array)
+$(call def_source,plane)
 
 # The same for tests, but tests do not have generic headers
 $(call def_test_source,matrix22 matrix33 matrix44,matrix)
@@ -99,6 +102,7 @@ $(call def_header,quaternion,quaternion quaternionx)
 $(call def_header,matrix,matrix22 matrix33 matrix33x matrix44 matrix44x)
 $(call def_header,misc,misc)
 $(call def_header,array,array)
+$(call def_header,plane,plane)
 
 $(call def_type_cpp,float,f,f,FLT)
 $(call def_type_cpp,double,,,DBL,,l)
