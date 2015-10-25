@@ -27,6 +27,7 @@ struct test_result
 {
 	enum { TEST = 0, SKIP, BAIL_OUT, TODO } mode;
 	int success;
+	int signo;
 	char message[1000];
 };
 
@@ -161,7 +162,7 @@ int run_test(int id, int fd, const char *prefix)
 {
 	int err, outfd;
 	struct test *t;
-	struct test_result result = { TEST, -1, { 0 } };
+	struct test_result result = { TEST, -1, -1, { 0 } };
 
 	t = tests + id;
 
@@ -203,9 +204,8 @@ int run_test(int id, int fd, const char *prefix)
 int fork_test(int id, int fd, const char *prefix)
 {
 	char sigmsg[100] = { '\0' };
-	int /* fd, */ pipefd[2], err;
-	struct test_result result = { TEST, -1, { 0 } };
-	//FILE *fp;
+	int pipefd[2], err;
+	struct test_result result = { TEST, -1, -1, { 0 } };
 	siginfo_t info;
 	pid_t pid;
 	struct test *t;
@@ -257,7 +257,7 @@ int fork_test(int id, int fd, const char *prefix)
 	/* Did the test terminate by an unhandled signal? */
 	if (info.si_code == CLD_DUMPED || info.si_code == CLD_KILLED) {
 		snprintf(sigmsg, sizeof sigmsg, " (signal %d)", info.si_status);
-		result.success = (info.si_status == t->signal) ? 0 : 1;
+		result.success = (info.si_status == result.signo) ? 0 : 1;
 	}
 
 	/* Print primary test result output */

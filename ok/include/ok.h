@@ -10,9 +10,11 @@ void todo(const char *message);
 void bail_out(const char *message);
 
 extern struct test {
-	int (*function)(void);		/* test function; zero is success */
-	const char *description;	/* single sentence description */
-	int signal;			/* expected signal number or -1 */
+	/* test function; zero is success */
+	int (*function)(void);
+
+	/* single sentence description */
+	const char *description;
 } tests[];
 
 extern size_t n_tests;
