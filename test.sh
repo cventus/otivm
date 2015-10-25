@@ -3,7 +3,7 @@
 # Parse command line
 COLOR=""
 if test -t 1; then
-  COLOR="-vcolor=1"
+  COLOR="-v color=1"
 fi
 WATCH=""
 VERBOSE=""
@@ -15,9 +15,9 @@ while getopts "wivBCMx:o:V" o; do
   case "$o" in
     w)    WATCH="1";;
     B)    ALWAYS="1";;
-    i)    INFO="-vinfo=1";;
-    v)    VERBOSE="-vverbose=1";;
-    C)    COLOR="-vcolor=1";;
+    i)    INFO="-v info=1";;
+    v)    VERBOSE="-v verbose=1";;
+    C)    COLOR="-v color=1";;
     M)    COLOR="";;
     x)    RUNNER="$OPTARG";;
     o)    TESTOPTS="$OPTARG";;
@@ -97,13 +97,18 @@ runtests() {
       printf '% -39s ' "$TEST"
       if [ -e "$TEST" ]
       then
-        $(echo "$RUNNER" | sed "s;%t;$TEST;g") $TEST $TESTOPTS | tee $TEST.out
+        $(echo "$RUNNER" | sed "s;%t;$TEST;g") $TEST $TESTOPTS | tee "$TEST".out
       else
-        echo 'Bail out! Test does not exist.'
+        echo 'Bail out! Test does not exist!'
       fi | parsetest && clearfail "$TEST" || setfail "$TEST"
+    elif [ -e "$TEST.fail" ]; then
+      cat "$TEST.out" | parsetest
     fi
   done
 }
+
+compile
+runtests
 
 if [ -n "$WATCH" ]; then
   inotifywait -mrq --timefmt '%a %H:%M' --format '%T %w %f' \
@@ -121,8 +126,5 @@ if [ -n "$WATCH" ]; then
       *) ;;
     esac
   done
-else
-  compile
-  runtests
 fi
 

@@ -113,10 +113,17 @@ $1 ~ /(not )?ok/ {
 
 	if (is_todo($4)) {
 		# TODO directive. These tests count as passed no matter what
-		passed[id] = 1
-		# If it was successful, then notify user at the end
-		if (!fail) done[id] = 1
-	} else if (is_skip($4)) {
+		if (fail) {
+			# Test failed as expected
+			passed[id] = 1
+			todo[id] = 1
+		} else {
+			# If it was successful, inform after test
+			done[id] = 1
+		}
+		fail = !fail
+	}
+	if (is_skip($4)) {
 		# SKIP directive
 		skipped[id] = 1
 		skip_msg[id] = message[id] "-- " explain[id]
@@ -163,7 +170,7 @@ END {
 		if (nfail) {
 			printf (verbose ? "\n\t" : " ")
 		} else {
-			if (arrlen(done) || arrlen(repeat) || arrlen(noplan)) {
+			if (arrlen(todo) || arrlen(repeat) || arrlen(noplan)) {
 				printf warncol("OK")
 			} else if (arrlen(skipped)) {
 				printf noticecol("OK")
@@ -181,9 +188,10 @@ END {
 
 	# Print additional information (possibly one line each)
 	if (info) {
+		print_table(failcol("TODO"), done, explain);
 		print_table(noticecol("Skipped"), skipped, skip_msg);
 		print_table(warncol("Repeated"), repeat, repeat_text);
-		print_table(warncol("Passed"), done, explain);
+		print_table(warncol("TODO"), todo, explain);
 		print_table(warncol("Not planned"), noplan, explain);
 	}
 
