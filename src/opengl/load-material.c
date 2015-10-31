@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdalign.h>
+#include <assert.h>
 #include <GL/gl.h>
 
 #include <wf/wf.h>
@@ -74,7 +75,19 @@ static int load_mtllib(void const *key, size_t size, void *data, void *link)
 	wfmtl = wf_get_material(*mtllib, mkey.name);
 	if (wfmtl) {
 		mtl = data;
-		mtl->diffuse[0] = wfmtl->kd[0];
+
+		assert(sizeof mtl->ambient == sizeof wfmtl->ka);
+		memcpy(mtl->ambient, wfmtl->ka, sizeof wfmtl->kd);
+
+		assert(sizeof mtl->diffuse == sizeof wfmtl->kd);
+		memcpy(mtl->diffuse, wfmtl->kd, sizeof wfmtl->kd);
+
+		assert(sizeof mtl->specular == sizeof wfmtl->ks);
+		memcpy(mtl->specular, wfmtl->ks, sizeof wfmtl->ks);
+
+		mtl->exponent = wfmtl->ns;
+		mtl->program = 0;
+
 		result = 0;
 	} else {
 		result = -2;

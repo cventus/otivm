@@ -22,7 +22,7 @@ struct glvertex
 
 struct glmaterial
 {
-	float diffuse[3];
+	float ambient[3], diffuse[3], specular[3], exponent;
 	GLuint program;
 };
 
