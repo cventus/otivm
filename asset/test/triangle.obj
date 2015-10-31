@@ -2,11 +2,9 @@
 mtllib common.mtl
 
 usemtl one
-v 1.5 3.0 .0
-v 0 0.0 .0
-v 3.0 0 .0
-
-# A few emtpy lines, and then the triangle
+v  0.0          0.75 0.0
+v -0.866025404 -0.75 0.0
+v  0.866025404 -0.75 0.0
 
 f 1 2 3
 
