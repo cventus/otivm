@@ -17,7 +17,11 @@ struct program_key
 	char keys[];
 };
 
-static int string_cmp(const void *a, const void *b) { return strcmp(a, b); }
+static int string_cmp(const void *a, const void *b) {
+	char const *a_str = *(char const *const *)a;
+	char const *b_str = *(char const *const *)b;
+	return strcmp(a_str, b_str);
+}
 
 static int make_key(char const *const *keys, size_t n, void **out, size_t *size)
 {
@@ -48,6 +52,7 @@ static int make_key(char const *const *keys, size_t n, void **out, size_t *size)
 	}
 	free(sorted_keys);
 
+	pk->n = n;
 	*out = pk;
 	*size = sz;
 
