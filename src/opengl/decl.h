@@ -6,6 +6,8 @@ struct glmaterial;
 struct glfn;
 struct glshader;
 
+void gl_draw_geometries(struct glstate *state, struct glgeometries const *geos);
+
 int gl_init_state(struct glstate *gl);
 int gl_free_state(struct glstate *gl);
 

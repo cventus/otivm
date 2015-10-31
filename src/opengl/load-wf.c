@@ -5,7 +5,6 @@
 #include <limits.h>
 #include <string.h>
 #include <GL/gl.h>
-//#include <GL/glext.h>
 
 #include <gm/vector.h>
 #include <base/mem.h>
@@ -19,6 +18,7 @@
 #include "decl.h"
 #include "load-material.h"
 #include "load-mtllib.h"
+#include "load-wf.h"
 
 static void set_gl_attrib_pointer(
 	struct glfn const *f,
@@ -156,7 +156,7 @@ static struct glmaterial const *const *load_materials(
 		free_materials(cache, mtllist, i);
 		tstack_fail(&ts); /* longjmps away */
 	}
-	tstack_retain(&ts, mtllist);
+	tstack_retain_mem(&ts, mtllist);
 	tstack_free(&ts);
 
 	return mtllist;
@@ -268,8 +268,8 @@ static struct element_buffer make_element_buffer(
 }
 
 static int make_gl_vertices(
-	struct wbuf *indicies,
 	struct wbuf *vertices,
+	struct wbuf *elements,
 	struct wf_object const *obj,
 	struct wf_triangles const *group)
 {
@@ -277,11 +277,11 @@ static int make_gl_vertices(
 	size_t i, j;
 	GLuint *index;
 
-	wbuf_init(indicies);
+	wbuf_init(elements);
 	wbuf_init(vertices);
 
 	for (i = 0; i < group->n; i++) {
-		index = wbuf_alloc(indicies, sizeof (GLuint[3]));
+		index = wbuf_alloc(elements, sizeof (GLuint[3]));
 		if (!index) { goto error; }
 		for (j = 0; j < 3; j++) {
 			err = get_vertex(
@@ -297,7 +297,7 @@ static int make_gl_vertices(
 	return 0;
 
 error:	wbuf_free(vertices);
-	wbuf_free(indicies);
+	wbuf_free(elements);
 	return -1;
 }
 
@@ -371,7 +371,7 @@ static int make_wf_geometry(
 	geo->eb = make_element_buffer(
 		f,
 		elements.begin,
-		group->n * 3,
+		wbuf_nmemb(&elements, sizeof (GLuint)),
 		GL_TRIANGLES,
 		wbuf_nmemb(&vertices, sizeof (struct glvertex)));
 
@@ -382,25 +382,24 @@ static int make_wf_geometry(
 	return 0;
 }
 
-static struct glgeometries *make_wf_geometires(
+int make_wf_geometires(
 	struct glstate *state,
 	struct wf_object const *obj,
-	struct glmaterial const *const *mtllist)
+	struct glmaterial const *const *mtllist,
+	struct glgeometries *geos)
 {
 	int err;
 	size_t i;
 	jmp_buf errbuf;
 	struct tstack ts;
 	struct glgeometry *geo;
-	struct glgeometries *geos;
 
-	if (setjmp(errbuf)) { return NULL; }
+	if (setjmp(errbuf)) { return -1; }
 	tstack_init(&ts, &errbuf);
 
-	geos = malloc(sizeof *geos + obj->ngroups * sizeof geos->geo[0]);
-	tstack_push_mem(&ts, geos);
+	geos->geo = malloc(obj->ngroups * sizeof geos->geo[0]);
+	tstack_push_mem(&ts, geos->geo);
 	geos->n = obj->ngroups;
-
 	for (i = 0; i < geos->n; i++) {
 		geo = geos->geo + i;
 		geo->material = mtllist[i];
@@ -408,21 +407,24 @@ static struct glgeometries *make_wf_geometires(
 		if (err) { tstack_fail(&ts); }
 		tstack_push(&ts, &free_wf_geometry, geo, &state->f);
 	}
-	tstack_retain(&ts, geos);
+	tstack_retain_all(&ts);
 	tstack_free(&ts);
 
-	return geos;
+	return 0;
 }
 
-struct glgeometries const *gl_load_wfobj(struct glstate *state, char const *filename)
+int gl_load_wfobj(
+	struct glstate *state,
+	struct glgeometries *geos,
+	char const *filename)
 {
 	struct wf_object const *obj = NULL;
 	struct glmaterial const *const *mtllist = NULL;
-	void *result = NULL;
+	int result = -1;
 
 	if (!(obj = wf_parse_object(filename))) { goto clean; }
 	if (!(mtllist = load_materials(state, filename, obj))) { goto clean; }
-	result = make_wf_geometires(state, obj, mtllist);
+	result = make_wf_geometires(state, obj, mtllist, geos);
 clean:	
 	if (mtllist) {
 		free_materials(&state->cache, mtllist, obj->ngroups);
@@ -432,7 +434,7 @@ clean:
 	return result;
 }
 
-void gl_free_wfgeo(struct glstate *state, struct glgeometries const *geos)
+void gl_free_wfgeo(struct glstate *state, struct glgeometries *geos)
 {
 	size_t i;
 	struct glgeometry const *geo;
@@ -441,6 +443,5 @@ void gl_free_wfgeo(struct glstate *state, struct glgeometries const *geos)
 		gl_release_material(&state->cache, geo->material);
 		free_wf_geometry(geo, &state->f);
 	}
-	free((void *)geos);
 }
 

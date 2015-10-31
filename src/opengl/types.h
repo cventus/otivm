@@ -43,7 +43,7 @@ struct glgeometry
 struct glgeometries
 {
 	size_t n;
-	struct glgeometry geo[];
+	struct glgeometry *geo;
 };
 
 struct glfn

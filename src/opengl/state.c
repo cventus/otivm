@@ -64,3 +64,18 @@ int gl_is_extension_supported(const char *extensions, const char *target)
 	return 0;
 }
 
+void gl_draw_geometry(struct glstate *state, struct glgeometry const *geo)
+{
+	state->f.glBindVertexArray(geo->vao);
+	glDrawElements(geo->eb.mode, geo->eb.count, geo->eb.type, 0);
+	state->f.glBindVertexArray(0);
+}
+
+void gl_draw_geometries(struct glstate *state, struct glgeometries const *geos)
+{
+	size_t i;
+	for (i = 0; i < geos->n; i++) {
+		gl_draw_geometry(state, geos->geo + i);
+	}
+}
+

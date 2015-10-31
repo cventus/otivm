@@ -68,7 +68,7 @@ static void check_shader(
 
 static int load_material_(struct glstate *state, struct gltest *test)
 {
-	struct glgeometries const *const *geo;
+	struct glgeometries const *geo;
 
 	geo = gl_load_geometry(&state->cache, "asset/test/triangle.obj");
 	if (!geo) { ok = -1; }
