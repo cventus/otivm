@@ -55,6 +55,9 @@ int gl_resolve_functions(struct glfn *glfn)
 	resolve(void,glBindVertexArray,(GLuint));
 	resolve(void,glDeleteVertexArrays,(GLsizei, GLuint const *));
 	resolve(GLboolean,glIsVertexArray,(GLuint));
+
+	/* Other */
+	resolve(const GLubyte *,glGetStringi,(GLenum name, GLuint index));
 #undef resolve
 
 	return 0;

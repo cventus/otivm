@@ -13,6 +13,7 @@ void gl_print_info(void);
 void (*gl_get_proc(char const *name))(void);
 
 int gl_is_extension_supported(const char *extensions, const char *target);
+int gl_is_new_extension_supported(struct glstate *state, const char *target);
 
 int gl_init_cache(struct glcache *cache, struct glstate *gl);
 int gl_free_cache(struct glcache *cache);

@@ -15,3 +15,6 @@ struct glstate *gl_test_get_state(struct gltest *test);
 void gl_test_swap_buffers(struct gltest *test);
 void gl_test_wait_for_key(struct gltest *test);
 
+int gl_enable_debug_output(struct glstate *);
+int gl_disable_debug_output(struct glstate *);
+

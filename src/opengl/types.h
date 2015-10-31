@@ -90,6 +90,9 @@ struct glfn
 	void (*glBindVertexArray)(GLuint);
 	void (*glDeleteVertexArrays)(GLsizei, GLuint const *);
 	GLboolean (*glIsVertexArray)(GLuint);
+
+	/* Other */
+	const GLubyte *(*glGetStringi)(GLenum, GLuint);
 };
 
 struct gltexture { GLuint name; };

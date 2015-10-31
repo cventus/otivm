@@ -25,6 +25,23 @@ struct glmaterial *gl_default_material(struct glstate *state)
 	return &state->defmat;
 }
 
+int gl_is_new_extension_supported(struct glstate *state, const char *target)
+{
+	GLint i, n;
+
+	if (target == NULL) { return 0; }
+
+	glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+	for (i = 0; i < n; i++) {
+		char const *extension =
+			(char const*)state->f.glGetStringi(GL_EXTENSIONS, i);
+		if (strcmp(extension, target) == 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 int gl_is_extension_supported(const char *extensions, const char *target)
 {
 	if (target == NULL) { return 0; }
