@@ -29,10 +29,13 @@ void tstack_initn(struct tstack *ts, jmp_buf *failjmp, size_t n)
 	}
 }
 
-static struct entry *get_entry(struct tstack *ts, void const *p)
+static struct entry *get_entry(
+	struct tstack *ts,
+	void const *p,
+	void (*dtor)(void const *, void const *))
 {
 	for (struct entry *q = ts->buf.begin, *e = ts->buf.end; q < e; q++) {
-		if (q->p == p) { return q; }
+		if (q->p == p && q->dtor == dtor) { return q; }
 	}
 	return NULL;
 }
@@ -45,7 +48,7 @@ void tstack_push(
 {
 	struct entry *e;
 	assert(ts);
-	assert(get_entry(ts, p) == NULL);
+	assert(get_entry(ts, p, dtor) == NULL);
 	if (p && dtor && (e = wbuf_alloc(&ts->buf, sizeof *e))) {
 		e->dtor = dtor;
 		e->p = p;
@@ -66,6 +69,11 @@ void tstack_push_mem(struct tstack *ts, void const *res)
 	tstack_push(ts, &free_mem, res, NULL);
 }
 
+int tstack_retain_mem(struct tstack *ts, void const *res)
+{
+	return tstack_retain(ts, &free_mem, res);
+}
+
 static void close_stream(void const *p, void const *ctx)
 {
 	(void)ctx;
@@ -75,6 +83,11 @@ static void close_stream(void const *p, void const *ctx)
 void tstack_push_file(struct tstack *ts, FILE *fp)
 {
 	tstack_push(ts, &close_stream, fp, NULL);
+}
+
+int tstack_retain_file(struct tstack *ts, FILE *fp)
+{
+	return tstack_retain(ts, &close_stream, fp);
 }
 
 static void free_wbuf(void const *p, void const *ctx)
@@ -88,11 +101,26 @@ void tstack_push_wbuf(struct tstack *ts, struct wbuf *buf)
 	tstack_push(ts, &free_wbuf, buf, NULL);
 }
 
-int tstack_retain(struct tstack *ts, void const *p)
+int tstack_retain_wbuf(struct tstack *ts, struct wbuf *buf)
+{
+	return tstack_retain(ts, &free_wbuf, buf);
+}
+
+void tstack_retain_all(struct tstack *ts)
+{
+	assert(ts);
+	wbuf_free(&ts->buf);
+	wbuf_init(&ts->buf);
+}
+
+int tstack_retain(
+	struct tstack *ts,
+	void (*dtor)(void const *, void const *),
+	void const *p)
 {
 	struct entry *e;
 	assert(ts);
-	if (p && (e = get_entry(ts, p))) {
+	if (p && (e = get_entry(ts, p, dtor))) {
 		e->p = NULL;
 		return 0;
 	} else {

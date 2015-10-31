@@ -24,24 +24,35 @@ void tstack_push(
 	void const *p,
 	void const *context);
 
-/* Push a pointer returned by `malloc(3)` onto the stack. When the stack is
-   freed, the pointer is passed to `free(3)`. */
-void tstack_push_mem(struct tstack *ts, void const *p);
-
-/* Push a file stream onto the stack. When the stack is freed, the stream is
-   closed with `fclose(3)`. */
-void tstack_push_file(struct tstack *ts, FILE *fp);
-
-/* Push a write buffer onto the stack. When the stack is freed, the pointer
-   is passed to `wbuf_free()`. */
-void tstack_push_wbuf(struct tstack *ts, struct wbuf *buf);
-
 /* Retain the resource `p` points, i.e. don't call its destuctor when freed
    the stack. This is typically called just before returning from a function to
    mark the resources that should be returned so that temporary resources can
    be destroyed. Return zero on success or non-zero on failure, e.g. resource
    not found in the stack, or it has already been retained, etc. */
-int tstack_retain(struct tstack *ts, void const *p);
+int tstack_retain(
+	struct tstack *ts,
+	void (*dtor)(void const *, void const *),
+	void const *p);
+
+/* Retain all resources, i.e. don't call any destuctor registered so far when
+   freeing the stack. This is typically called just before returning from a
+   function to signify that everything went well. */
+void tstack_retain_all(struct tstack *ts);
+
+/* Push a pointer returned by `malloc(3)` onto the stack. When the stack is
+   freed, the pointer is passed to `free(3)`. */
+void tstack_push_mem(struct tstack *ts, void const *p);
+int tstack_retain_mem(struct tstack *ts, void const *p);
+
+/* Push a file stream onto the stack. When the stack is freed, the stream is
+   closed with `fclose(3)`. */
+void tstack_push_file(struct tstack *ts, FILE *fp);
+int tstack_retain_file(struct tstack *ts, FILE *fp);
+
+/* Push a write buffer onto the stack. When the stack is freed, the pointer
+   is passed to `wbuf_free()`. */
+void tstack_push_wbuf(struct tstack *ts, struct wbuf *buf);
+int tstack_retain_wbuf(struct tstack *ts, struct wbuf *buf);
 
 /* Free all resources on the stack, calling their destructors, and free up all
    memory referenced by the stack. */
