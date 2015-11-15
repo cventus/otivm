@@ -124,6 +124,25 @@ void *wbuf_write(struct wbuf buf[static 1], void const *data, size_t size)
 	return result;
 }
 
+int wbuf_retract(struct wbuf buf[static 1], size_t size)
+{
+	assert(buf != NULL);
+
+	if (size > wbuf_size(buf)) { return -1; }
+	buf->end = (char *)buf->end - size;
+
+	return 0;
+}
+
+int wbuf_pop(struct wbuf buf[static 1], void *data, size_t size)
+{
+	assert(buf != NULL);
+
+	if (size > wbuf_size(buf)) { return -1; }
+	(void)memmove(data, (char *)buf->end - size, size);
+	return wbuf_retract(buf, size);
+}
+
 void *wbuf_concat(struct wbuf dest[static 1], struct wbuf const src[static 1])
 {
 	return wbuf_write(dest, src->begin, wbuf_size(src));

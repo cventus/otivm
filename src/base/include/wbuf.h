@@ -50,10 +50,24 @@ void *wbuf_alloc(struct wbuf buf[static 1], size_t size);
    allocation fails. */
 void *wbuf_write(struct wbuf buf[static 1], void const *data, size_t size);
 
+/* Shrink buffer by `size` bytes from the end of the buffer. Returns non-zero
+   if buffer reallocation failed. */
+int wbuf_retract(struct wbuf buf[static 1], size_t size);
+
+/* Copy the last `size` bytes from the end of the buffer into `data`, and then
+   retract by `size` bytes. Returns non-zero if buffer reallocation failed or
+   if `size` is greater than the size of the buffer.
+
+   If `buf` is a homogenous, and the order of elements doesn't matter, then
+   this function can be used to remove an element from the middle of the array
+   by copying the last element somewhere into the middle and then retracting
+   the size of the buffer. */
+int wbuf_pop(struct wbuf buf[static 1], void *data, size_t size);
+
 /* Concatenate the data from `src` to the end of `dest`. Return the address of
    the area in dest into which `src` was copied, or NULL if allocation fails. */
 void *wbuf_concat(struct wbuf dest[static 1], struct wbuf const src[static 1]);
 
-/* Copy `wbuf_use(src)` bytes from the buffer to `dest`. */
+/* Copy `wbuf_size(src)` bytes from the buffer to `dest`. */
 void *wbuf_copy(void *dest, struct wbuf const src[static 1]);
 
