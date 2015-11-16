@@ -290,84 +290,6 @@ static bool clear_key_state(unsigned char *key_state, unsigned char keycode)
 	return prev;
 }
 
-/*
-static Bool is_repeat_predicate(Display *display, XEvent *event, XPointer arg)
-{
-	XKeyReleasedEvent const *target = (XKeyReleasedEvent const *)arg;
-	(void)display;
-	return event->type == KeyPress
-		&& event->xkey.state == target->state
-		&& event->xkey.keycode == target->keycode
-		&& event->xkey.time == target->time;
-}
-
-static bool is_repeat(XKeyReleasedEvent const *e)
-{
-	XEvent event;
-	Bool found = XCheckIfEvent(
-		e->display,
-		&event,
-		is_repeat_predicate,
-		(XPointer)e);
-	if (found) { XPutBackEvent(e->display, &event); }
-	return found;
-}
-*/
-
-#define E(x) { x, #x }
-static struct {
-	int type;
-	char const *name;
-} const event_names[] = {
-	E(KeyPress),
-	E(KeyRelease),
-	E(ButtonPress),
-	E(ButtonRelease),
-	E(MotionNotify),
-	E(EnterNotify),
-	E(LeaveNotify),
-	E(FocusIn),
-	E(FocusOut),
-	E(KeymapNotify),
-	E(Expose),
-	E(GraphicsExpose),
-	E(NoExpose),
-	E(VisibilityNotify),
-	E(CreateNotify),
-	E(DestroyNotify),
-	E(UnmapNotify),
-	E(MapNotify),
-	E(MapRequest),
-	E(ReparentNotify),
-	E(ConfigureNotify),
-	E(ConfigureRequest),
-	E(GravityNotify),
-	E(ResizeRequest),
-	E(CirculateNotify),
-	E(CirculateRequest),
-	E(PropertyNotify),
-	E(SelectionClear),
-	E(SelectionRequest),
-	E(SelectionNotify),
-	E(ColormapNotify),
-	E(ClientMessage),
-	E(MappingNotify),
-	E(GenericEvent)
-};
-#undef E
-
-static char const *event_name(int type)
-{
-	size_t i;
-
-	for (i = 0; i < length_of(event_names); i++) {
-		if (event_names[i].type == type) {
-			return event_names[i].name;
-		}
-	}
-	return "UnknownEvent";
-}
-
 static void on_keypress(struct xw_state *state, XEvent *event)
 {
 	XKeyPressedEvent *e = &event->xkey;
@@ -523,7 +445,7 @@ static void on_destroy(struct xw_state *state, XEvent *event)
 		(void)wbuf_pop(&state->windows, p, sizeof *p);
 		free(w);
 	} else {
-		fprintf(stderr, "Unknown window was destroyed!\n");
+		(void)fprintf(stderr, "Unknown window was destroyed!\n");
 	}
 }
 
@@ -614,10 +536,6 @@ int xw_handle_events(struct xw_state *state)
 		XNextEvent(state->display, &e);
 		if ((size_t)e.type < length_of(handlers) && handlers[e.type]) {
 			handlers[e.type](state, &e);
-		} else {
-			(void)fprintf(stderr,
-				"Unandled event %d ``%s''\n", e.type,
-			        event_name(e.type));
 		}
 	}
 	return 0;
