@@ -175,7 +175,7 @@ static void on_map(void *context)
 	}
 }
 
-void on_close(void *context)
+static void on_close(void *context)
 {
 	struct context *ctx = context;
 
@@ -185,6 +185,19 @@ void on_close(void *context)
 	}
 	if (ctx->print) {
 		(void)fprintf(stderr, "close(context = %p)\n", context);
+	}
+}
+
+static void on_resize(int width, int height, void *context)
+{
+	struct context *ctx = context;
+	if (ctx->print) {
+		(void)fprintf(
+			stderr,
+			"resize(width = %d, height = %d, context = %p)\n",
+			width,
+			height,
+			context);
 	}
 }
 
@@ -259,7 +272,7 @@ static void on_key_release(KeySym sym, int state, void *context)
 	}
 }
 
-void on_visibility(int is_visible, void *context)
+static void on_visibility(int is_visible, void *context)
 {
 	struct context *ctx = context;
 	ctx->is_visible = is_visible;
@@ -272,7 +285,7 @@ void on_visibility(int is_visible, void *context)
 	}
 }
 
-void on_focus(int has_focus, void *context)
+static void on_focus(int has_focus, void *context)
 {
 	struct context *ctx = context;
 	ctx->has_focus = has_focus;
@@ -285,17 +298,95 @@ void on_focus(int has_focus, void *context)
 	}
 }
 
+static void on_button_press(int button, int state, int x, int y, void *context)
+{
+	struct context *ctx = context;
+	if (ctx->print) {
+		(void)fprintf(
+			stderr,
+			"button_press(button = %d, state = 0x%x, x = %d, y = %d, context = %p)\n",
+			button,
+			(unsigned)state,
+			x,
+			y,
+			context);
+	}
+}
+
+static void on_button_release(int button, int state, int x, int y, void *context)
+{
+	struct context *ctx = context;
+	if (ctx->print) {
+		(void)fprintf(
+			stderr,
+			"button_release(button = %d, state = 0x%x, x = %d, y = %d, context = %p)\n",
+			button,
+			(unsigned)state,
+			x,
+			y,
+			context);
+	}
+}
+
+static void on_pointer_motion(int state, int x, int y, void *context)
+{
+	struct context *ctx = context;
+	if (ctx->print) {
+		(void)fprintf(
+			stderr,
+			"pointer_motion(state = 0x%x, x = %d, y = %d, context = %p)\n",
+			(unsigned)state,
+			x,
+			y,
+			context);
+	}
+}
+
+static void on_pointer_enter(int state, int x, int y, void *context)
+{
+	struct context *ctx = context;
+	if (ctx->print) {
+		(void)fprintf(
+			stderr,
+			"pointer_enter(state = 0x%x, x = %d, y = %d, context = %p)\n",
+			(unsigned)state,
+			x,
+			y,
+			context);
+	}
+}
+
+static void on_pointer_leave(int state, int x, int y, void *context)
+{
+	struct context *ctx = context;
+	if (ctx->print) {
+		(void)fprintf(
+			stderr,
+			"pointer_leave(state = 0x%x, x = %d, y = %d, context = %p)\n",
+			(unsigned)state,
+			x,
+			y,
+			context);
+	}
+}
+
 static struct xw_delegate const all_events = {
 	.create = on_create,
 	.map = on_map,
 	.close = on_close,
+	.resize = on_resize,
 	.unmap = on_unmap,
 	.destroy = on_destroy,
+	.visibility = on_visibility,
+	.focus = on_focus,
 	.text = on_text,
 	.key_press = on_key_press,
 	.key_release = on_key_release,
-	.focus = on_focus,
-	.visibility = on_visibility
+	.button_press = on_button_press,
+	.button_release = on_button_release,
+	.pointer_motion = on_pointer_motion,
+	.pointer_enter = on_pointer_enter,
+	.pointer_leave = on_pointer_leave
 };
 
 static void send_close_request(Display *display, Window window)

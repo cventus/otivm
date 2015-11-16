@@ -36,7 +36,7 @@ struct window
 	struct xw_delegate const *delegate;
 	void *context;
 	Window window;
-	int is_open;
+	int is_open, is_visible, width, height;
 	unsigned char key_state[UCHAR_MAX >> 3];
 };
 
@@ -136,7 +136,6 @@ int xw_create_window(
 		(void)fprintf(stderr, "WM_DELETE_WINDOW not suppoted\n");
 	}
 	(void)XStoreName(display, w, title);
-	(void)XMapWindow(display, w);
 	/* TODO: add WM_CLASS property to window */
 
 	window->window = w;
@@ -149,6 +148,7 @@ int xw_create_window(
 	if (delegate->create) {
 		delegate->create(w, context);
 	}
+	(void)XMapWindow(display, w);
 	return 0;
 
 err0:	(void)wbuf_retract(&state->windows, sizeof *p);
@@ -421,12 +421,14 @@ static void on_visibility(struct xw_state *state, XEvent *event)
 {
 	XVisibilityEvent const *e = &event->xvisibility;
 	struct window *w = get_window(state, e->window);
-	if (w && w->delegate->visibility) {
-		int is_visible =
-			e->state == VisibilityUnobscured ||
-			e->state == VisibilityPartiallyObscured;
-
-		w->delegate->visibility(is_visible, w->context);
+	int is_visible =
+		e->state == VisibilityUnobscured ||
+		e->state == VisibilityPartiallyObscured;
+	if (w && w->is_visible != is_visible) {
+		w->is_visible = is_visible;
+		if (w->delegate->visibility) {
+			w->delegate->visibility(is_visible, w->context);
+		}
 	}
 }
 
@@ -477,8 +479,12 @@ static void on_configure(struct xw_state *state, XEvent *event)
 {
 	XConfigureEvent const *e = &event->xconfigure;
 	struct window *w = get_window(state, e->window);
-	if (w && w->delegate->resize) {
-		w->delegate->resize(e->width, e->height, w->context);
+	if (w && (w->width != e->width || w->height != e->height)) {
+		w->width = e->width;
+		w->height = e->height;
+		if (w->delegate->resize) {
+			w->delegate->resize(e->width, e->height, w->context);
+		}
 	}
 }
 
