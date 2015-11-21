@@ -16,9 +16,9 @@
 #include "../decl.h"
 #include "../include/x.h"
 
-#include "xdrawable.h"
+#include "private.h"
 
-static struct glxconfig const default_config = {
+static struct gl_xconfig const default_config = {
 	.debug = true,
 	.forward_compatible = false,
 	.window = true,
@@ -65,7 +65,7 @@ static int select_fbconfig(
 	return best_i >= 0 ? 0 : -1;
 }
 
-static int context_flags(struct glxconfig const *config)
+static int context_flags(struct gl_xconfig const *config)
 {
 	int flags = 0;
 	if (config->debug) {
@@ -77,7 +77,7 @@ static int context_flags(struct glxconfig const *config)
 	return flags;
 }
 
-static int drawable_flags(struct glxconfig const *config)
+static int drawable_flags(struct gl_xconfig const *config)
 {
 	int flags = 0;
 	if (config->window) { flags |= GLX_WINDOW_BIT; }
@@ -86,10 +86,10 @@ static int drawable_flags(struct glxconfig const *config)
 	return flags;
 }
 
-struct glxstate *gl_make_xcontext(
-	struct glxstate *buf,
+struct gl_xstate *gl_make_xcontext(
+	struct gl_xstate *buf,
 	Display *display,
-	struct glxconfig const *config)
+	struct gl_xconfig const *config)
 {
 	typedef GLXContext create_context_fn(
 		Display *,
@@ -98,7 +98,7 @@ struct glxstate *gl_make_xcontext(
 		Bool,
 		const int *);
 
-	struct glxconfig const *cfg = config ? config : &default_config;
+	struct gl_xconfig const *cfg = config ? config : &default_config;
 
 	int const context_attribs[] =
 	{
@@ -125,7 +125,7 @@ struct glxstate *gl_make_xcontext(
 	GLXFBConfig fbconfig;
 	GLXContext context;
 	int screen;
-	struct glxstate *xstate;
+	struct gl_xstate *xstate;
 
 	assert(display != NULL);
 
@@ -177,7 +177,12 @@ struct glxstate *gl_make_xcontext(
 	return xstate;
 }
 
-void gl_free_xcontext(struct glxstate *xstate)
+void gl_destroy_drawable(struct gl_xstate *xstate, struct gl_xdrawable *drawable)
+{
+	drawable->destroy(xstate, drawable);
+}
+
+void gl_free_xcontext(struct gl_xstate *xstate)
 {
 	if (xstate->drawable) {
 		xstate->drawable->destroy(xstate, xstate->drawable);
@@ -187,7 +192,7 @@ void gl_free_xcontext(struct glxstate *xstate)
 	assert(gl_free_state(&xstate->state) == 0);
 }
 
-static void unmake_current(struct glxstate *xstate, GLXDrawable drawable)
+static void unmake_current(struct gl_xstate *xstate, GLXDrawable drawable)
 {
 	GLXDrawable write = glXGetCurrentDrawable();
 	if (drawable == write) {
@@ -202,14 +207,14 @@ static void unmake_current(struct glxstate *xstate, GLXDrawable drawable)
 }
 
 static void destroy_glxwindow(
-	struct glxstate *xstate,
-	struct glxdrawable *drawable)
+	struct gl_xstate *xstate,
+	struct gl_xdrawable *drawable)
 {
 	unmake_current(xstate, drawable->glxid);
 	glXDestroyWindow(xstate->display, drawable->glxid);
 }
 
-struct glxdrawable *gl_add_xwindow(struct glxstate *xstate, Window window)
+struct gl_xdrawable *gl_add_xwindow(struct gl_xstate *xstate, Window window)
 {
 	GLXDrawable id;
 
@@ -233,14 +238,14 @@ struct glxdrawable *gl_add_xwindow(struct glxstate *xstate, Window window)
 }
 
 static void destroy_pixmap(
-	struct glxstate *xstate,
-	struct glxdrawable *drawable)
+	struct gl_xstate *xstate,
+	struct gl_xdrawable *drawable)
 {
 	unmake_current(xstate, drawable->glxid);
 	glXDestroyPixmap(xstate->display, drawable->glxid);
 }
 
-struct glxdrawable *gl_add_xpixmap(struct glxstate *xstate, Pixmap pixmap)
+struct gl_xdrawable *gl_add_xpixmap(struct gl_xstate *xstate, Pixmap pixmap)
 {
 	GLXDrawable id;
 
@@ -263,7 +268,7 @@ struct glxdrawable *gl_add_xpixmap(struct glxstate *xstate, Pixmap pixmap)
 	return xstate->drawable;
 }
 
-int gl_make_current(struct glxstate *xstate, struct glxdrawable *drawable)
+int gl_make_current(struct gl_xstate *xstate, struct gl_xdrawable *drawable)
 {
 	return glXMakeContextCurrent(
 		xstate->display,
@@ -272,7 +277,7 @@ int gl_make_current(struct glxstate *xstate, struct glxdrawable *drawable)
 		xstate->context) ? 0 : -1;
 }
 
-XVisualInfo *gl_visual_info(struct glxstate *xstate)
+XVisualInfo *gl_visual_info(struct gl_xstate *xstate)
 {
 	return glXGetVisualFromFBConfig(xstate->display, xstate->fbconfig);
 }

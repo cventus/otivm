@@ -27,7 +27,7 @@ static char *get_info_log(
 }
 
 static int compile_shader(
-	struct glstate *state,
+	struct gl_state *state,
 	char const *source,
 	GLuint shader)
 {
@@ -53,8 +53,8 @@ static int compile_shader(
 }
 
 int gl_make_shader(
-	struct glstate *state,
-	struct glshader *shader,
+	struct gl_state *state,
+	struct gl_shader *shader,
 	GLenum type,
 	char const *source)
 {
@@ -70,7 +70,7 @@ int gl_make_shader(
 	return 0;
 }
 
-void gl_free_shader(struct glstate *state, struct glshader const *shader)
+void gl_free_shader(struct gl_state *state, struct gl_shader const *shader)
 {
 	state->f.glDeleteShader(shader->name);
 }
@@ -78,9 +78,9 @@ void gl_free_shader(struct glstate *state, struct glshader const *shader)
 
 
 int gl_make_program(
-	struct glstate *state,
-	struct glprogram *program,
-	struct glshader const *const *shaders,
+	struct gl_state *state,
+	struct gl_program *program,
+	struct gl_shader const *const *shaders,
 	size_t nshaders)
 {
 	GLint link_success;
@@ -112,14 +112,14 @@ int gl_make_program(
 	}
 }
 
-void gl_free_program(struct glstate *state, struct glprogram const *program)
+void gl_free_program(struct gl_state *state, struct gl_program const *program)
 {
 	state->f.glDeleteProgram(program->name);
 }
 
 char *gl_get_shader_info_log(
-	struct glstate *state,
-	struct glshader const *shader)
+	struct gl_state *state,
+	struct gl_shader const *shader)
 {
 	return get_info_log(
 		shader->name,
@@ -128,8 +128,8 @@ char *gl_get_shader_info_log(
 }
 
 char *gl_get_program_info_log(
-	struct glstate *state,
-	struct glprogram const *program)
+	struct gl_state *state,
+	struct gl_program const *program)
 {
 	return get_info_log(
 		program->name,
@@ -138,8 +138,8 @@ char *gl_get_program_info_log(
 }
 
 GLint gl_shader_type(
-	struct glstate *state,
-	struct glshader const *shader)
+	struct gl_state *state,
+	struct gl_shader const *shader)
 {
 	GLint type;
 	state->f.glGetShaderiv(shader->name, GL_SHADER_TYPE, &type);

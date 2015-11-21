@@ -1,15 +1,5 @@
 
-struct glxstate
-{
-	struct glstate state;
-	Display *display;
-	GLXFBConfig fbconfig;
-	GLXContext context;
-	struct glxdrawable *drawable;
-	size_t ndrawables;
-};
-
-struct glxconfig
+struct gl_xconfig
 {
 	_Bool
 		debug: 1,

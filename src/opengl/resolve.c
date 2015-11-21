@@ -5,7 +5,7 @@
 #include "types.h"
 #include "decl.h"
 
-int gl_resolve_functions(struct glfn *glfn)
+int gl_resolve_functions(struct gl_core *glfn)
 {
 #define resolve(res,name,args) do { \
 		 glfn->name = (res(*)args)gl_get_proc(#name); \

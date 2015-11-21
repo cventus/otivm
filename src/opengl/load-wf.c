@@ -21,8 +21,8 @@
 #include "load-wf.h"
 
 static void set_gl_attrib_pointer(
-	struct glfn const *f,
-	struct glvertexattrib const *va)
+	struct gl_core const *f,
+	struct gl_vertexattrib const *va)
 {
 	f->glVertexAttribPointer(
 		va->index,
@@ -43,7 +43,7 @@ struct material_map
 };
 
 static void free_material_map(
-	struct glcache *cache,
+	struct gl_cache *cache,
 	struct material_map *libmap) 
 {
 	for (size_t i = libmap->n; i-- > 0; ) {
@@ -59,13 +59,13 @@ static void free_material_map(
 static void free_material_map_(void const *p, void const *context)
 {
 	struct material_map *libmap = (struct material_map *)p;
-	struct glcache *cache = (struct glcache *)context;
+	struct gl_cache *cache = (struct gl_cache *)context;
 	free_material_map(cache, libmap);
 	free(libmap);
 }
 
 static struct material_map *make_material_map(
-	struct glcache *cache,
+	struct gl_cache *cache,
 	char const *base,
 	char const *const *files,
 	size_t n) 
@@ -95,24 +95,24 @@ static struct material_map *make_material_map(
 }
 
 static void free_materials(
-	struct glcache *cache,
-	struct glmaterial const *const *mtllist,
+	struct gl_cache *cache,
+	struct gl_material const *const *mtllist,
 	size_t n)
 {
 	for (size_t i = n; i-- > 0; ) gl_release_material(cache, mtllist[i]);
 }
 
 /* Create an array of materials, one for each group */
-static struct glmaterial const *const *load_materials(
-	struct glstate *state,
+static struct gl_material const *const *load_materials(
+	struct gl_state *state,
 	char const *basepath,
 	struct wf_object const *obj)
 {
 	size_t i, j, namebufsz;
-	struct glmaterial const **mtllist;
+	struct gl_material const **mtllist;
 	char *namebuf;
 	struct material_map *libmap;
-	struct glcache *cache;
+	struct gl_cache *cache;
 
 	struct tstack ts;
 	jmp_buf errbuf;
@@ -169,7 +169,7 @@ static int get_vertex(
 	float const norm[3],
 	GLuint *index)
 {
-	struct glvertex *vtx, newvtx;
+	struct gl_vertex *vtx, newvtx;
 	size_t i, n;
 
 	/* Look for an identical old one */
@@ -193,10 +193,10 @@ static int get_vertex(
 }
 
 static GLuint make_vertex_buffer(
-	struct glfn const *restrict f,
+	struct gl_core const *restrict f,
 	void *vertices,
 	size_t size,
-	struct glvertexattrib const *attributes,
+	struct gl_vertexattrib const *attributes,
 	size_t nattributes)
 {
 	GLuint name;
@@ -218,7 +218,7 @@ static GLuint make_vertex_buffer(
 
 /* Turn an array of GLuint into an array of GLushort or GLubyte, if possible */
 static struct element_buffer make_element_buffer(
-	struct glfn const *restrict f,
+	struct gl_core const *restrict f,
 	GLuint *indicies,
 	size_t nmemb,
 	GLenum mode,
@@ -301,49 +301,49 @@ error:	wbuf_free(vertices);
 	return -1;
 }
 
-static struct glvertexattrib const vertex_attrib[] = {
+static struct gl_vertexattrib const vertex_attrib[] = {
 	{
 		0,
 		3,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct glvertex),
-		(void *)offsetof(struct glvertex, position)
+		sizeof(struct gl_vertex),
+		(void *)offsetof(struct gl_vertex, position)
 	},
 	{
 		1,
 		3,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct glvertex),
-		(void *)offsetof(struct glvertex, normal)
+		sizeof(struct gl_vertex),
+		(void *)offsetof(struct gl_vertex, normal)
 	},
 	{
 		2,
 		2,
 		GL_FLOAT,
 		GL_FALSE,
-		sizeof(struct glvertex),
-		(void *)offsetof(struct glvertex, tcoord)
+		sizeof(struct gl_vertex),
+		(void *)offsetof(struct gl_vertex, tcoord)
 	}
 };
 
 static void free_wf_geometry(const void *p, const void *ctx)
 {
-	struct glfn const *f = ctx;
-	struct glgeometry const *geo = (void *)p;
+	struct gl_core const *f = ctx;
+	struct gl_geometry const *geo = (void *)p;
 
 	f->glDeleteVertexArrays(1, &geo->vao);
 	f->glDeleteBuffers(2, (GLuint [2]){ geo->vbo, geo->eb.name });
 }
 
 static int make_wf_geometry(
-	struct glstate *state,
-	struct glgeometry *geo,
+	struct gl_state *state,
+	struct gl_geometry *geo,
 	struct wf_triangles const *group,
 	struct wf_object const *obj)
 {
-	struct glfn const *const restrict f = &state->f;
+	struct gl_core const *const restrict f = &state->f;
 	struct wbuf vertices, elements;
 	jmp_buf errbuf;
 	struct tstack ts;
@@ -373,7 +373,7 @@ static int make_wf_geometry(
 		elements.begin,
 		wbuf_nmemb(&elements, sizeof (GLuint)),
 		GL_TRIANGLES,
-		wbuf_nmemb(&vertices, sizeof (struct glvertex)));
+		wbuf_nmemb(&vertices, sizeof (struct gl_vertex)));
 
 	f->glBindVertexArray(0);
 
@@ -383,16 +383,16 @@ static int make_wf_geometry(
 }
 
 int make_wf_geometires(
-	struct glstate *state,
+	struct gl_state *state,
 	struct wf_object const *obj,
-	struct glmaterial const *const *mtllist,
-	struct glgeometries *geos)
+	struct gl_material const *const *mtllist,
+	struct gl_geometries *geos)
 {
 	int err;
 	size_t i;
 	jmp_buf errbuf;
 	struct tstack ts;
-	struct glgeometry *geo;
+	struct gl_geometry *geo;
 
 	if (setjmp(errbuf)) { return -1; }
 	tstack_init(&ts, &errbuf);
@@ -414,12 +414,12 @@ int make_wf_geometires(
 }
 
 int gl_load_wfobj(
-	struct glstate *state,
-	struct glgeometries *geos,
+	struct gl_state *state,
+	struct gl_geometries *geos,
 	char const *filename)
 {
 	struct wf_object const *obj = NULL;
-	struct glmaterial const *const *mtllist = NULL;
+	struct gl_material const *const *mtllist = NULL;
 	int result = -1;
 
 	if (!(obj = wf_parse_object(filename))) { goto clean; }
@@ -434,10 +434,10 @@ clean:
 	return result;
 }
 
-void gl_free_wfgeo(struct glstate *state, struct glgeometries *geos)
+void gl_free_wfgeo(struct gl_state *state, struct gl_geometries *geos)
 {
 	size_t i;
-	struct glgeometry const *geo;
+	struct gl_geometry const *geo;
 
 	for (geo = geos->geo, i = 0; i < geos->n; i++, geo++) {
 		gl_release_material(&state->cache, geo->material);

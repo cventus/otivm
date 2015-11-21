@@ -12,8 +12,8 @@
 
 static int load_wf_obj(void const *key, size_t len, void *data, void *link)
 {
-	struct glgeometries *geos = data;
-	struct glstate *state = link;
+	struct gl_geometries *geos = data;
+	struct gl_state *state = link;
 	char const *filename = key;
 	(void)len;
 
@@ -22,8 +22,8 @@ static int load_wf_obj(void const *key, size_t len, void *data, void *link)
 
 static void free_geometry(void const *key, size_t len, void *data, void *link)
 {
-	struct glgeometries *geos = data;
-	struct glstate *state = link;
+	struct gl_geometries *geos = data;
+	struct gl_state *state = link;
 
 	(void)key;
 	(void)len;
@@ -31,28 +31,28 @@ static void free_geometry(void const *key, size_t len, void *data, void *link)
 	gl_free_wfgeo(state, geos);
 }
 
-struct rescache *gl_make_geometries_cache(struct glstate *state)
+struct rescache *gl_make_geometries_cache(struct gl_state *state)
 {
 	/* key: filename string */
 	return make_rescache(
-		sizeof(struct glgeometries),
-		alignof(struct glgeometries),
+		sizeof(struct gl_geometries),
+		alignof(struct gl_geometries),
 		alignof(char),
 		load_wf_obj,
 		free_geometry,
 		state);
 }
 
-struct glgeometries const *gl_load_geometry(
-	struct glcache *cache,
+struct gl_geometries const *gl_load_geometry(
+	struct gl_cache *cache,
 	char const *filename)
 {
 	return rescache_loads(cache->geometries, filename);
 }
 
 void gl_release_geometry(
-	struct glcache *cache,
-	struct glgeometries const *geometries)
+	struct gl_cache *cache,
+	struct gl_geometries const *geometries)
 {
 	rescache_release(cache->geometries, geometries);
 }

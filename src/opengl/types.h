@@ -1,9 +1,7 @@
 
 typedef int loadfn(void const *, size_t, void *, void *);
 
-struct glcontext;
-
-struct glcache
+struct gl_cache
 {
 	struct rescache *geometries;
 	struct rescache *materials;
@@ -15,12 +13,12 @@ struct glcache
 	struct rescache *wf_mtllibs;
 };
 
-struct glvertex
+struct gl_vertex
 {
 	GLfloat position[3], normal[3], tcoord[2];
 };
 
-struct glmaterial
+struct gl_material
 {
 	float ambient[3], diffuse[3], specular[3], exponent;
 	GLuint program;
@@ -33,20 +31,20 @@ struct element_buffer
 	GLenum type, mode;
 };
 
-struct glgeometry
+struct gl_geometry
 {
 	GLuint vao, vbo;
 	struct element_buffer eb;
-	struct glmaterial const *material;
+	struct gl_material const *material;
 };
 
-struct glgeometries
+struct gl_geometries
 {
 	size_t n;
-	struct glgeometry *geo;
+	struct gl_geometry *geo;
 };
 
-struct glfn
+struct gl_core
 {
 	/* Buffer Objects */
 	void (*glGenBuffers)(GLsizei, GLuint *);
@@ -95,25 +93,25 @@ struct glfn
 	const GLubyte *(*glGetStringi)(GLenum, GLuint);
 };
 
-struct gltexture { GLuint name; };
-struct glshader { GLuint name; };
+struct gl_texture { GLuint name; };
+struct gl_shader { GLuint name; };
 
-struct glprogram
+struct gl_program
 {
-	struct glshader *vertex, *fragment;
+	struct gl_shader *vertex, *fragment;
 	GLuint name;
 };
 
 struct gl_programkey;
 
-struct glstate
+struct gl_state
 {
-	struct glfn f;
-	struct glcache cache;
-	struct glmaterial defmat;
+	struct gl_core f;
+	struct gl_cache cache;
+	struct gl_material defmat;
 };
 
-struct glvertexattrib
+struct gl_vertexattrib
 {
 	GLuint index;
 	GLint size;

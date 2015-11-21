@@ -24,15 +24,15 @@ static void white(void)
 	//glFlush();
 }
 
-static int draw_triangle_(struct glstate *state, struct gltest *test)
+static int draw_triangle_(struct gl_state *state, struct gl_test *test)
 {
 	static char const *shaders[] = {
 		"asset/test/shader.vert",
 		"asset/test/shader.frag"
 	};
 
-	struct glgeometries const *geo;
-	struct glprogram const *prog;
+	struct gl_geometries const *geo;
+	struct gl_program const *prog;
 
 	geo = gl_load_geometry(&state->cache, "asset/test/triangle.obj");
 	if (!geo) { fail_test("Unable to load geometry\n"); }

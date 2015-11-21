@@ -71,11 +71,11 @@ void gl_print_errors(char const *fmt, ...)
 
 int gl_run_test(
 	char const *name,
-	int (*fn)(struct glstate *state, struct gltest *test))
+	int (*fn)(struct gl_state *state, struct gl_test *test))
 {
 	int status;
-	struct gltest *test;
-	struct glstate *state;
+	struct gl_test *test;
+	struct gl_state *state;
 
 	test = gl_make_test_context(name);
 	if (test) {
@@ -168,7 +168,7 @@ static debug_message_callback get_debug_message_callback(void)
 	return (debug_message_callback)gl_get_proc("glDebugMessageCallbackARB");
 }
 
-int gl_enable_debug_output(struct glstate *state)
+int gl_enable_debug_output(struct gl_state *state)
 {
 	if (!gl_is_new_extension_supported(state, "GL_ARB_debug_output")) {
 		return -1;
@@ -177,7 +177,7 @@ int gl_enable_debug_output(struct glstate *state)
 	return 0;
 }
 
-int gl_disable_debug_output(struct glstate *state)
+int gl_disable_debug_output(struct gl_state *state)
 {
 	if (!gl_is_new_extension_supported(state, "GL_ARB_debug_output")) {
 		return -1;

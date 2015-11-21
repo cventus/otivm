@@ -1,7 +1,7 @@
 
-struct glshader;
-struct glprogram;
+struct gl_shader;
+struct gl_program;
 
-struct glshader const *gl_load_shader(struct glcache *, char const *filename);
-void gl_release_shader(struct glcache *, struct glshader const *);
+struct gl_shader const *gl_load_shader(struct gl_cache *, char const *filename);
+void gl_release_shader(struct gl_cache *, struct gl_shader const *);
 

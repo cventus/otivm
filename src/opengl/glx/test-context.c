@@ -18,41 +18,35 @@
 #include "../decl.h"
 #include "../include/x.h"
 
-#include "xdrawable.h"
+#include "private.h"
 
-struct gltest
+struct gl_test
 {
 	Display *display;
 	XID xres;
-	struct glxdrawable *drawable;
-	struct glxstate xstate;
+	struct gl_xdrawable *drawable;
+	struct gl_xstate xstate;
 	int (*free_xres)(Display *, XID);
-	void (*swap_buffers)(struct gltest *);
+	void (*swap_buffers)(struct gl_test *);
 };
 
-struct glstate *gl_test_get_state(struct gltest *test)
+struct gl_state *gl_test_get_state(struct gl_test *test)
 {
 	assert(test);
 	return &test->xstate.state;
 }
 
-static void swap_buffers(struct gltest *test)
+static void swap_buffers(struct gl_test *test)
 {
 	glXSwapBuffers(test->display, test->drawable->glxid);
 }
 
-static void dont_swap_buffers(struct gltest *c) { (void)c; }
+static void dont_swap_buffers(struct gl_test *c) { (void)c; }
 
 static Bool wait_for_notify(Display *dpy, XEvent *xev, XPointer arg)
 {
 	(void)dpy;
 	return xev->type == MapNotify && xev->xmap.window == *(Window *)arg;
-}
-
-static Bool wait_for_expose(Display *dpy, XEvent *xev, XPointer arg)
-{
-	(void)dpy;
-	return xev->type == Expose && xev->xexpose.window == *(Window *)arg;
 }
 
 static Window create_window(
@@ -84,7 +78,6 @@ static Window create_window(
 	XStoreName(dpy, w, name);
 	XMapWindow(dpy, w);
 	XIfEvent(dpy, &xev, wait_for_notify, (XPointer)&w);
-	XIfEvent(dpy, &xev, wait_for_expose, (XPointer)&w);
 
 	return w;
 }
@@ -109,7 +102,7 @@ static Pixmap create_pixmap(Display *dpy, XVisualInfo *vi)
 	return pm;
 }
 
-void gl_free_test_context(struct gltest *test)
+void gl_free_test_context(struct gl_test *test)
 {
 	gl_free_xcontext(&test->xstate);
 	test->free_xres(test->display, test->xres);
@@ -117,13 +110,13 @@ void gl_free_test_context(struct gltest *test)
 	free(test);
 }
 
-struct gltest *gl_make_test_context(char const *name)
+struct gl_test *gl_make_test_context(char const *name)
 {
 	Display *display;
 	XVisualInfo *vi;
-	struct gltest *test;
-	struct glxstate *xstate;
-	struct glxdrawable *drawable;
+	struct gl_test *test;
+	struct gl_xstate *xstate;
+	struct gl_xdrawable *drawable;
 
 	test = malloc(sizeof *test);
 	if (!test) { return NULL; }
@@ -173,13 +166,13 @@ struct gltest *gl_make_test_context(char const *name)
 	return test;
 }
 
-void gl_test_swap_buffers(struct gltest *test)
+void gl_test_swap_buffers(struct gl_test *test)
 {
 	assert(test != NULL);
 	test->swap_buffers(test);
 }
 
-void gl_test_wait_for_key(struct gltest *test)
+void gl_test_wait_for_key(struct gl_test *test)
 {
 	XEvent xev;
 	assert(test != NULL);

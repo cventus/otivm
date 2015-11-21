@@ -1,16 +1,16 @@
 
 struct rescache;
-struct glstate;
-struct glcache;
-struct glgeometries;
+struct gl_state;
+struct gl_cache;
+struct gl_geometries;
 
-struct rescache *gl_make_geometries_cache(struct glstate *state);
+struct rescache *gl_make_geometries_cache(struct gl_state *state);
 
-struct glgeometries const *gl_load_geometry(
-	struct glcache *cache,
+struct gl_geometries const *gl_load_geometry(
+	struct gl_cache *cache,
 	char const *filename);
 
 void gl_release_geometry(
-	struct glcache *cache,
-	struct glgeometries const *geometry);
+	struct gl_cache *cache,
+	struct gl_geometries const *geometry);
 

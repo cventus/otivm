@@ -24,7 +24,7 @@ static void white(void)
 	glFlush();
 }
 
-static int init_cache_(struct glstate *state, struct gltest *test)
+static int init_cache_(struct gl_state *state, struct gl_test *test)
 {
 	(void)state;
 	white();
@@ -35,8 +35,8 @@ static int init_cache_(struct glstate *state, struct gltest *test)
 static int init_cache(void) { return run(init_cache_); }
 
 static void check_shader(
-	struct glstate *state,
-	struct glshader const *shader,
+	struct gl_state *state,
+	struct gl_shader const *shader,
 	char const *filename,
 	GLint shader_type)
 {
@@ -66,9 +66,9 @@ static void check_shader(
 	}
 }
 
-static int load_material_(struct glstate *state, struct gltest *test)
+static int load_material_(struct gl_state *state, struct gl_test *test)
 {
-	struct glgeometries const *geo;
+	struct gl_geometries const *geo;
 
 	geo = gl_load_geometry(&state->cache, "asset/test/triangle.obj");
 	if (!geo) { ok = -1; }
@@ -86,13 +86,13 @@ static int load_material_(struct glstate *state, struct gltest *test)
 }
 static int load_material(void) { return run(load_material_); }
 
-static int load_shader_(struct glstate *state, struct gltest *test)
+static int load_shader_(struct gl_state *state, struct gl_test *test)
 {
 	static char const *vs_filename =  "asset/test/shader.vert";
 	static char const *fs_filename =  "asset/test/shader.frag";
 
-	struct glshader const *vert, *frag;
-	//struct glprogram *program;
+	struct gl_shader const *vert, *frag;
+	//struct gl_program *program;
 
 	vert = gl_load_shader(&state->cache, vs_filename);
 	check_shader(state, vert, vs_filename, GL_VERTEX_SHADER);
@@ -112,7 +112,7 @@ static int load_shader_(struct glstate *state, struct gltest *test)
 }
 static int load_shader(void) { return run(load_shader_); }
 
-static int load_program_(struct glstate *state, struct gltest *test)
+static int load_program_(struct gl_state *state, struct gl_test *test)
 {
 	char const *vs_filename =  "asset/test/shader.vert";
 	char const *fs_filename =  "asset/test/shader.frag";
@@ -120,7 +120,7 @@ static int load_program_(struct glstate *state, struct gltest *test)
 	char const *shaders1[] = { vs_filename, fs_filename };
 	char const *shaders2[] = { fs_filename, vs_filename };
 
-	struct glprogram const *prog1, *prog2;
+	struct gl_program const *prog1, *prog2;
 
 	prog1 = gl_load_program(&state->cache, shaders1, length_of(shaders1));
 

@@ -26,10 +26,10 @@
 #include "load-shader.h"
 
 #define cache_field(name) \
-	{ offsetof(struct glcache, name), #name, gl_make_##name##_cache }
+	{ offsetof(struct gl_cache, name), #name, gl_make_##name##_cache }
 #define get_cache_field(c,f) (struct rescache **)((char *)&(c) + (f).offset)
 
-typedef struct rescache *makecache(struct glstate *);
+typedef struct rescache *makecache(struct gl_state *);
 
 struct field
 {
@@ -47,7 +47,7 @@ static struct field const cache_fields[] = {
 	cache_field(wf_mtllibs)
 };
 
-int gl_init_cache(struct glcache *cache, struct glstate *state)
+int gl_init_cache(struct gl_cache *cache, struct gl_state *state)
 {
 	size_t i;
 	struct rescache **field;
@@ -71,7 +71,7 @@ int gl_init_cache(struct glcache *cache, struct glstate *state)
 	return 0;
 }
 
-size_t gl_clean_caches(struct glcache *cache)
+size_t gl_clean_caches(struct gl_cache *cache)
 {
 	size_t i, nfreed, ntotal;
 	struct rescache **field;
@@ -92,7 +92,7 @@ size_t gl_clean_caches(struct glcache *cache)
 	return ntotal;
 }
 
-int gl_free_cache(struct glcache *cache)
+int gl_free_cache(struct gl_cache *cache)
 {
 	size_t i;
 	struct rescache **field;

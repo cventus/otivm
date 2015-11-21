@@ -1,14 +1,14 @@
 
 struct rescache;
-struct glstate;
+struct gl_state;
 struct wf_mtllib;
-struct glcache;
+struct gl_cache;
 
-struct rescache *gl_make_wf_mtllibs_cache(struct glstate *state);
+struct rescache *gl_make_wf_mtllibs_cache(struct gl_state *state);
 
 struct wf_mtllib const *const *gl_load_wf_mtllib(
-	struct glcache *,
+	struct gl_cache *,
 	char const *file);
 
-void gl_release_wf_mtllib(struct glcache *, struct wf_mtllib const *const *);
+void gl_release_wf_mtllib(struct gl_cache *, struct wf_mtllib const *const *);
 

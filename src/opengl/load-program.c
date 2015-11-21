@@ -62,13 +62,13 @@ static int make_key(char const *const *keys, size_t n, void **out, size_t *size)
 static int load_program(void const *key, size_t ksz, void *data, void *link)
 {
 	char const *p;
-	struct glshader const **shaders;
+	struct gl_shader const **shaders;
 	size_t i;
 	int result;
 
 	struct program_key const *pk = key;
-	struct glprogram *program = data;
-	struct glstate *state = link;
+	struct gl_program *program = data;
+	struct gl_state *state = link;
 
 	(void)ksz;
 	shaders = malloc(pk->n * sizeof *shaders);
@@ -99,23 +99,23 @@ static void free_program(void const *key, size_t ksz, void *data, void *link)
 	gl_free_program(link, data);
 }
 
-struct rescache *gl_make_programs_cache(struct glstate *state)
+struct rescache *gl_make_programs_cache(struct gl_state *state)
 {
 	return make_rescache(
-		sizeof(struct glprogram),
-		alignof(struct glprogram),
+		sizeof(struct gl_program),
+		alignof(struct gl_program),
 		alignof(char),
 		load_program,
 		free_program,
 		state);
 }
 
-struct glprogram const *gl_load_program(
-	struct glcache *cache,
+struct gl_program const *gl_load_program(
+	struct gl_cache *cache,
 	char const *const *shader_keys,
 	size_t nshader_keys)
 {
-	struct glprogram const *program;
+	struct gl_program const *program;
 	size_t size;
 	void *key;
 
@@ -125,7 +125,7 @@ struct glprogram const *gl_load_program(
 	return program;
 }
 
-void gl_release_program(struct glcache *cache, struct glprogram const *program)
+void gl_release_program(struct gl_cache *cache, struct gl_program const *program)
 {
 	rescache_release(cache->programs, program);
 }

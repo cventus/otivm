@@ -60,10 +60,10 @@ static int get_mtllib_key(void const *key, size_t size, struct mtllib_key *out)
 static int load_mtllib(void const *key, size_t size, void *data, void *link)
 {
 	int result;
-	struct glstate *state;
+	struct gl_state *state;
 	struct wf_mtllib const *const *mtllib;
 	struct wf_material const *wfmtl;
-	struct glmaterial *mtl;
+	struct gl_material *mtl;
 	struct mtllib_key mkey;
 
 	if (get_mtllib_key(key, size, &mkey)) { return -1; }
@@ -104,23 +104,23 @@ static void free_material(void const *key, size_t len, void *data, void *link)
 	(void)link;
 }
 
-struct rescache *gl_make_materials_cache(struct glstate *state)
+struct rescache *gl_make_materials_cache(struct gl_state *state)
 {
 	return make_rescache(
-		sizeof(struct glmaterial),
-		alignof(struct glmaterial),
+		sizeof(struct gl_material),
+		alignof(struct gl_material),
 		alignof(char),
 		load_mtllib,
 		free_material,
 		state);
 }
 
-struct glmaterial const *gl_load_wf_material(
-	struct glcache *cache,
+struct gl_material const *gl_load_wf_material(
+	struct gl_cache *cache,
 	char const *mtllib,
 	char const *name)
 {
-	struct glmaterial const *mat;
+	struct gl_material const *mat;
 	void *key;
 	size_t size;
 
@@ -131,8 +131,8 @@ struct glmaterial const *gl_load_wf_material(
 }
 
 void gl_release_material(
-	struct glcache *cache,
-	struct glmaterial const *material)
+	struct gl_cache *cache,
+	struct gl_material const *material)
 {
 	rescache_release(cache->materials, material);
 }

@@ -33,7 +33,7 @@ static void free_wf_mtllib(void const *key, size_t len, void *data, void *link)
 	wf_free_mtllib(*(struct wf_mtllib const **)data);
 }
 
-struct rescache *gl_make_wf_mtllibs_cache(struct glstate *state)
+struct rescache *gl_make_wf_mtllibs_cache(struct gl_state *state)
 {
 	/* key: filename string */
 	return make_rescache(
@@ -46,14 +46,14 @@ struct rescache *gl_make_wf_mtllibs_cache(struct glstate *state)
 }
 
 struct wf_mtllib const *const *gl_load_wf_mtllib(
-	struct glcache *cache,
+	struct gl_cache *cache,
 	char const *key)
 {
 	return rescache_loads(cache->wf_mtllibs, key);
 }
 
 void gl_release_wf_mtllib(
-	struct glcache *cache,
+	struct gl_cache *cache,
 	struct wf_mtllib const *const *mtllib)
 {
 	rescache_release(cache->wf_mtllibs, mtllib);

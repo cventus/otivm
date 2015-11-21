@@ -1,7 +1,7 @@
 
-struct glgeometries;
-struct glstate;
+struct gl_geometries;
+struct gl_state;
 
-int gl_load_wfobj(struct glstate *, struct glgeometries *, char const *);
-void gl_free_wfgeo(struct glstate *gl, struct glgeometries *);
+int gl_load_wfobj(struct gl_state *, struct gl_geometries *, char const *);
+void gl_free_wfgeo(struct gl_state *gl, struct gl_geometries *);
 

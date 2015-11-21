@@ -1,14 +1,16 @@
 
 struct rescache;
-struct glstate;
-struct glcache;
-struct gltexture;
+struct gl_state;
+struct gl_cache;
+struct gl_texture;
 
-struct rescache *gl_make_textures_cache(struct glstate *state);
+struct rescache *gl_make_textures_cache(struct gl_state *state);
 
-struct gltexture const *gl_load_texture(
-	struct glcache *cache,
+struct gl_texture const *gl_load_texture(
+	struct gl_cache *cache,
 	char const *filename);
 
-void gl_release_texture(struct glcache *cache, struct gltexture const *texture);
+void gl_release_texture(
+	struct gl_cache *cache,
+	struct gl_texture const *texture);
 

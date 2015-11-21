@@ -16,8 +16,8 @@ static int load_shader_file(
 	char const *filename,
 	size_t len,
 	char const *ext,
-	struct glshader *shader,
-	struct glstate *state,
+	struct gl_shader *shader,
+	struct gl_state *state,
 	GLenum type)
 {
 	FILE *fp;
@@ -70,14 +70,14 @@ static void free_shader(void const *key, size_t ksz, void *data, void *link)
 	gl_free_shader(link, data);
 }
 
-struct rescache *gl_make_shaders_cache(struct glstate *state)
+struct rescache *gl_make_shaders_cache(struct gl_state *state)
 {
 	loadfn *const load_shader[] = { load_vshader, load_fshader };
 
 	/* key: filename string */
 	return make_rescachen(
-		sizeof(struct glshader),
-		alignof(struct glshader),
+		sizeof(struct gl_shader),
+		alignof(struct gl_shader),
 		alignof(char),
 		load_shader,
 		length_of(load_shader),
@@ -85,14 +85,14 @@ struct rescache *gl_make_shaders_cache(struct glstate *state)
 		state);
 }
 
-struct glshader const *gl_load_shader(
-	struct glcache *cache,
+struct gl_shader const *gl_load_shader(
+	struct gl_cache *cache,
 	char const *filename)
 {
 	return rescache_loads(cache->shaders, filename);
 }
 
-void gl_release_shader(struct glcache *cache, struct glshader const *shader)
+void gl_release_shader(struct gl_cache *cache, struct gl_shader const *shader)
 {
 	rescache_release(cache->shaders, shader);
 }

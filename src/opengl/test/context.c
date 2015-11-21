@@ -9,7 +9,7 @@
 
 int info(void)
 {
-	struct gltest *test = gl_make_test_context(0);
+	struct gl_test *test = gl_make_test_context(0);
 	gl_print_info();
 	gl_free_test_context(test);
 	return 0;
@@ -17,7 +17,7 @@ int info(void)
 
 int make_context(void)
 {
-	struct gltest *test = gl_make_test_context(0);
+	struct gl_test *test = gl_make_test_context(0);
 
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
