@@ -1,5 +1,5 @@
 
-MODULES=ok base gm text wf fs rescache opengl xw
+MODULES=ok base adt gm text wf fs rescache opengl xw
 TAGS=posix glx
 MODULE_DIR=src
 
