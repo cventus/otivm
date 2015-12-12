@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include <base/mem.h>
+#include <base/wbuf.h>
 #include <ok/ok.h>
 
 #include "../include/hmap.h"
@@ -270,6 +271,47 @@ static int traverse(void)
 	return ok;
 }
 
+static int load_factor(void)
+{
+	long i, max;
+	size_t cap, newcap, j, n;
+	struct wbuf results;
+	double load, *p;
+	struct hmap *hm;
+
+	hm = hmap_make(0, 0);
+	max = 1000000;
+	wbuf_init(&results);
+	n = 0;
+
+	for (i = 0; i < max; i++) {
+		cap = hmap_capacity(hm);
+		load = hmap_load(hm);
+		if (hmap_newl(hm, i) == NULL) {
+			printf("unable to add key %ld\n", i);
+			ok = -1;
+			break;
+		}
+		newcap = hmap_capacity(hm);
+		if (newcap != cap && cap != 0) {
+			wbuf_write(&results, &load, sizeof load);
+			n++;
+		}
+	}
+	hmap_free(hm);
+	load = 0.0;
+	if (ok == 0 && n > 0) {
+		p = results.begin;
+		for (j = 0; j < n; j++) {
+			load += p[j];
+		}
+		load /= n;
+	}
+	printf("average load factor before rehashing: %f\n", load);
+	wbuf_free(&results);
+	return ok;
+}
+
 struct test const tests[] = {
 	{ make, "create and destroy various hash maps" },
 	{ addval, "insert a value" },
@@ -278,6 +320,7 @@ struct test const tests[] = {
 	{ remvals, "add and remove many values" },
 	{ simulation, "insertions, lookups and removals in random order" },
 	{ traverse, "insert values and traverse over them" },
+	{ load_factor, "average load factor before rehashing" },
 
 	{ NULL, NULL }
 };
