@@ -128,7 +128,7 @@ struct gl_test *gl_make_test_context(char const *name)
 	}
 
 	xstate = &test->xstate;
-	if (!gl_make_xcontext(xstate, display, NULL)) {
+	if (!gl_make_xcontext_buf(xstate, display, NULL)) {
 		XCloseDisplay(display);
 		free(test);
 		return NULL;

@@ -1,5 +1,5 @@
 # graphics
 OUT=archive
-MOD=base text fs gm rescache wf
+MOD=base adt text fs gm rescache wf
 LIB=-lX11 -lGL
 TEST_MOD=ok
