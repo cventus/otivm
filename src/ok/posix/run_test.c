@@ -80,7 +80,7 @@ void skip_test(char const *fmt, ...)
 
 void interactive_test(char const *fmt, ...)
 {
-	if (is_test_interactive()) {
+	if (!is_test_interactive()) {
 		va_list ap;
 		va_start(ap, fmt);
 		set_message(fmt ? fmt : "interactive only", ap);

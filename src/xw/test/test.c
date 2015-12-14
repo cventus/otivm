@@ -492,6 +492,7 @@ static int interactive_(struct xw_state *state, Display *display)
 
 static int interactive(void)
 {
+	interactive_test(NULL);
 	return test_common(interactive_);
 }
 
