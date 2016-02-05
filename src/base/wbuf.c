@@ -61,7 +61,7 @@ int wbuf_trim(struct wbuf buf[static 1])
 	return 0;
 }
 
-void wbuf_free(struct wbuf buf[static 1])
+void wbuf_term(struct wbuf buf[static 1])
 {
 	if (buf->begin) {
 		free(buf->begin);

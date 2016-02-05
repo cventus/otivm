@@ -105,7 +105,7 @@ static int init(void)
 	assert_used(&buf, 0);
 	assert_available(&buf, 0);
 	assert_capacity(&buf, 0);
-	wbuf_free(&buf);
+	wbuf_term(&buf);
 
 	return ok;
 }
@@ -128,7 +128,7 @@ static int reserve(void)
 	assert_capacity_ge(&buf, 1000);
 	assert_sizes(&buf);
 
-	wbuf_free(&buf);
+	wbuf_term(&buf);
 
 	assert_capacity(&buf, 0);
 	assert_sizes(&buf);
@@ -148,7 +148,7 @@ static int alloc(void)
 		assert_used(&buf, i * 100);
 	}
 
-	wbuf_free(&buf);
+	wbuf_term(&buf);
 
 	assert_used(&buf, 0);
 	assert_capacity(&buf, 0);
@@ -179,7 +179,7 @@ static int write(void)
 		ok = -1;
 	}
 
-	wbuf_free(&buf);
+	wbuf_term(&buf);
 	assert_used(&buf, 0);
 	assert_capacity(&buf, 0);
 
@@ -215,7 +215,7 @@ static int copy(void)
 		}
 	}
 
-	wbuf_free(&buf);
+	wbuf_term(&buf);
 	assert_used(&buf, 0);
 	assert_capacity(&buf, 0);
 
@@ -251,7 +251,7 @@ static int align(void)
 	if (wbuf_align(&buf, alignof(d))) { fail_test("out of memory\n"); }
 	wbuf_write(&buf, &d, sizeof d);
 
-	wbuf_free(&buf);
+	wbuf_term(&buf);
 
 	return ok;
 }

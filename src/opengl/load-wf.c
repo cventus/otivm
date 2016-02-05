@@ -296,8 +296,8 @@ static int make_gl_vertices(
 	}
 	return 0;
 
-error:	wbuf_free(vertices);
-	wbuf_free(elements);
+error:	wbuf_term(vertices);
+	wbuf_term(elements);
 	return -1;
 }
 

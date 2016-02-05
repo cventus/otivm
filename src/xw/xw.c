@@ -251,7 +251,7 @@ int xw_free(struct xw_state *state)
 		state->im = NULL;
 	}
 	state->display = NULL;
-	wbuf_free(&state->windows);
+	wbuf_term(&state->windows);
 	free(state);
 	return 0;
 }

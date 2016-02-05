@@ -308,7 +308,7 @@ static int load_factor(void)
 		load /= n;
 	}
 	printf("average load factor before rehashing: %f\n", load);
-	wbuf_free(&results);
+	wbuf_term(&results);
 	return ok;
 }
 
