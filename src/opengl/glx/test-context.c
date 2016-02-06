@@ -13,6 +13,8 @@
 #define WIDTH 600
 #define HEIGHT WIDTH
 
+#include <adt/hmap.h>
+
 #include "../types.h"
 #include "../include/xtypes.h"
 #include "../decl.h"

@@ -128,7 +128,6 @@ struct gl_xstate *gl_make_xcontext_buf(
 	GLXFBConfig fbconfig;
 	GLXContext context;
 	int screen;
-	struct hmap *drawables;
 
 	assert(display != NULL);
 	assert(xstate != NULL);
@@ -147,11 +146,6 @@ struct gl_xstate *gl_make_xcontext_buf(
 	if (select_fbconfig(display, screen, fbconfig_attribs, &fbconfig)) {
 		return NULL;
 	}
-
-	drawables = hmap_make(
-		sizeof(struct gl_xdrawable),
-		alignof(struct gl_xdrawable));
-	if (!drawables) { return NULL; }
 
 	glXCreateContextAttribsARB = (create_context_fn *)glXGetProcAddressARB(
 		(const GLubyte *)"glXCreateContextAttribsARB");
@@ -172,7 +166,11 @@ struct gl_xstate *gl_make_xcontext_buf(
 	xstate->display = display;
 	xstate->fbconfig = fbconfig;
 	xstate->context = context;
-	xstate->drawables = drawables;
+	hmap_init(
+		&xstate->drawables,
+		sizeof(struct gl_xdrawable),
+		alignof(struct gl_xdrawable));
+
 
 	gl_init_state(&xstate->state);
 
@@ -205,12 +203,12 @@ void gl_free_xcontext(struct gl_xstate *xstate)
 	struct hmap *drawables;
 	struct gl_xdrawable *d;
 
-	drawables = xstate->drawables;
+	drawables = &xstate->drawables;
 	for (b = hmap_first(drawables); b; b = hmap_next(drawables, b)) {
 		d = hmap_value(drawables, b);
 		d->destroy(xstate, d);
 	}
-	hmap_free(drawables);
+	hmap_term(drawables);
 	glXDestroyContext(xstate->display, xstate->context);
 	assert(gl_free_state(&xstate->state) == 0);
 }
@@ -243,7 +241,7 @@ struct gl_xdrawable *gl_add_xwindow(struct gl_xstate *xstate, Window window)
 	struct gl_xdrawable *drawable;
 	GLXDrawable id;
 
-	drawables = xstate->drawables;
+	drawables = &xstate->drawables;
 	drawable = hmap_new(drawables, &window, sizeof window);
 	if (!drawable) {
 		/* X window already added (or allocation failure). Should we
@@ -271,7 +269,7 @@ struct gl_xdrawable *gl_add_xpixmap(struct gl_xstate *xstate, Pixmap pixmap)
 	struct gl_xdrawable *drawable;
 	GLXDrawable id;
 
-	drawables = xstate->drawables;
+	drawables = &xstate->drawables;
 	drawable = hmap_new(drawables, &pixmap, sizeof pixmap);
 	if (!drawable) {
 		/* Pixmap already added (or allocation failure). Should we

@@ -1,30 +1,31 @@
 
+/* The hash map structure records meta-information about the table and its
+   contents. The fields may be accessed for reading, but should not be modified
+   outside of the `hmap_*` functions. */
+struct hmap {
+        size_t size, align, nmemb;
+        struct hmap_table *table;
+};
+
 /* A key in the hash map is an arbitrary byte sequence. It is always stored
    in a location with maximum alignment requriements for a key with of the
    given size. */
 struct hmap_key
 {
 	void const *key;
-	size_t len;
+	size_t size;
 };
 
-/* Allocate a new hash map with values of size `size` and alignment
-   `align`. */
-struct hmap *hmap_make(size_t size, size_t align);
+struct hmap_bucket;
 
-/* Free the hash table and all of its key-value mappings. Make sure that any
-   resources the values refer to are free'd or accessible through other means
-   before calling this function. */
-void hmap_free(struct hmap *hm);
-
-/* Initialize a hash map into location `buf` with values of size `size` and
+/* Initialize a hash map into location `hm` with values of size `size` and
    alignment `align`. */
-void hmap_init(struct hmap *buf, size_t size, size_t align);
+void hmap_init(struct hmap *hm, size_t size, size_t align);
 
-/* Free the key-value mappings of the hash map `buf` (but don't free it). Make
+/* Free the key-value mappings of the hash map `hm` (but don't free it). Make
    sure that any resources the values refer to are free'd or accessible
    through other means before calling this function. */
-void hmap_deinit(struct hmap *buf);
+void hmap_term(struct hmap *hm);
 
 /* Return maximum size of table. */
 size_t hmap_capacity(struct hmap *hm);

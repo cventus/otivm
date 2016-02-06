@@ -10,7 +10,7 @@ struct gl_xstate
 	Display *display;
 	GLXFBConfig fbconfig;
 	GLXContext context;
-	struct hmap *drawables;
+	struct hmap drawables;
 };
 
 struct gl_xdrawable

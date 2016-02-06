@@ -56,19 +56,14 @@ typedef struct hmap_table
 	struct hmap_bucket buckets[];
 } table;
 
-typedef struct hmap
-{
-        size_t size, align, nmemb;
-        struct hmap_table *table;
-} hmap;
+typedef struct hmap hmap;
 
 /* Jenkins hash function */
 static uint32_t jenkins(unsigned char const *key, size_t len)
 {
 	uint32_t hash, i;
 
-	for(hash = i = 0; i < len; ++i)
-	{
+	for(hash = i = 0; i < len; ++i) {
 		hash += key[i];
 		hash += (hash << 10);
 		hash ^= (hash >> 6);
@@ -580,7 +575,7 @@ void hmap_init(struct hmap *hm, size_t size, size_t align)
 	hm->table = NULL;
 }
 
-void hmap_deinit(struct hmap *hm)
+void hmap_term(struct hmap *hm)
 {
 	if (!hm) { return; }
 
@@ -602,7 +597,7 @@ hmap *hmap_make(size_t size, size_t align)
 
 void hmap_free(hmap *hm)
 {
-	hmap_deinit(hm);
+	hmap_term(hm);
 	free(hm);
 }
 
@@ -650,7 +645,7 @@ struct hmap_key hmap_key(hmap *hm, bucket *b)
 {
 	return (struct hmap_key){
 		.key = (hm && b) ? pair2key(b->pair) : NULL,
-		.len = (hm && b) ? b->pair->keylen : 0
+		.size = (hm && b) ? b->pair->keylen : 0
 	};
 }
 
