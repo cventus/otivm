@@ -56,10 +56,10 @@ int tstack_retain_wbuf(struct tstack *ts, struct wbuf *buf);
 
 /* Free all resources on the stack, calling their destructors, and free up all
    memory referenced by the stack. */
-void tstack_free(struct tstack *ts);
+void tstack_term(struct tstack *ts);
 
 /* Free all resources on the stack, calling their destructors, and free up all
-   memory referenced by the stack (like tstack_free()). Then `longjmp(3)` to
+   memory referenced by the stack (like tstack_term()). Then `longjmp(3)` to
    the error location. */
 void tstack_fail(struct tstack *ts);
 

@@ -157,7 +157,7 @@ static struct gl_material const *const *load_materials(
 		tstack_fail(&ts); /* longjmps away */
 	}
 	tstack_retain_mem(&ts, mtllist);
-	tstack_free(&ts);
+	tstack_term(&ts);
 
 	return mtllist;
 }
@@ -377,7 +377,7 @@ static int make_wf_geometry(
 
 	f->glBindVertexArray(0);
 
-	tstack_free(&ts);
+	tstack_term(&ts);
 
 	return 0;
 }
@@ -408,7 +408,7 @@ int make_wf_geometires(
 		tstack_push(&ts, &free_wf_geometry, geo, &state->f);
 	}
 	tstack_retain_all(&ts);
-	tstack_free(&ts);
+	tstack_term(&ts);
 
 	return 0;
 }

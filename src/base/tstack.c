@@ -128,7 +128,7 @@ int tstack_retain(
 	}
 }
 
-void tstack_free(struct tstack *ts)
+void tstack_term(struct tstack *ts)
 {
 	assert(ts);
 	for (struct entry *b = ts->buf.begin, *e = ts->buf.end; e-- > b; ) {
@@ -140,7 +140,7 @@ void tstack_free(struct tstack *ts)
 void tstack_fail(struct tstack *ts)
 {
 	assert(ts);
-	tstack_free(ts);
+	tstack_term(ts);
 	longjmp(*ts->failjmp, -1);
 }
 
