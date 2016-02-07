@@ -1,22 +1,20 @@
 
-struct gl_xstate *gl_make_xcontext_buf(
-	struct gl_xstate *buf,
-	Display *display,
-	struct gl_xconfig const *config);
+struct glx *glx_init(struct glx *, Display *, struct glx_config const *);
+void glx_term(struct glx *glx);
 
-struct gl_xstate
+struct glx
 {
 	struct gl_state state;
 	Display *display;
 	GLXFBConfig fbconfig;
 	GLXContext context;
-	struct hmap *drawables;
+	struct hmap drawables;
 };
 
-struct gl_xdrawable
+struct glx_drawable
 {
 	XID xid;
 	GLXDrawable glxid;
-	void (*destroy)(struct gl_xstate *, struct gl_xdrawable *);
+	void (*destroy)(struct glx *, struct glx_drawable *);
 };
 

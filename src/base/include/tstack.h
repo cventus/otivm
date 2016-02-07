@@ -50,16 +50,16 @@ void tstack_push_file(struct tstack *ts, FILE *fp);
 int tstack_retain_file(struct tstack *ts, FILE *fp);
 
 /* Push a write buffer onto the stack. When the stack is freed, the pointer
-   is passed to `wbuf_free()`. */
+   is passed to `wbuf_term()`. */
 void tstack_push_wbuf(struct tstack *ts, struct wbuf *buf);
 int tstack_retain_wbuf(struct tstack *ts, struct wbuf *buf);
 
 /* Free all resources on the stack, calling their destructors, and free up all
    memory referenced by the stack. */
-void tstack_free(struct tstack *ts);
+void tstack_term(struct tstack *ts);
 
 /* Free all resources on the stack, calling their destructors, and free up all
-   memory referenced by the stack (like tstack_free()). Then `longjmp(3)` to
+   memory referenced by the stack (like tstack_term()). Then `longjmp(3)` to
    the error location. */
 void tstack_fail(struct tstack *ts);
 

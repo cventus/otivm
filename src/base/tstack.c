@@ -93,7 +93,7 @@ int tstack_retain_file(struct tstack *ts, FILE *fp)
 static void free_wbuf(void const *p, void const *ctx)
 {
 	(void)ctx;
-	wbuf_free((struct wbuf *)p);
+	wbuf_term((struct wbuf *)p);
 }
 
 void tstack_push_wbuf(struct tstack *ts, struct wbuf *buf)
@@ -109,7 +109,7 @@ int tstack_retain_wbuf(struct tstack *ts, struct wbuf *buf)
 void tstack_retain_all(struct tstack *ts)
 {
 	assert(ts);
-	wbuf_free(&ts->buf);
+	wbuf_term(&ts->buf);
 	wbuf_init(&ts->buf);
 }
 
@@ -128,19 +128,19 @@ int tstack_retain(
 	}
 }
 
-void tstack_free(struct tstack *ts)
+void tstack_term(struct tstack *ts)
 {
 	assert(ts);
 	for (struct entry *b = ts->buf.begin, *e = ts->buf.end; e-- > b; ) {
 		if (e->p) { e->dtor(e->p, e->context); }
 	}
-	wbuf_free(&ts->buf);
+	wbuf_term(&ts->buf);
 }
 
 void tstack_fail(struct tstack *ts)
 {
 	assert(ts);
-	tstack_free(ts);
+	tstack_term(ts);
 	longjmp(*ts->failjmp, -1);
 }
 

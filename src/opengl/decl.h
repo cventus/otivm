@@ -10,8 +10,8 @@ void gl_draw_geometries(
 	struct gl_state *state,
 	struct gl_geometries const *geos);
 
-int gl_init_state(struct gl_state *gl);
-int gl_free_state(struct gl_state *gl);
+int gl_state_init(struct gl_state *gl);
+int gl_state_term(struct gl_state *gl);
 
 void gl_print_info(void);
 void (*gl_get_proc(char const *name))(void);
@@ -19,8 +19,8 @@ void (*gl_get_proc(char const *name))(void);
 int gl_is_extension_supported(const char *extensions, const char *target);
 int gl_is_new_extension_supported(struct gl_state *state, const char *target);
 
-int gl_init_cache(struct gl_cache *cache, struct gl_state *gl);
-int gl_free_cache(struct gl_cache *cache);
+int gl_cache_init(struct gl_cache *cache, struct gl_state *gl);
+int gl_cache_term(struct gl_cache *cache);
 
 int gl_resolve_functions(struct gl_core *core);
 

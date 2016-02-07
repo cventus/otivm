@@ -55,7 +55,7 @@ static void die_perror(const char *func)
 int main(void)
 {
 	struct xw_state *xw;
-	struct gl_xstate *gl;
+	struct glx *glx;
 	Display *display;
 	int xfd, err, done;
 	fd_set readfds, writefds, exceptfds;
@@ -79,10 +79,10 @@ int main(void)
 	if (xw = xw_make(display, NULL, NULL), !xw) {
 		die("Failed to initialize window module!\n");
 	}
-	if (gl = gl_make_xcontext(display, NULL), !gl) {
+	if (glx = glx_make(display, NULL), !glx) {
 		die("Failed to initialize OpenGL module!\n");
 	}
-	if (window = create_window(display, xw, gl), !window) {
+	if (window = create_window(display, xw, glx), !window) {
 		die("Failed to create main window!\n");
 	}
 	done = 0;
@@ -130,16 +130,16 @@ int main(void)
 			}
 		}
 		if (window->drawable) {
-			gl_make_current(gl, window->drawable);
+			glx_make_current(glx, window->drawable);
 
 			/* Render */
 			glClearColor(1.f, 1.f, 1.f, 1.f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			gl_swap_buffers(gl, window->drawable);
+			glx_swap_buffers(glx, window->drawable);
 		}
 	}
-	gl_free_xcontext(gl);
+	glx_free(glx);
 	if (xw_free(xw)) {
 		(void)fprintf(stderr, "Failed to free window module!\n");
 	}

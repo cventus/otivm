@@ -19,35 +19,35 @@ static void make_key(char *buf, size_t size, int i)
 
 static int make(void)
 {
-	struct hmap *hm;
+	struct hmap hm;
 
-	hm = hmap_make(sizeof (int), alignof(int));
-	hmap_free(hm);
+	hmap_init(&hm, sizeof (int), alignof(int));
+	hmap_term(&hm);
 
-	hm = hmap_make(sizeof (char *), alignof(char *));
-	hmap_free(hm);
+	hmap_init(&hm, sizeof (char *), alignof(char *));
+	hmap_term(&hm);
 
-	hm = hmap_make(sizeof (double[42]), alignof(double [42]));
-	hmap_free(hm);
+	hmap_init(&hm, sizeof (double[42]), alignof(double [42]));
+	hmap_term(&hm);
 
 	return ok;
 }
 
 static int addval(void)
 {
-	struct hmap *hm;
+	struct hmap hm;
 	int *p, *q;
 
-	hm = hmap_make(sizeof (int), alignof(int));
-	p = hmap_gets(hm, "key");
+	hmap_init(&hm, sizeof (int), alignof(int));
+	p = hmap_gets(&hm, "key");
 	if (p) fail_test("key already exists\n");
-	p = hmap_news(hm, "key");
+	p = hmap_news(&hm, "key");
 	if (!p) fail_test("unable to create new value\n");
 	*p = 42;
-	q = hmap_gets(hm, "key");
+	q = hmap_gets(&hm, "key");
 	if (!q) fail_test("couldn't find key\n");
 	if (q != p) fail_test("couldn't find key\n");
-	hmap_free(hm);
+	hmap_term(&hm);
 
 	return ok;
 }
@@ -55,26 +55,26 @@ static int addval(void)
 static int addvals(void)
 {
 	char key[100];
-	struct hmap *hm;
+	struct hmap hm;
 	int *p, *q, i, max;
 
-	hm = hmap_make(sizeof (int), alignof(int));
+	hmap_init(&hm, sizeof (int), alignof(int));
 	max = 10000;
 
 	for (i = 0; i < max; i++) {
 		make_key(key, sizeof key, i);
-		p = hmap_gets(hm, key);
+		p = hmap_gets(&hm, key);
 		if (p) fail_test("key `%s` already exists\n", key);
-		p = hmap_news(hm, key);
+		p = hmap_news(&hm, key);
 		if (!p) fail_test("unable to create new value `%s`\n", key);
 		*p = i;
-		q = hmap_gets(hm, key);
+		q = hmap_gets(&hm, key);
 		if (!q) fail_test("couldn't find inserted key `%s`\n", key);
 		if (q != p) fail_test("new'd and get'd key `%s` mismatch", key);
 	}
 	for (i = 0; i < max; i++) {
 		make_key(key, sizeof key, i);
-		p = hmap_gets(hm, key);
+		p = hmap_gets(&hm, key);
 		if (!p) fail_test("key `%s` no longer exists\n", key);
 		if (*p != i) {
 			fail_test(
@@ -82,20 +82,20 @@ static int addvals(void)
 				"expected %zu, got %zu\n", key, i, *p);
 		}
 	}
-	hmap_free(hm);
+	hmap_term(&hm);
 
 	return ok;
 }
 
 static int remval(void)
 {
-	struct hmap *hm;
+	struct hmap hm;
 
-	hm = hmap_make(sizeof (int), alignof(int));
-	if (!hmap_news(hm, "key")) { ok = -1; printf("new failed\n"); }
-	hmap_removes(hm, "key");
-	if (hmap_gets(hm, "key")) { ok = -1; printf("couldn't remove\n"); }
-	hmap_free(hm);
+	hmap_init(&hm, sizeof (int), alignof(int));
+	if (!hmap_news(&hm, "key")) { ok = -1; printf("new failed\n"); }
+	hmap_removes(&hm, "key");
+	if (hmap_gets(&hm, "key")) { ok = -1; printf("couldn't remove\n"); }
+	hmap_term(&hm);
 
 	return ok;
 }
@@ -103,33 +103,33 @@ static int remval(void)
 static int remvals(void)
 {
 	char key[100];
-	struct hmap *hm;
+	struct hmap hm;
 	int *p, i, max;
 
-	hm = hmap_make(sizeof (char), alignof(char));
+	hmap_init(&hm, sizeof (char), alignof(char));
 	max = 10000;
 
 	for (i = 0; i < max; i++) {
 		make_key(key, sizeof key, i);
-		p = hmap_news(hm, key);
+		p = hmap_news(&hm, key);
 		if (!p) fail_test("unable to create new value `%s`\n", key);
 	}
 	for (i = 0; i < max; i++) {
 		make_key(key, sizeof key, i);
-		p = hmap_gets(hm, key);
+		p = hmap_gets(&hm, key);
 		if (!p) fail_test("key `%s` no longer exists\n", key);
-		hmap_removes(hm, key);
-		p = hmap_gets(hm, key);
+		hmap_removes(&hm, key);
+		p = hmap_gets(&hm, key);
 		if (p) fail_test("failed to remove key `%s`\n", key);
 	}
-	hmap_free(hm);
+	hmap_term(&hm);
 
 	return ok;
 }
 
 static int simulation(void)
 {
-	struct hmap *hm;
+	struct hmap hm;
 	size_t i, n_values;
 	bool *is_present;
 	char key[100];
@@ -140,14 +140,14 @@ static int simulation(void)
 	for (i = 0; i < n_values; i++) {
 		is_present[i] = false;
 	}
-	hm = hmap_make(sizeof (int), alignof(int));
+	hmap_init(&hm, sizeof (int), alignof(int));
 
 	for (i = 0; i < 100 * n_values; i++) {
 		id = (i + rand()) % n_values;
 		make_key(key, sizeof key, id);
 
 		/* get */
-		got = hmap_gets(hm, key);
+		got = hmap_gets(&hm, key);
 		if (is_present[id] && !got) {
 			printf("value not found\n");
 			ok = -1;
@@ -160,7 +160,7 @@ static int simulation(void)
 		}
 		switch (rand() & 0x3) {
 		case 0: /* new */
-			val = hmap_news(hm, key);
+			val = hmap_news(&hm, key);
 			if (!val && !is_present[id]) {
 				printf("new failed\n");
 				ok = -1;
@@ -173,7 +173,7 @@ static int simulation(void)
 			}
 			break;
 		case 1: /* put */
-			val = hmap_puts(hm, key);
+			val = hmap_puts(&hm, key);
 			if (!val) {
 				printf("put failed\n");
 				ok = -1;
@@ -188,8 +188,8 @@ static int simulation(void)
 			*val = id;
 			break;
 		default: /* remove */
-			hmap_removes(hm, key);
-			if (got && hmap_gets(hm, key) != NULL) {
+			hmap_removes(&hm, key);
+			if (got && hmap_gets(&hm, key) != NULL) {
 				printf("remove failed\n");
 				ok = -1;
 			} else {
@@ -198,7 +198,7 @@ static int simulation(void)
 			break;
 		}
 	}
-	hmap_free(hm);
+	hmap_term(&hm);
 	free(is_present);
 
 	return ok;
@@ -206,7 +206,7 @@ static int simulation(void)
 
 static int traverse(void)
 {
-	struct hmap *hm;
+	struct hmap hm;
 	struct hmap_bucket *p;
 	struct hmap_key hk;
 	char key[100];
@@ -217,24 +217,24 @@ static int traverse(void)
 	} *val;
 
 	n_values = 10000;
-	hm = hmap_make(sizeof (struct value), alignof(struct value));
+	hmap_init(&hm, sizeof (struct value), alignof(struct value));
 
 	/* populate */
 	for (i = 0; i < n_values; i++) {
 		make_key(key, sizeof key, i);
 
-		val = hmap_news(hm, key);
+		val = hmap_news(&hm, key);
 		if (!val) fail_test("unable to insert ``%s''\n", key);
 		val->is_visited = false;
 		val->i = i;
 	}
 	/* traverse */
 	count = 0;
-	for (p = hmap_first(hm); p != NULL; p = hmap_next(hm, p)) {
-		val = hmap_value(hm, p);
+	for (p = hmap_first(&hm); p != NULL; p = hmap_next(&hm, p)) {
+		val = hmap_value(&hm, p);
 		make_key(key, sizeof key, val->i);
-		hk = hmap_key(hm, p);
-		if (strlen(key) + 1 != hk.len) {
+		hk = hmap_key(&hm, p);
+		if (strlen(key) + 1 != hk.size) {
 			printf("key length invalid during traversal\n");
 			ok = -1;
 		} else if (strcmp(hk.key, key) != 0) {
@@ -257,7 +257,7 @@ static int traverse(void)
 	for (i = 0; i < n_values; i++) {
 		make_key(key, sizeof key, i);
 
-		val = hmap_gets(hm, key);
+		val = hmap_gets(&hm, key);
 		if (!val) {
 			printf("unable to retrieve ``%s''\n", key);
 			ok = -1;
@@ -266,7 +266,7 @@ static int traverse(void)
 			ok = -1;
 		}
 	}
-	hmap_free(hm);
+	hmap_term(&hm);
 
 	return ok;
 }
@@ -277,28 +277,28 @@ static int load_factor(void)
 	size_t cap, newcap, j, n;
 	struct wbuf results;
 	double load, *p;
-	struct hmap *hm;
+	struct hmap hm;
 
-	hm = hmap_make(0, 0);
+	hmap_init(&hm, 0, 0);
 	max = 1000000;
 	wbuf_init(&results);
 	n = 0;
 
 	for (i = 0; i < max; i++) {
-		cap = hmap_capacity(hm);
-		load = hmap_load(hm);
-		if (hmap_newl(hm, i) == NULL) {
+		cap = hmap_capacity(&hm);
+		load = hmap_load(&hm);
+		if (hmap_newl(&hm, i) == NULL) {
 			printf("unable to add key %ld\n", i);
 			ok = -1;
 			break;
 		}
-		newcap = hmap_capacity(hm);
+		newcap = hmap_capacity(&hm);
 		if (newcap != cap && cap != 0) {
 			wbuf_write(&results, &load, sizeof load);
 			n++;
 		}
 	}
-	hmap_free(hm);
+	hmap_term(&hm);
 	load = 0.0;
 	if (ok == 0 && n > 0) {
 		p = results.begin;
@@ -308,7 +308,7 @@ static int load_factor(void)
 		load /= n;
 	}
 	printf("average load factor before rehashing: %f\n", load);
-	wbuf_free(&results);
+	wbuf_term(&results);
 	return ok;
 }
 

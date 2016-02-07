@@ -388,12 +388,12 @@ static void free_obj_buffer(struct obj_buffer *obj)
 {
 	struct tgroup *g;
 
-	wbuf_free(&obj->pos);
-	wbuf_free(&obj->norm);
-	wbuf_free(&obj->uv);
-	wbuf_free(&obj->mtllib);
+	wbuf_term(&obj->pos);
+	wbuf_term(&obj->norm);
+	wbuf_term(&obj->uv);
+	wbuf_term(&obj->mtllib);
 	for (g = obj->groups; g; g = list_remove(g)) {
-		wbuf_free(&g->vertices);
+		wbuf_term(&g->vertices);
 	}
 }
 
@@ -504,7 +504,7 @@ static struct wf_object const *alloc_obj_block(struct obj_buffer *obj)
 	wbuf_init(&block);
 
 	if (setjmp(errbuf)) {
-		wbuf_free(&block);
+		wbuf_term(&block);
 		return NULL;
 	}
 

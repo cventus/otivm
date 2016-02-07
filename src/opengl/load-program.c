@@ -84,7 +84,7 @@ static int load_program(void const *key, size_t ksz, void *data, void *link)
 			return -2;
 		}
 	}
-	result = gl_make_program(state, program, shaders, pk->n);
+	result = gl_program_init(state, program, shaders, pk->n);
 	for (i = 0; i < pk->n; i++) {
 		gl_release_shader(&state->cache, shaders[i]);
 	}
@@ -92,11 +92,11 @@ static int load_program(void const *key, size_t ksz, void *data, void *link)
 	return result;
 }
 
-static void free_program(void const *key, size_t ksz, void *data, void *link)
+static void unload_program(void const *key, size_t ksz, void *data, void *link)
 {
 	(void)key;
 	(void)ksz;
-	gl_free_program(link, data);
+	gl_program_term(link, data);
 }
 
 struct rescache *gl_make_programs_cache(struct gl_state *state)
@@ -106,7 +106,7 @@ struct rescache *gl_make_programs_cache(struct gl_state *state)
 		alignof(struct gl_program),
 		alignof(char),
 		load_program,
-		free_program,
+		unload_program,
 		state);
 }
 
@@ -125,7 +125,9 @@ struct gl_program const *gl_load_program(
 	return program;
 }
 
-void gl_release_program(struct gl_cache *cache, struct gl_program const *program)
+void gl_release_program(
+	struct gl_cache *cache,
+	struct gl_program const *program)
 {
 	rescache_release(cache->programs, program);
 }

@@ -13,6 +13,8 @@
 #define WIDTH 600
 #define HEIGHT WIDTH
 
+#include <adt/hmap.h>
+
 #include "../types.h"
 #include "../include/xtypes.h"
 #include "../decl.h"
@@ -24,16 +26,16 @@ struct gl_test
 {
 	Display *display;
 	XID xres;
-	struct gl_xdrawable *drawable;
-	struct gl_xstate xstate;
+	struct glx_drawable *drawable;
+	struct glx glx;
 	int (*free_xres)(Display *, XID);
 	void (*swap_buffers)(struct gl_test *);
 };
 
-struct gl_state *gl_test_get_state(struct gl_test *test)
+struct gl_state *gl_test_state(struct gl_test *test)
 {
 	assert(test);
-	return &test->xstate.state;
+	return &test->glx.state;
 }
 
 static void swap_buffers(struct gl_test *test)
@@ -102,21 +104,21 @@ static Pixmap create_pixmap(Display *dpy, XVisualInfo *vi)
 	return pm;
 }
 
-void gl_free_test_context(struct gl_test *test)
+void gl_test_free(struct gl_test *test)
 {
-	gl_free_xcontext(&test->xstate);
+	glx_term(&test->glx);
 	test->free_xres(test->display, test->xres);
 	XCloseDisplay(test->display);
 	free(test);
 }
 
-struct gl_test *gl_make_test_context(char const *name)
+struct gl_test *gl_test_make(char const *name)
 {
 	Display *display;
 	XVisualInfo *vi;
 	struct gl_test *test;
-	struct gl_xstate *xstate;
-	struct gl_xdrawable *drawable;
+	struct glx *glx;
+	struct glx_drawable *drawable;
 
 	test = malloc(sizeof *test);
 	if (!test) { return NULL; }
@@ -127,16 +129,16 @@ struct gl_test *gl_make_test_context(char const *name)
 		return NULL;
 	}
 
-	xstate = &test->xstate;
-	if (!gl_make_xcontext_buf(xstate, display, NULL)) {
+	glx = &test->glx;
+	if (!glx_init(glx, display, NULL)) {
 		XCloseDisplay(display);
 		free(test);
 		return NULL;
 	}
 
-	vi = gl_visual_info(xstate);
+	vi = glx_visual_info(glx);
 	if (!vi) {
-		gl_free_xcontext(xstate);
+		glx_term(glx);
 		XCloseDisplay(display);
 		free(test);
 		return NULL;
@@ -144,13 +146,13 @@ struct gl_test *gl_make_test_context(char const *name)
 
 	if (name) {
 		Window w = create_window(display, vi, name);
-		drawable = gl_add_xwindow(xstate, w);
+		drawable = glx_make_drawable_window(glx, w);
 		test->xres = w;
 		test->free_xres = &destroy_window;
 		test->swap_buffers = &swap_buffers;
 	} else {
 		Pixmap pm = create_pixmap(display, vi);
-		drawable = gl_add_xpixmap(xstate, pm);
+		drawable = glx_make_drawable_pixmap(glx, pm);
 		test->xres = pm;
 		test->free_xres = &XFreePixmap;
 		test->swap_buffers = &dont_swap_buffers;
@@ -159,8 +161,8 @@ struct gl_test *gl_make_test_context(char const *name)
 	test->display = display;
 	XFree(vi);
 
-	if (gl_make_current(xstate, drawable)) {
-		gl_free_test_context(test);
+	if (glx_make_current(glx, drawable)) {
+		gl_test_free(test);
 		return NULL;
 	}
 	return test;

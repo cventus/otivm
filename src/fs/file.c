@@ -45,7 +45,7 @@ FILE *open_relative(char const *rel, char const *filename, char const *mode)
 		path = filename;
 	}
 	fp = fopen(path, mode);
-	wbuf_free(&buf);
+	wbuf_term(&buf);
 	return fp;
 }
 
@@ -62,7 +62,7 @@ char *read_all(FILE *fp)
 	if (ferror(fp) || !wbuf_write(&buf, "", 1)) { goto error; }
 	return buf.begin;
 
-error:	wbuf_free(&buf);
+error:	wbuf_term(&buf);
 	return NULL;
 }
 

@@ -77,14 +77,14 @@ int gl_run_test(
 	struct gl_test *test;
 	struct gl_state *state;
 
-	test = gl_make_test_context(name);
+	test = gl_test_make(name);
 	if (test) {
-		state = gl_test_get_state(test);
+		state = gl_test_state(test);
 		gl_enable_debug_output(state);
 		status = fn(state, test);
 		gl_disable_debug_output(state);
 		gl_print_errors(__func__);
-		gl_free_test_context(test);
+		gl_test_free(test);
 	} else {
 		status = -1;
 	}

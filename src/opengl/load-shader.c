@@ -33,7 +33,7 @@ static int load_shader_file(
 	if (!fp) { return -1; }
 	source = read_all(fp);
 	if (!source) { fclose(fp); return -2; }
-	result = gl_make_shader(state, shader, type, source);
+	result = gl_shader_init(state, shader, type, source);
 	free(source);
 	fclose(fp);
 	return result;
@@ -63,25 +63,25 @@ static int load_fshader(void const *key, size_t size, void *data, void *link)
 		GL_FRAGMENT_SHADER);
 }
 
-static void free_shader(void const *key, size_t ksz, void *data, void *link)
+static void unload_shader(void const *key, size_t ksz, void *data, void *link)
 {
 	(void)key;
 	(void)ksz;
-	gl_free_shader(link, data);
+	gl_shader_term((struct gl_state *)link, (struct gl_shader *)data);
 }
 
 struct rescache *gl_make_shaders_cache(struct gl_state *state)
 {
-	loadfn *const load_shader[] = { load_vshader, load_fshader };
+	loadfn *const loaders[] = { load_vshader, load_fshader };
 
 	/* key: filename string */
 	return make_rescachen(
 		sizeof(struct gl_shader),
 		alignof(struct gl_shader),
 		alignof(char),
-		load_shader,
-		length_of(load_shader),
-		free_shader,
+		loaders,
+		length_of(loaders),
+		unload_shader,
 		state);
 }
 

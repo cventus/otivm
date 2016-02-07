@@ -96,7 +96,7 @@ static int load_mtllib(void const *key, size_t size, void *data, void *link)
 	return result;
 }
 
-static void free_material(void const *key, size_t len, void *data, void *link)
+static void unload_material(void const *key, size_t len, void *data, void *link)
 {
 	(void)key;
 	(void)len;
@@ -111,7 +111,7 @@ struct rescache *gl_make_materials_cache(struct gl_state *state)
 		alignof(struct gl_material),
 		alignof(char),
 		load_mtllib,
-		free_material,
+		unload_material,
 		state);
 }
 
