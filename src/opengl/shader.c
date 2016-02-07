@@ -52,7 +52,7 @@ static int compile_shader(
 	}
 }
 
-int gl_make_shader(
+int gl_shader_init(
 	struct gl_state *state,
 	struct gl_shader *shader,
 	GLenum type,
@@ -70,14 +70,12 @@ int gl_make_shader(
 	return 0;
 }
 
-void gl_free_shader(struct gl_state *state, struct gl_shader const *shader)
+void gl_shader_term(struct gl_state *state, struct gl_shader const *shader)
 {
 	state->f.glDeleteShader(shader->name);
 }
 
-
-
-int gl_make_program(
+int gl_program_init(
 	struct gl_state *state,
 	struct gl_program *program,
 	struct gl_shader const *const *shaders,
@@ -112,7 +110,7 @@ int gl_make_program(
 	}
 }
 
-void gl_free_program(struct gl_state *state, struct gl_program const *program)
+void gl_program_term(struct gl_state *state, struct gl_program const *program)
 {
 	state->f.glDeleteProgram(program->name);
 }

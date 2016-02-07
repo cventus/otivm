@@ -27,7 +27,7 @@ static int load_tga(void const *filename, size_t len, void *data, void *link)
 	return -1;
 }
 
-static void free_texture(
+static void unload_texture(
 	void const *filename,
 	size_t len,
 	void *data,
@@ -41,16 +41,16 @@ static void free_texture(
 
 struct rescache *gl_make_textures_cache(struct gl_state *state)
 {
-	loadfn *const load_texture[] = { load_png, load_tga };
+	loadfn *const loaders[] = { load_png, load_tga };
 
 	/* key: filename string */
 	return make_rescachen(
 		sizeof(struct gl_texture),
 		alignof(struct gl_texture),
 		alignof(char),
-		load_texture,
-		length_of(load_texture),
-		free_texture,
+		loaders,
+		length_of(loaders),
+		unload_texture,
 		state);
 }
 
@@ -61,7 +61,9 @@ struct gl_texture const *gl_load_texture(
 	return rescache_loads(cache->textures, filename);
 }
 
-void gl_release_texture(struct gl_cache *cache, struct gl_texture const *texture)
+void gl_release_texture(
+	struct gl_cache *cache,
+	struct gl_texture const *texture)
 {
 	rescache_release(cache->textures, texture);
 }

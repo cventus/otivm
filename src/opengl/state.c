@@ -7,16 +7,16 @@
 #include "types.h"
 #include "decl.h"
 
-int gl_init_state(struct gl_state *state)
+int gl_state_init(struct gl_state *state)
 {
         if (gl_resolve_functions(&state->f)) { return -1; }
-        if (gl_init_cache(&state->cache, state)) { return -1; }
+        if (gl_cache_init(&state->cache, state)) { return -1; }
 	return 0;
 }
 
-int gl_free_state(struct gl_state *state)
+int gl_state_term(struct gl_state *state)
 {
-        if (gl_free_cache(&state->cache)) { return -1; }
+        if (gl_cache_term(&state->cache)) { return -1; }
 	return 0;
 }
 

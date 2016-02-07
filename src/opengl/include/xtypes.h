@@ -1,5 +1,5 @@
 
-struct gl_xconfig
+struct glx_config
 {
 	_Bool
 		debug: 1,

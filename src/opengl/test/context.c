@@ -9,21 +9,21 @@
 
 int info(void)
 {
-	struct gl_test *test = gl_make_test_context(0);
+	struct gl_test *test = gl_test_make(0);
 	gl_print_info();
-	gl_free_test_context(test);
+	gl_test_free(test);
 	return 0;
 }
 
 int make_context(void)
 {
-	struct gl_test *test = gl_make_test_context(0);
+	struct gl_test *test = gl_test_make(0);
 
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	gl_test_swap_buffers(test);
-	gl_free_test_context(test);
+	gl_test_free(test);
 
 	return ok;
 }

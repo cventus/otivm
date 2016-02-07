@@ -47,7 +47,7 @@ static struct field const cache_fields[] = {
 	cache_field(wf_mtllibs)
 };
 
-int gl_init_cache(struct gl_cache *cache, struct gl_state *state)
+int gl_cache_init(struct gl_cache *cache, struct gl_state *state)
 {
 	size_t i;
 	struct rescache **field;
@@ -92,7 +92,7 @@ size_t gl_clean_caches(struct gl_cache *cache)
 	return ntotal;
 }
 
-int gl_free_cache(struct gl_cache *cache)
+int gl_cache_term(struct gl_cache *cache)
 {
 	size_t i;
 	struct rescache **field;

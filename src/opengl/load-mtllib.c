@@ -25,7 +25,11 @@ static int load_wf_mtllib(
 	return *p ? 0 : -1;
 }
 
-static void free_wf_mtllib(void const *key, size_t len, void *data, void *link)
+static void unload_wf_mtllib(
+	void const *key,
+	size_t len,
+	void *data,
+	void *link)
 {
 	(void)key;
 	(void)len;
@@ -41,7 +45,7 @@ struct rescache *gl_make_wf_mtllibs_cache(struct gl_state *state)
 		alignof(struct wf_mtllib *),
 		alignof(char),
 		load_wf_mtllib,
-		free_wf_mtllib,
+		unload_wf_mtllib,
 		state);
 }
 

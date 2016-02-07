@@ -18,7 +18,7 @@
 #include "decl.h"
 #include "load-material.h"
 #include "load-mtllib.h"
-#include "load-wf.h"
+#include "geometry.h"
 
 static void set_gl_attrib_pointer(
 	struct gl_core const *f,
@@ -328,7 +328,7 @@ static struct gl_vertexattrib const vertex_attrib[] = {
 	}
 };
 
-static void free_wf_geometry(const void *p, const void *ctx)
+static void gl_geometry_term(const void *p, const void *ctx)
 {
 	struct gl_core const *f = ctx;
 	struct gl_geometry const *geo = (void *)p;
@@ -337,7 +337,7 @@ static void free_wf_geometry(const void *p, const void *ctx)
 	f->glDeleteBuffers(2, (GLuint [2]){ geo->vbo, geo->eb.name });
 }
 
-static int make_wf_geometry(
+static int geometry_init_wf(
 	struct gl_state *state,
 	struct gl_geometry *geo,
 	struct wf_triangles const *group,
@@ -382,7 +382,7 @@ static int make_wf_geometry(
 	return 0;
 }
 
-int make_wf_geometires(
+static int geometires_init_wf(
 	struct gl_state *state,
 	struct wf_object const *obj,
 	struct gl_material const *const *mtllist,
@@ -403,9 +403,9 @@ int make_wf_geometires(
 	for (i = 0; i < geos->n; i++) {
 		geo = geos->geo + i;
 		geo->material = mtllist[i];
-		err = make_wf_geometry(state, geo, obj->groups + i, obj);
+		err = geometry_init_wf(state, geo, obj->groups + i, obj);
 		if (err) { tstack_fail(&ts); }
-		tstack_push(&ts, &free_wf_geometry, geo, &state->f);
+		tstack_push(&ts, &gl_geometry_term, geo, &state->f);
 	}
 	tstack_retain_all(&ts);
 	tstack_term(&ts);
@@ -413,7 +413,7 @@ int make_wf_geometires(
 	return 0;
 }
 
-int gl_load_wfobj(
+int gl_geometries_init_wfobj(
 	struct gl_state *state,
 	struct gl_geometries *geos,
 	char const *filename)
@@ -424,8 +424,8 @@ int gl_load_wfobj(
 
 	if (!(obj = wf_parse_object(filename))) { goto clean; }
 	if (!(mtllist = load_materials(state, filename, obj))) { goto clean; }
-	result = make_wf_geometires(state, obj, mtllist, geos);
-clean:	
+	result = geometires_init_wf(state, obj, mtllist, geos);
+clean:
 	if (mtllist) {
 		free_materials(&state->cache, mtllist, obj->ngroups);
 		free((void *)mtllist);
@@ -434,14 +434,17 @@ clean:
 	return result;
 }
 
-void gl_free_wfgeo(struct gl_state *state, struct gl_geometries *geos)
+void gl_geometries_term(struct gl_state *state, struct gl_geometries *geos)
 {
 	size_t i;
 	struct gl_geometry const *geo;
 
 	for (geo = geos->geo, i = 0; i < geos->n; i++, geo++) {
 		gl_release_material(&state->cache, geo->material);
-		free_wf_geometry(geo, &state->f);
+		gl_geometry_term(geo, &state->f);
+	}
+	if (geos->geo) {
+		free(geos->geo);
 	}
 }
 

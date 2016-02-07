@@ -138,6 +138,7 @@ int xw_create_window(
 	(void)XStoreName(display, w, title);
 	/* TODO: add WM_CLASS property to window */
 
+	window->width = window->height = 0;
 	window->window = w;
 	window->delegate = delegate;
 	window->context = context;
