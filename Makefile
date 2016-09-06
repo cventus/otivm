@@ -1,37 +1,80 @@
+# Modular GNU Makefile Monster
+# by Christoffer Ventus 2015, 2016
+#
+# Makefile script for C projects that attempts to minimize configuration,
+# reduce maintenance, generate sources and headers during build time, automate
+# tests, and allow physical boundaries in the code in the form of directory
+# modules.
+#
+# A directory module is a directory that contains sources files and headers
+# which together implement an interface (exported symbols). More important than
+# grouping files together, modules are units which are meant to be exchangable
+# during compile time and which can be reimplemented and discarded. But putting
+# hard boundaries in the code also makes it a little bit more clear which parts
+# need each other.
+#
+# Each directory module can be a binary, which will be linked to an executable,
+# or an archive, which only bundles the object files into an archive and
+# exposes an interface through public headers. Modules are typically
+# implemented in terms of other ones and the Makefile makes sure that include
+# paths are added and object files are linked as necessary.
+#
+# Each module can also have their own test suites. Each test is a C source file
+# which should generate a test executable. The test is linked against the
+# objects of the module (and the objects of each module dependency,
+# recursively), and the test should validate the functions of the module. The
+# Makefile does not run the tests, only build them, and each test can be built
+# in isolation, and a compile error in one does not prevent others from being
+# built, which is useful for test-driven development. A separate test framework
+# is therefore typically necessary, which mandate what the tests should output.
+#
+# Tags can be used to select conditional source inclusions on the file level at
+# build time. A tag is a sub-directory of a module, which can contain e.g.
+# platform specific implementations of set of functions. When a tag is enabled,
+# every module that has that tag will be compiled with those sources included.
+#
+# The set modules that are used in a build configuration is defined in the make
+# variable MODULES, and the set of tags in TAGS. The definition of these
+# variables, along with custom build rules and compilation flags, should go
+# into a file called "config.mk", which is included by default, or optionally,
+# defined in the environment before GNU make is invoked.
+#
+# Documentation and details follow.
 
 .SUFFIXES:
+.SUFFIXES:
 
-# function : list of modules -> modules that are archives
+# list of modules -> modules that are archives
 ar_mod=$(foreach M,$1,$(if $(if $(OUT_$M),$(filter ar%,$(OUT_$M)),ok),$M))
 
-# function : list of object files -> list of dependency files
+# list of object files -> list of dependency files
 obj2dep=$(subst $(OBJDIR_BASE),$(DEPDIR_BASE),$(1:.o=.d))
 
-# function : list of modules -> module dependencies
+# list of modules -> each module and its dependencies (possibly repeated)
 modrec=$(foreach M,$(MOD_$1),$M $(call modrec,$M))
 
-# function : list of modules -> module dependencies
+# list of modules -> modules needed during tests
 testmodrec=$(foreach M,$(TEST_MOD_$1),$M $(call testmodrec,$M))
 
-# function : module -> list of archive files
+# module -> list of archive files
 arrec=$(patsubst %,$(AR_DIR)/lib%.a,$(call modrec,$1))
 
-# function : module -> list of archive files
+# module -> list of archive files
 testarrec=$(patsubst %,$(AR_DIR)/lib%.a,$(call testmodrec,$1))
 
-# function : list of modules -> library dependencies
+# list of modules -> library dependencies
 librec=$(foreach M,$1,$(call librec,$(MOD_$M))) $(LIB_$M)
 
-# function : list of modules -> modules that have an include directory
+# list of modules -> modules that have an include directory
 modinc=$(foreach M,$1,$(if $(wildcard $(MODULE_DIR)/$M/include),$M))
 
-# function : list of modules -> module include directories
+# list of modules -> module include directories
 incdir=$(foreach M,$(call modinc,$1),-I'$(INCDIR_BASE)/$M')
 
-# function : list of modules -> modules that have generated header files
+# list of modules -> modules that have generated header files
 modginc=$(foreach M,$1,$(if $(GINC_$M),$M))
 
-# function : list of modules -> module include directories
+# list of modules -> module generated include directories
 gincdir=$(foreach M,$(call modginc,$1),-I'$(GINCDIR_BASE)/$M')
 
 # Template rule to create .d directory dependencies from a .o file path
@@ -74,7 +117,7 @@ $(if $(wildcard $(MODULE_DIR)/$1/module.mk),-include $(MODULE_DIR)/$1/module.mk)
 
 # Store module specific variables
 SRC_$1:=$$(patsubst $$(MODULE_DIR)/%,%,\
-	$$(wildcard $$(MDIR)/*.c) \
+        $$(wildcard $$(MDIR)/*.c) \
         $(foreach T,$(TAGS),$$(wildcard $$(MDIR)/$T/*.c)))
 OBJ_$1:=$$(patsubst %.c,$$(OBJDIR_BASE)/%.o,$$(SRC_$1)) $$(OBJ)
 OUT_$1:=$$(OUT)
@@ -88,23 +131,23 @@ TEST_SRC_$1:=$$(patsubst $$(MODULE_DIR)/%,%,\
 TEST_OBJ_$1:=$$(patsubst %.c,$(OBJDIR_BASE)/%.o,$$(TEST_SRC_$1)) $$(TEST_OBJ)
 TEST_MOD_$1:=$$(TEST_MOD)
 
-$$(sort $$(OBJDIR_BASE)/$1/ \
-	$$(OBJDIR_BASE)/$1/test/ \
-        $$(DEPDIR_BASE)/$1/ \
-	$$(DEPDIR_BASE)/$1/test/ \
-        $$(INCDIR_BASE)/$1/ \
-        $$(GINCDIR_BASE)/$1/ \
-        $$(GSRCDIR_BASE)/$1/ \
-	$$(TESTDIR_BASE)/$1/ \
+$$(sort $$(OBJDIR_BASE)/$1 \
+        $$(OBJDIR_BASE)/$1/test \
+        $$(DEPDIR_BASE)/$1 \
+        $$(DEPDIR_BASE)/$1/test \
+        $$(INCDIR_BASE)/$1 \
+        $$(GINCDIR_BASE)/$1 \
+        $$(GSRCDIR_BASE)/$1 \
+        $$(TESTDIR_BASE)/$1 \
         $$(dir $$(foreach T,$$(TEST_OBJ_$1),\
-                 $$(patsubst $$(OBJDIR_BASE)/$1/test/%.o,\
-                             $$(TESTDIR_BASE)/$1/%,$$T))) \
+               $$(patsubst $$(OBJDIR_BASE)/$1/test/%.o,\
+                           $$(TESTDIR_BASE)/$1/%,$$T))) \
         $$(dir $$(OBJ_$1)) \
         $$(dir $$(call obj2dep,$$(OBJ_$1))) \
         $$(dir $$(TEST_OBJ_$1)) \
         $$(dir $$(call obj2dep,$$(TEST_OBJ_$1))) \
         $$(dir $$(GINC_$1)) \
-        ):
+	):
 	mkdir -p $$@
 
 $$(GINC_$1): | $$(GINCDIR_BASE)/$1
