@@ -53,10 +53,15 @@ T *mmulv(T v[static N], T const b [static M*N], T const u [static N]);
 T *mlookat(T result[static M*N], T const eye [static 3],
                T const target [static 3], T const up [static 3]);
 
-/* Initialize a perspective matrix */
+/* Initialize a perspective projection matrix */
 #undef mperspective
 #define mperspective MAT(perspective)
 T *mperspective(T a[static M*N], T fovy, T aspect, T znear, T zfar);
+
+/* Initialize a orthographic projection matrix */
+#undef morthographic
+#define morthographic MAT(orthographic)
+T *morthographic(T a[static M*N], T left, T right, T bottom, T top, T near, T far);
 
 /* Initialize a rotation matrix from a quaternion */
 #undef mquat

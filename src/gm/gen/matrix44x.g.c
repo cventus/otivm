@@ -180,8 +180,7 @@ T *muscale(T a[static M*N], T s)
 T *
 mmul(T a[static M*N], T const b [static M*N], T const c [static M*N])
 {
-	int i;
-	for (i = 0; i < 4; i++) {
+	for (size_t i = 0; i < 4; i++) {
 #define A(row,col) a[(col<<2)+row]
 #define B(row,col) b[(col<<2)+row]
 #define C(row,col) c[(col<<2)+row]
@@ -241,19 +240,76 @@ mlookat(T a[static M*N], T const eye [static 3], T const center [static 3],
 
 T *mperspective(T a[static M*N], T fovy, T aspect, T znear, T zfar)
 {
-	T tan_half_fov;
+	T tan_half_fov, neg_inv_zrange;
 
 	assert(aspect > LIT(0.0));
-	assert(zfar - znear > LIT(0.0));
+	assert(LIT(0.0) < znear);
+	assert(znear < zfar);
+	assert(fovy < 2.0*acos(-1.0));
 
 	tan_half_fov = tanM(fovy * LIT(0.5));
+	if (aspect < 1.f) {
+		tan_half_fov /= aspect;
+	}
 
-	mzero(a);
+	neg_inv_zrange = 1 / (znear - zfar);
+
 	a[ 0] = LIT(1.0) / (aspect * tan_half_fov);
+	a[ 1] = LIT(0.0);
+	a[ 2] = LIT(0.0);
+	a[ 3] = LIT(0.0);
+
+	a[ 4] = LIT(0.0);
 	a[ 5] = LIT(1.0) / tan_half_fov;
-	a[10] = -(zfar + znear)/(zfar - znear);
+	a[ 6] = LIT(0.0);
+	a[ 7] = LIT(0.0);
+
+	a[ 8] = LIT(0.0);
+	a[ 9] = LIT(0.0);
+	a[10] = (zfar + znear) * neg_inv_zrange;
 	a[11] = LIT(-1.0);
-	a[14] = -(LIT(2.0)*zfar*znear)/(zfar - znear);
+
+	a[12] = LIT(0.0);
+	a[13] = LIT(0.0);
+	a[14] = LIT(2.0) * znear * zfar * neg_inv_zrange;
+	a[15] = LIT(0.0);
+
+	return a;
+}
+
+T *morthographic(
+	T a[static M*N],
+	T left,
+	T right,
+	T bottom,
+	T top,
+	T near,
+	T far)
+{
+	assert(left != right);
+	assert(top != bottom);
+	assert(near != far);
+
+	a[ 0] = LIT(2.0) / (right - left);
+	a[ 1] = LIT(0.0);
+	a[ 2] = LIT(0.0);
+	a[ 3] = LIT(0.0);
+
+	a[ 4] = LIT(0.0);
+	a[ 5] = LIT(2.0) / (top - bottom);
+	a[ 6] = LIT(0.0);
+	a[ 7] = LIT(0.0);
+
+	a[ 8] = LIT(0.0);
+	a[ 9] = LIT(0.0);
+	a[10] = LIT(-2.0) / (far - near);
+	a[11] = LIT(0.0);
+
+	a[12] = -(right + left) / (right - left);
+	a[13] = -(top + bottom) / (top - bottom);
+	a[14] = -(far + near) / (far - near);
+	a[15] = LIT(1.0);
+
 	return a;
 }
 

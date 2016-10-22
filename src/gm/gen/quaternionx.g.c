@@ -75,8 +75,7 @@ T *qconj(T dest[static 4], T const q[static 4])
 	return dest;
 }
 
-T *
-rotate(T dest[static 3], T const u[static 3], T const q[static 4])
+T *qrot(T dest[static 3], T const u[static 3], T const q[static 4])
 {
 	T conj[4], v[4], w[4];
 	v[0] = LIT(0.0);
