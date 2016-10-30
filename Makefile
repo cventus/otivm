@@ -247,7 +247,8 @@ $$(if $$(wildcard $$(call obj2dep,$$(OBJ_$1) $$(TEST_OBJ_$1))),\
 
 # Rule to create and update the module archive
 $$(AR_DIR)/lib$1.a: $$(OBJ_$1) | $$(AR_DIR)
-	$$(AR) $$(ARFLAGS) $$@ $$?
+	rm -f $$@
+	$$(AR) $$(ARFLAGS) $$@ $$^
 
 $1: $$(AR_DIR)/lib$1.a
 
