@@ -7,8 +7,8 @@
 
 #include <fs/file.h>
 
-#include <opengl/opengl.h>
-#include <opengl/core.h>
+#include <glapi/opengl.h>
+#include <glapi/core.h>
 #include "include/types.h"
 #include "private.h"
 #include "decl.h"

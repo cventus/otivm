@@ -14,7 +14,7 @@
 #include <rescache/rescache.h>
 #include <wf/wf.h>
 
-#include <opengl/core.h>
+#include <glapi/core.h>
 #include "include/types.h"
 #include "private.h"
 #include "decl.h"

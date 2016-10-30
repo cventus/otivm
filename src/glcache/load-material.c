@@ -8,7 +8,7 @@
 #include <wf/wf.h>
 #include <rescache/rescache.h>
 
-#include <opengl/core.h>
+#include <glapi/core.h>
 #include "include/types.h"
 #include "include/cache.h"
 #include "private.h"

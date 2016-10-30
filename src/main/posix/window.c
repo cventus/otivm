@@ -6,7 +6,7 @@
 #include <GL/glx.h>
 #include <assert.h>
 
-#include <opengl/x.h>
+#include <glapi/x.h>
 #include <xw/xw.h>
 #include <xw/delegate.h>
 #include <base/mem.h>

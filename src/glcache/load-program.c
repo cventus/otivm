@@ -7,7 +7,7 @@
 #include <rescache/rescache.h>
 
 #include "include/types.h"
-#include <opengl/core.h>
+#include <glapi/core.h>
 #include "include/cache.h"
 #include "caches.h"
 #include "private.h"

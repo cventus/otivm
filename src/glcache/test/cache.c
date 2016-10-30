@@ -7,9 +7,9 @@
 #include <base/mem.h>
 #include <rescache/rescache.h>
 
-#include <opengl/opengl.h>
-#include <opengl/core.h>
-#include <opengl/test.h>
+#include <glapi/opengl.h>
+#include <glapi/core.h>
+#include <glapi/test.h>
 #include "../include/cache.h"
 #include "../include/types.h"
 #include "../private.h"

@@ -20,8 +20,8 @@
 
 #include <xw/xw.h>
 #include <xw/delegate.h>
-#include <opengl/x.h>
-#include <opengl/xtypes.h>
+#include <glapi/x.h>
+#include <glapi/xtypes.h>
 
 #include "window.h"
 
