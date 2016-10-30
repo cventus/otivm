@@ -124,21 +124,21 @@ static void GLAPIENTRY debug_callback(
 
 int gl_run_test(
 	char const *name,
-	int (*fn)(struct gl_state *state, struct gl_test *test))
+	int (*fn)(struct gl_api *api, struct gl_test *test))
 {
 	int status;
 	struct gl_test *test;
-	struct gl_state *state;
+	struct gl_api *api;
 	struct gl_dbgmsg const *dbgmsg;
 
 	test = gl_test_make(name);
 	if (test) {
-		state = gl_test_state(test);
-		dbgmsg = gl_get_dbgmsg(state);
+		api = gl_test_api(test);
+		dbgmsg = gl_get_dbgmsg(api);
 		if (dbgmsg) {
-			dbgmsg->DebugMessageCallbackARB(debug_callback, state);
+			dbgmsg->DebugMessageCallbackARB(debug_callback, api);
 		}
-		status = fn(state, test);
+		status = fn(api, test);
 		if (dbgmsg) {
 			dbgmsg->DebugMessageCallbackARB(NULL, NULL);
 		}

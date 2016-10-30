@@ -36,6 +36,6 @@ struct gl_cache
 	struct rescache *wf_mtllibs;
 
 	struct gl_material defmat;
-	struct gl_state *state;
+	struct gl_api *gl;
 };
 

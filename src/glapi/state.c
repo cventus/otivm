@@ -11,26 +11,26 @@
 #include "fwd.h"
 
 /* Called once the context has been created. */
-int gl_init_state(struct gl_state *state)
+int gl_init_api(struct gl_api *api)
 {
-	assert(state != NULL);
-	(void)memset(state, 0, sizeof *state);
+	assert(api != NULL);
+	(void)memset(api, 0, sizeof *api);
 	return 0;
 }
 
-int gl_term_state(struct gl_state *state)
+int gl_term_api(struct gl_api *api)
 {
-	assert(state != NULL);
-	(void)memset(state, 0xff, sizeof *state);
+	assert(api != NULL);
+	(void)memset(api, 0xff, sizeof *api);
 	return 0;
 }
 
-int gl_has_ext(struct gl_state *state, const char *target)
+int gl_has_ext(struct gl_api *api, const char *target)
 {
 	GLint i, n;
 	struct gl_core const *core;
 
-	core = gl_get_core(state);
+	core = gl_get_core(api);
 	if (core == NULL || target == NULL || target[0] == '\0') { return 0; }
 	for (glGetIntegerv(GL_NUM_EXTENSIONS, &n), i = 0; i < n; i++) {
 		GLubyte const *ext = core->GetStringi(GL_EXTENSIONS, i);
@@ -63,20 +63,20 @@ int gl_find_ext(char const *extensions, char const *target)
 	return 0;
 }
 
-#define def_gl_get_api(API) \
-struct gl_##API const *gl_get_##API(struct gl_state *state) \
+#define def_gl_get_api(field) \
+struct gl_##field const *gl_get_##field(struct gl_api *api) \
 { \
-	if (!state->API##_init) { \
-		if (!gl_is_current(state)) { \
+	if (!api->field##_init) { \
+		if (!gl_is_current(api)) { \
 			return NULL; \
 		} else { \
-			state->API##_init = 1; \
-			if (gl_resolve_##API(state, &state->API)) { \
-				state->no_##API = 1; \
+			api->field##_init = 1; \
+			if (gl_resolve_##field(api, &api->field)) { \
+				api->no_##field = 1; \
 			} \
 		} \
 	} \
-	return state->no_##API ? NULL : &state->API; \
+	return api->no_##field ? NULL : &api->field; \
 }
 
 STATE_FIELDS(def_gl_get_api)

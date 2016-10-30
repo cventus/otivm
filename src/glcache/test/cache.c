@@ -25,9 +25,9 @@ static void white(void)
 	glFlush();
 }
 
-static int init_cache_(struct gl_state *state, struct gl_test *test)
+static int init_cache_(struct gl_api *gl, struct gl_test *test)
 {
-	(void)state;
+	(void)gl;
 	white();
 	gl_test_swap_buffers(test);
 	if (is_test_interactive()) { gl_test_wait_for_key(test); }
@@ -36,14 +36,14 @@ static int init_cache_(struct gl_state *state, struct gl_test *test)
 static int init_cache(void) { return run(init_cache_); }
 
 static void check_shader(
-	struct gl_state *state,
+	struct gl_api *gl,
 	struct gl_shader const *shader,
 	char const *filename,
 	GLint shader_type)
 {
 	GLint status;
 	char *log;
-	struct gl_core const *core = gl_get_core(state);
+	struct gl_core const *core = gl_get_core(gl);
 
 	if (!shader) {
 		printf("Shader is NULL\n");
@@ -55,26 +55,26 @@ static void check_shader(
 		ok = -1;
 		return;
 	}
-	if (gl_shader_type(state, shader) != shader_type) {
+	if (gl_shader_type(gl, shader) != shader_type) {
 		printf("Invalid shader type\n");
 		ok = -1;
 	}
 	core->GetShaderiv(shader->name, GL_COMPILE_STATUS, &status);
 	if (status == GL_FALSE) {
 		ok = -1;
-		log = gl_get_shader_info_log(state, shader);
+		log = gl_get_shader_info_log(gl, shader);
 		printf("shader log:\n%s\n", log);
 		free(log);
 	}
 }
 
-static int load_material_(struct gl_state *state, struct gl_test *test)
+static int load_material_(struct gl_api *gl, struct gl_test *test)
 {
 	struct gl_cache *cache;
 	struct gl_geometries const *geo;
 	int n;
 
-	cache = gl_make_cache(state);
+	cache = gl_make_cache(gl);
 	geo = gl_load_geometry(cache, "asset/test/triangle.obj");
 	if (!geo) { ok = -1; }
 
@@ -92,7 +92,7 @@ static int load_material_(struct gl_state *state, struct gl_test *test)
 }
 static int load_material(void) { return run(load_material_); }
 
-static int load_shader_(struct gl_state *state, struct gl_test *test)
+static int load_shader_(struct gl_api *gl, struct gl_test *test)
 {
 	int n;
 	static char const *vs_filename =  "asset/test/shader.vert";
@@ -101,12 +101,12 @@ static int load_shader_(struct gl_state *state, struct gl_test *test)
 	struct gl_shader const *vert, *frag;
 	struct gl_cache *cache;
 
-	cache = gl_make_cache(state);
+	cache = gl_make_cache(gl);
 	vert = gl_load_shader(cache, vs_filename);
-	check_shader(state, vert, vs_filename, GL_VERTEX_SHADER);
+	check_shader(gl, vert, vs_filename, GL_VERTEX_SHADER);
 
 	frag = gl_load_shader(cache, fs_filename);
-	check_shader(state, frag, fs_filename, GL_FRAGMENT_SHADER);
+	check_shader(gl, frag, fs_filename, GL_FRAGMENT_SHADER);
 
 	white();
 
@@ -123,7 +123,7 @@ static int load_shader_(struct gl_state *state, struct gl_test *test)
 }
 static int load_shader(void) { return run(load_shader_); }
 
-static int load_program_(struct gl_state *state, struct gl_test *test)
+static int load_program_(struct gl_api *gl, struct gl_test *test)
 {
 	int n;
 	char const *vs_filename =  "asset/test/shader.vert";
@@ -135,7 +135,7 @@ static int load_program_(struct gl_state *state, struct gl_test *test)
 	struct gl_cache *cache;
 	struct gl_program const *prog1, *prog2;
 
-	cache = gl_make_cache(state);
+	cache = gl_make_cache(gl);
 	prog1 = gl_load_program(cache, shaders1, length_of(shaders1));
 
 	if (!prog1) {

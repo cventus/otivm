@@ -24,7 +24,7 @@ static void white(void)
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 
-static int draw_triangle_(struct gl_state *state, struct gl_test *test)
+static int draw_triangle_(struct gl_api *gl, struct gl_test *test)
 {
 	static char const *shaders[] = {
 		"asset/test/shader.vert",
@@ -36,8 +36,8 @@ static int draw_triangle_(struct gl_state *state, struct gl_test *test)
 	struct gl_program const *prog;
 	struct gl_core const *core;
 
-	core = gl_get_core(state);
-	cache = gl_make_cache(state);
+	core = gl_get_core(gl);
+	cache = gl_make_cache(gl);
 	if (!cache) { fail_test("Unable to create cache\n"); }
 
 	geo = gl_load_geometry(cache, "asset/test/triangle.obj");
@@ -49,7 +49,7 @@ static int draw_triangle_(struct gl_state *state, struct gl_test *test)
 	white();
 
 	core->UseProgram(prog->name);
-	gl_draw_geometries(state, geo);
+	gl_draw_geometries(gl, geo);
 
 	gl_test_swap_buffers(test);
 	if (is_test_interactive()) { gl_test_wait_for_key(test); }

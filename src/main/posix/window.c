@@ -28,13 +28,13 @@ static struct xw_delegate const delegate = {
 struct window *create_window(
 	Display *display,
 	struct xw_state *xw,
-	struct glx *glx)
+	struct glx_context *ctx)
 {
 	int err;
 	struct window *window;
 	XVisualInfo *vi;
 
-	if (vi = glx_visual_info(glx), !vi) {
+	if (vi = glx_visual_info(ctx), !vi) {
 		return NULL;
 	}
 	if (window = malloc(sizeof *window), window == NULL) {
@@ -43,7 +43,7 @@ struct window *create_window(
 	}
 	window->display = display;
 	window->xw = xw;
-	window->glx = glx;
+	window->ctx = ctx;
 	window->window = None;
 	window->drawable = NULL;
 	err = xw_create_window(
@@ -73,7 +73,7 @@ static void map(void *context)
 	
 	if (window->drawable == NULL) {
 		window->drawable = glx_make_drawable_window(
-			window->glx,
+			window->ctx,
 			window->window);
 		if (window->drawable == NULL) {
 			(void)fprintf(

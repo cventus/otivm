@@ -24,9 +24,9 @@ int info(void)
 int iscurrent(void)
 {
 	struct gl_test *test = gl_test_make(0);
-	struct gl_state *state = gl_test_state(test);
+	struct gl_api *api = gl_test_api(test);
 
-	if (!gl_is_current(state)) {
+	if (!gl_is_current(api)) {
 		printf("Not current\n");
 		return -1;
 	} else {

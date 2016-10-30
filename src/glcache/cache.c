@@ -44,12 +44,12 @@ static struct field const cache_fields[] = {
 	cache_field(wf_mtllibs)
 };
 
-int gl_cache_init(struct gl_cache *cache, struct gl_state *state)
+int gl_cache_init(struct gl_cache *cache, struct gl_api *gl)
 {
 	size_t i;
 	struct rescache **field;
 
-	cache->state = state;
+	cache->gl = gl;
 	for (i = 0; i < length_of(cache_fields); i++) {
 		field = get_cache_field(*cache, cache_fields[i]);
 		*field = cache_fields[i].constructor(cache);
@@ -68,11 +68,11 @@ int gl_cache_init(struct gl_cache *cache, struct gl_state *state)
 }
 
 
-struct gl_cache *gl_make_cache(struct gl_state *state)
+struct gl_cache *gl_make_cache(struct gl_api *gl)
 {
 	struct gl_cache *cache;
 	cache = malloc(sizeof *cache);
-	if (gl_cache_init(cache, state)) {
+	if (gl_cache_init(cache, gl)) {
 		free(cache);
 		cache = NULL;
 	}

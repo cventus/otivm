@@ -336,12 +336,12 @@ static void gl_geometry_term(const void *p, const void *ctx)
 }
 
 static int geometry_init_wf(
-	struct gl_state *state,
+	struct gl_api *gl,
 	struct gl_geometry *geo,
 	struct wf_triangles const *group,
 	struct wf_object const *obj)
 {
-	struct gl_core const *f = gl_get_core(state);
+	struct gl_core const *f = gl_get_core(gl);
 	struct wbuf vertices, elements;
 	jmp_buf errbuf;
 	struct tstack ts;
@@ -381,7 +381,7 @@ static int geometry_init_wf(
 }
 
 static int geometires_init_wf(
-	struct gl_state *state,
+	struct gl_api *gl,
 	struct wf_object const *obj,
 	struct gl_material const *const *mtllist,
 	struct gl_geometries *geos)
@@ -402,9 +402,9 @@ static int geometires_init_wf(
 	for (i = 0; i < geos->n; i++) {
 		geo = p + i;
 		geo->material = mtllist[i];
-		err = geometry_init_wf(state, geo, obj->groups + i, obj);
+		err = geometry_init_wf(gl, geo, obj->groups + i, obj);
 		if (err) { tstack_fail(&ts); }
-		tstack_push(&ts, &gl_geometry_term, geo, gl_get_core(state));
+		tstack_push(&ts, &gl_geometry_term, geo, gl_get_core(gl));
 	}
 	tstack_retain_all(&ts);
 	tstack_term(&ts);
@@ -423,7 +423,7 @@ int gl_geometries_init_wfobj(
 
 	if (!(obj = wf_parse_object(filename))) { goto clean; }
 	if (!(mtllist = load_materials(cache, filename, obj))) { goto clean; }
-	result = geometires_init_wf(cache->state, obj, mtllist, geos);
+	result = geometires_init_wf(cache->gl, obj, mtllist, geos);
 clean:
 	if (mtllist) {
 		free_materials(cache, mtllist, obj->ngroups);
@@ -440,7 +440,7 @@ void gl_geometries_term(struct gl_cache *cache, struct gl_geometries *geos)
 
 	for (geo = geos->geo, i = 0; i < geos->n; i++, geo++) {
 		gl_release_material(cache, geo->material);
-		gl_geometry_term(geo, gl_get_core(cache->state));
+		gl_geometry_term(geo, gl_get_core(cache->gl));
 	}
 	if (geos->geo) {
 		free((void *)geos->geo);
@@ -452,19 +452,19 @@ struct gl_material *gl_default_material(struct gl_cache *cache)
 	return &cache->defmat;
 }
 
-void gl_draw_geometry(struct gl_state *state, struct gl_geometry const *geo)
+void gl_draw_geometry(struct gl_api *gl, struct gl_geometry const *geo)
 {
-	struct gl_core const *core = gl_get_core(state);
+	struct gl_core const *core = gl_get_core(gl);
 	core->BindVertexArray(geo->vao);
 	glDrawElements(geo->eb.mode, geo->eb.count, geo->eb.type, 0);
 	core->BindVertexArray(0);
 }
 
-void gl_draw_geometries(struct gl_state *state, struct gl_geometries const *geos)
+void gl_draw_geometries(struct gl_api *gl, struct gl_geometries const *geos)
 {
 	size_t i;
 	for (i = 0; i < geos->n; i++) {
-		gl_draw_geometry(state, geos->geo + i);
+		gl_draw_geometry(gl, geos->geo + i);
 	}
 }
 

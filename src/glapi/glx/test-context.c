@@ -30,15 +30,15 @@ struct gl_test
 	Display *display;
 	XID xres;
 	struct glx_drawable *drawable;
-	struct glx glx;
+	struct glx_context ctx;
 	int (*free_xres)(Display *, XID);
 	void (*swap_buffers)(struct gl_test *);
 };
 
-struct gl_state *gl_test_state(struct gl_test *test)
+struct gl_api *gl_test_api(struct gl_test *test)
 {
 	assert(test);
-	return &test->glx.state;
+	return &test->ctx.api;
 }
 
 static void swap_buffers(struct gl_test *test)
@@ -110,7 +110,7 @@ static Pixmap create_pixmap(Display *dpy, XVisualInfo *vi)
 
 void gl_test_free(struct gl_test *test)
 {
-	glx_term(&test->glx);
+	glx_term_context(&test->ctx);
 	test->free_xres(test->display, test->xres);
 	XCloseDisplay(test->display);
 	free(test);
@@ -121,7 +121,7 @@ struct gl_test *gl_test_make(char const *name)
 	Display *display;
 	XVisualInfo *vi;
 	struct gl_test *test;
-	struct glx *glx;
+	struct glx_context *ctx;
 	struct glx_drawable *drawable;
 
 	test = malloc(sizeof *test);
@@ -133,16 +133,16 @@ struct gl_test *gl_test_make(char const *name)
 		return NULL;
 	}
 
-	glx = &test->glx;
-	if (!glx_init(glx, display, NULL)) {
+	ctx = &test->ctx;
+	if (!glx_init_context(ctx, display, NULL)) {
 		XCloseDisplay(display);
 		free(test);
 		return NULL;
 	}
 
-	vi = glx_visual_info(glx);
+	vi = glx_visual_info(ctx);
 	if (!vi) {
-		glx_term(glx);
+		glx_term_context(ctx);
 		XCloseDisplay(display);
 		free(test);
 		return NULL;
@@ -150,13 +150,13 @@ struct gl_test *gl_test_make(char const *name)
 
 	if (name) {
 		Window w = create_window(display, vi, name);
-		drawable = glx_make_drawable_window(glx, w);
+		drawable = glx_make_drawable_window(ctx, w);
 		test->xres = w;
 		test->free_xres = &destroy_window;
 		test->swap_buffers = &swap_buffers;
 	} else {
 		Pixmap pm = create_pixmap(display, vi);
-		drawable = glx_make_drawable_pixmap(glx, pm);
+		drawable = glx_make_drawable_pixmap(ctx, pm);
 		test->xres = pm;
 		test->free_xres = &XFreePixmap;
 		test->swap_buffers = &dont_swap_buffers;
@@ -165,7 +165,7 @@ struct gl_test *gl_test_make(char const *name)
 	test->display = display;
 	XFree(vi);
 
-	if (glx_make_current(glx, drawable)) {
+	if (glx_make_current(ctx, drawable)) {
 		gl_test_free(test);
 		return NULL;
 	}
