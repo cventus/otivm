@@ -13,11 +13,15 @@
 #include <GL/glx.h>
 
 #include <adt/hmap.h>
+#include <base/mem.h>
 
-#include "../types.h"
+#include "../include/core.h"
+#include "../include/dbgmsg.h"
+
 #include "../include/xtypes.h"
-#include "../decl.h"
 #include "../include/x.h"
+#include "../fwd.h"
+#include "../types.h"
 
 #include "private.h"
 
@@ -48,7 +52,7 @@ static int select_fbconfig(
 	int const *attr,
 	GLXFBConfig *result)
 {
-	int i, n, best_i, sb, samples, best_samples;
+	int i, n, best_i, sb, samples, best_samples, depth;
 	GLXFBConfig *fbconfigs, fbconfig;
 
 	fbconfigs = glXChooseFBConfig(dpy, screen, attr, &n);
@@ -56,6 +60,10 @@ static int select_fbconfig(
 
 	for (best_i = -1, i = 0; i < n; i++) {
 		fbconfig = fbconfigs[i];
+
+		glXGetFBConfigAttrib(dpy, fbconfig, GLX_DEPTH_SIZE, &depth);
+		if (depth == 0) { continue; }
+
 		glXGetFBConfigAttrib(dpy, fbconfig, GLX_SAMPLE_BUFFERS, &sb);
 		glXGetFBConfigAttrib(dpy, fbconfig, GLX_SAMPLES, &samples);
 		if (best_i < 0 || (sb && samples > best_samples)) {
@@ -140,7 +148,7 @@ struct glx *glx_init(
 
 	screen = DefaultScreen(display);
 	glxexts = glXQueryExtensionsString(display, screen);
-	if (!gl_is_extension_supported(glxexts, "GLX_ARB_create_context")) {
+	if (!gl_find_ext(glxexts, "GLX_ARB_create_context")) {
 		return NULL;
 	}
 	if (select_fbconfig(display, screen, fbconfig_attribs, &fbconfig)) {
@@ -149,9 +157,9 @@ struct glx *glx_init(
 
 	glXCreateContextAttribsARB = (create_context_fn *)glXGetProcAddressARB(
 		(const GLubyte *)"glXCreateContextAttribsARB");
- 
+
 	/* TODO: error handling with XSetErrorHandler in case context creation
-	   fails. */
+	   fails? */
 
 	context = glXCreateContextAttribsARB(
 		display,
@@ -159,22 +167,25 @@ struct glx *glx_init(
 		0,
 		True,
 		context_attribs);
- 
+
 	// Sync to ensure any errors generated are processed.
 	(void)XSync(display, False);
 
-	glx->display = display;
-	glx->fbconfig = fbconfig;
-	glx->context = context;
-	hmap_init(
-		&glx->drawables,
-		sizeof(struct glx_drawable),
-		alignof(struct glx_drawable));
+	if (context) {
+		glx->display = display;
+		glx->fbconfig = fbconfig;
+		glx->context = context;
 
+		hmap_init(
+			&glx->drawables,
+			sizeof(struct glx_drawable),
+			alignof(struct glx_drawable));
 
-	gl_state_init(&glx->state);
-
-	return glx;
+		gl_init_state(&glx->state);
+		return glx;
+	} else {
+		return NULL;
+	}
 }
 
 struct glx *glx_make(
@@ -194,7 +205,10 @@ void glx_destroy_drawable(
 	struct glx *glx,
 	struct glx_drawable *drawable)
 {
-	drawable->destroy(glx, drawable);
+	XID const xid = drawable->xid;
+	if (!hmap_remove(&glx->drawables, &xid, sizeof xid)) {
+		drawable->destroy(glx, drawable);
+	}
 }
 
 void glx_term(struct glx *glx)
@@ -210,7 +224,7 @@ void glx_term(struct glx *glx)
 	}
 	hmap_term(drawables);
 	glXDestroyContext(glx->display, glx->context);
-	assert(gl_state_term(&glx->state) == 0);
+	assert(gl_term_state(&glx->state) == 0);
 }
 
 void glx_free(struct glx *glx)
@@ -219,31 +233,13 @@ void glx_free(struct glx *glx)
 	free(glx);
 }
 
-static void unmake_current(struct glx *glx, GLXDrawable drawable)
+static void destroy_glxwindow(struct glx *glx, struct glx_drawable *drawable)
 {
-	GLXDrawable write = glXGetCurrentDrawable();
-	if (drawable == write) {
-		GLXDrawable read = glXGetCurrentReadDrawable();
-		if (read == drawable) { read = None; }
-		glXMakeContextCurrent(
-			glx->display,
-			None,
-			read,
-			glx->context);
-	}
-}
-
-static void destroy_glxwindow(
-	struct glx *glx,
-	struct glx_drawable *drawable)
-{
-	unmake_current(glx, drawable->glxid);
+	hmap_remove(&glx->drawables, &drawable->xid, sizeof drawable->xid);
 	glXDestroyWindow(glx->display, drawable->glxid);
 }
 
-struct glx_drawable *glx_make_drawable_window(
-	struct glx *glx,
-	Window window)
+struct glx_drawable *glx_make_drawable_window(struct glx *glx, Window window)
 {
 	struct hmap *drawables;
 	struct glx_drawable *drawable;
@@ -253,7 +249,7 @@ struct glx_drawable *glx_make_drawable_window(
 	drawable = hmap_new(drawables, &window, sizeof window);
 	if (!drawable) {
 		/* X window already added (or allocation failure). Should we
-		   return the current binding here? */
+		   return the existing entry here? */
 		return NULL;
 	}
 	id = glXCreateWindow(glx->display, glx->fbconfig, window, NULL);
@@ -263,17 +259,13 @@ struct glx_drawable *glx_make_drawable_window(
 	return drawable;
 }
 
-static void destroy_pixmap(
-	struct glx *glx,
-	struct glx_drawable *drawable)
+static void destroy_pixmap(struct glx *glx, struct glx_drawable *drawable)
 {
-	unmake_current(glx, drawable->glxid);
+	hmap_remove(&glx->drawables, &drawable->xid, sizeof drawable->xid);
 	glXDestroyPixmap(glx->display, drawable->glxid);
 }
 
-struct glx_drawable *glx_make_drawable_pixmap(
-	struct glx *glx,
-	Pixmap pixmap)
+struct glx_drawable *glx_make_drawable_pixmap(struct glx *glx, Pixmap pixmap)
 {
 	struct hmap *drawables;
 	struct glx_drawable *drawable;
@@ -283,7 +275,7 @@ struct glx_drawable *glx_make_drawable_pixmap(
 	drawable = hmap_new(drawables, &pixmap, sizeof pixmap);
 	if (!drawable) {
 		/* Pixmap already added (or allocation failure). Should we
-		   return the current binding here? */
+		   return the existing entry here? */
 		return NULL;
 	}
 	id = glXCreatePixmap(glx->display, glx->fbconfig, pixmap, NULL);
@@ -293,9 +285,7 @@ struct glx_drawable *glx_make_drawable_pixmap(
 	return drawable;
 }
 
-int glx_make_current(
-	struct glx *glx,
-	struct glx_drawable *drawable)
+int glx_make_current(struct glx *glx, struct glx_drawable *drawable)
 {
 	return glXMakeContextCurrent(
 		glx->display,
@@ -314,10 +304,14 @@ struct gl_state *glx_state(struct glx *glx)
 	return &glx->state;
 }
 
-void glx_swap_buffers(
-	struct glx *glx,
-	struct glx_drawable *window)
+void glx_swap_buffers(struct glx *glx, struct glx_drawable *window)
 {
-	(void)glXSwapBuffers(glx->display, window->glxid);
+	glXSwapBuffers(glx->display, window->glxid);
+}
+
+int gl_is_current(struct gl_state *state)
+{
+	struct glx *glx = container_of(state, struct glx, state);
+	return glx->context == glXGetCurrentContext();
 }
 

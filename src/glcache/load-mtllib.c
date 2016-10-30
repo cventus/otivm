@@ -7,8 +7,10 @@
 #include <wf/wf.h>
 #include <rescache/rescache.h>
 
-#include "types.h"
-#include "load-mtllib.h"
+#include "include/types.h"
+#include "private.h"
+#include "caches.h"
+#include "decl.h"
 
 static int load_wf_mtllib(
 	void const *filename,
@@ -37,7 +39,7 @@ static void unload_wf_mtllib(
 	wf_free_mtllib(*(struct wf_mtllib const **)data);
 }
 
-struct rescache *gl_make_wf_mtllibs_cache(struct gl_state *state)
+struct rescache *gl_make_wf_mtllibs_cache(struct gl_cache *cache)
 {
 	/* key: filename string */
 	return make_rescache(
@@ -46,7 +48,7 @@ struct rescache *gl_make_wf_mtllibs_cache(struct gl_state *state)
 		alignof(char),
 		load_wf_mtllib,
 		unload_wf_mtllib,
-		state);
+		cache);
 }
 
 struct wf_mtllib const *const *gl_load_wf_mtllib(

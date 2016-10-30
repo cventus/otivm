@@ -1,64 +1,38 @@
-
+#include <stddef.h>
+#include <assert.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
 
-#include "types.h"
-#include "decl.h"
+#include "include/core.h"
+#include "include/dbgmsg.h"
 
-int gl_resolve_functions(struct gl_core *glfn)
+#include "fwd.h"
+
+#define gl_def_api(ret, name, args) api->name = \
+	(ret (GLAPIENTRY *) args)gl_get_proc("gl" #name);
+
+int gl_resolve_core(struct gl_state *state, struct gl_core *api)
 {
-#define resolve(res,name,args) do { \
-		 glfn->name = (res(*)args)gl_get_proc(#name); \
-		if (!glfn->name) { return -1; } \
-	} while (0)
+	assert(state != NULL);
+	assert(api != NULL);
 
+	/* Assumes the created context is 3.3 */
+	GL_CORE_33_API(gl_def_api)
 
-	/* Buffer Objects */
-	resolve(void,glGenBuffers,(GLsizei, GLuint *));
-	resolve(void,glDeleteBuffers,(GLsizei, GLuint const *));
-	resolve(void,glBindBuffer,(GLenum, GLuint));
-	resolve(void,glBufferData,(GLenum, GLsizeiptr, GLvoid const *, GLenum));
-	resolve(GLboolean,glIsBuffer,(GLuint));
+	return 0;
+}
 
-	/* Shaders */
-	resolve(GLuint,glCreateShader,(GLenum));
-	resolve(void,glDeleteShader,(GLuint));
-	resolve(GLboolean,glIsShader,(GLuint));
-	resolve(void,glShaderSource,(GLuint, GLsizei, GLchar const **, GLint const *));
-	resolve(void,glGetShaderSource,(GLuint, GLsizei, GLsizei *, GLchar *));
-	resolve(void,glCompileShader,(GLuint));
-	resolve(void,glGetShaderiv,(GLuint, GLenum, GLint *));
-	resolve(void,glGetShaderInfoLog,(GLuint, GLsizei, GLsizei *, GLchar *));
+int gl_resolve_dbgmsg(struct gl_state *state, struct gl_dbgmsg *api)
+{
+	assert(state != NULL);
+	assert(api != NULL);
+	assert(gl_is_current(state));
 
-	/* Programs */
-	resolve(GLuint,glCreateProgram,(void));
-	resolve(void,glDeleteProgram,(GLuint));
-	resolve(void,glAttachShader,(GLuint, GLuint));
-	resolve(void,glDetachShader,(GLuint, GLuint));
-	resolve(void,glGetProgramiv,(GLuint, GLenum, GLint *));
-	resolve(void,glGetProgramInfoLog,(GLuint, GLsizei, GLsizei *, GLchar *));
-	resolve(GLint,glGetFragDataLocation,(GLuint, GLchar const *));
-	resolve(void,glBindFragDataLocation,(GLuint, GLuint, GLchar const *));
-	resolve(void,glLinkProgram,(GLuint));
-	resolve(void,glUseProgram,(GLuint));
-	resolve(GLint,glGetUniformLocation,(GLuint, GLchar const *));
-	resolve(void,glUniform3f,(GLint, GLfloat, GLfloat, GLfloat));
-	resolve(GLint,glGetAttribLocation,(GLuint, GLchar const *));
-	resolve(void,glBindAttribLocation,(GLuint, GLuint, GLchar const *));
-	resolve(void,glEnableVertexAttribArray,(GLuint));
-	resolve(void,glDisableVertexAttribArray,(GLuint));
-	resolve(GLint,glVertexAttribPointer,(GLuint, GLint, GLenum, GLboolean,
-	                                     GLsizei, GLvoid const *));
+	if (!gl_has_ext(state, "GL_ARB_debug_output")) {
+		return -1;
+	}
 
-	/* Vertex Array Objects */
-	resolve(void,glGenVertexArrays,(GLsizei, GLuint *));
-	resolve(void,glBindVertexArray,(GLuint));
-	resolve(void,glDeleteVertexArrays,(GLsizei, GLuint const *));
-	resolve(GLboolean,glIsVertexArray,(GLuint));
-
-	/* Other */
-	resolve(const GLubyte *,glGetStringi,(GLenum name, GLuint index));
-#undef resolve
+	GL_DEBUG_MESSAGE_CALLBACK_ARB(gl_def_api)
 
 	return 0;
 }

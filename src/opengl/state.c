@@ -1,48 +1,47 @@
 
+#include <assert.h>
 #include <string.h>
 #include <GL/gl.h>
 
 #include <gm/vector.h>
 
+#include "include/core.h"
+#include "include/dbgmsg.h"
 #include "types.h"
-#include "decl.h"
+#include "fwd.h"
 
-int gl_state_init(struct gl_state *state)
+/* Called once the context has been created. */
+int gl_init_state(struct gl_state *state)
 {
-        if (gl_resolve_functions(&state->f)) { return -1; }
-        if (gl_cache_init(&state->cache, state)) { return -1; }
+	assert(state != NULL);
+	(void)memset(state, 0, sizeof *state);
 	return 0;
 }
 
-int gl_state_term(struct gl_state *state)
+int gl_term_state(struct gl_state *state)
 {
-        if (gl_cache_term(&state->cache)) { return -1; }
+	assert(state != NULL);
+	(void)memset(state, 0xff, sizeof *state);
 	return 0;
 }
 
-struct gl_material *gl_default_material(struct gl_state *state)
-{
-	return &state->defmat;
-}
-
-int gl_is_new_extension_supported(struct gl_state *state, const char *target)
+int gl_has_ext(struct gl_state *state, const char *target)
 {
 	GLint i, n;
+	struct gl_core const *core;
 
-	if (target == NULL) { return 0; }
-
-	glGetIntegerv(GL_NUM_EXTENSIONS, &n);
-	for (i = 0; i < n; i++) {
-		char const *extension =
-			(char const*)state->f.glGetStringi(GL_EXTENSIONS, i);
-		if (strcmp(extension, target) == 0) {
+	core = gl_get_core(state);
+	if (core == NULL || target == NULL || target[0] == '\0') { return 0; }
+	for (glGetIntegerv(GL_NUM_EXTENSIONS, &n), i = 0; i < n; i++) {
+		GLubyte const *ext = core->GetStringi(GL_EXTENSIONS, i);
+		if (strcmp((char const*)ext, target) == 0) {
 			return 1;
 		}
 	}
 	return 0;
 }
 
-int gl_is_extension_supported(const char *extensions, const char *target)
+int gl_find_ext(char const *extensions, char const *target)
 {
 	if (target == NULL) { return 0; }
 
@@ -64,18 +63,21 @@ int gl_is_extension_supported(const char *extensions, const char *target)
 	return 0;
 }
 
-void gl_draw_geometry(struct gl_state *state, struct gl_geometry const *geo)
-{
-	state->f.glBindVertexArray(geo->vao);
-	glDrawElements(geo->eb.mode, geo->eb.count, geo->eb.type, 0);
-	state->f.glBindVertexArray(0);
+#define def_gl_get_api(API) \
+struct gl_##API const *gl_get_##API(struct gl_state *state) \
+{ \
+	if (!state->API##_init) { \
+		if (!gl_is_current(state)) { \
+			return NULL; \
+		} else { \
+			state->API##_init = 1; \
+			if (gl_resolve_##API(state, &state->API)) { \
+				state->no_##API = 1; \
+			} \
+		} \
+	} \
+	return state->no_##API ? NULL : &state->API; \
 }
 
-void gl_draw_geometries(struct gl_state *state, struct gl_geometries const *geos)
-{
-	size_t i;
-	for (i = 0; i < geos->n; i++) {
-		gl_draw_geometry(state, geos->geo + i);
-	}
-}
+STATE_FIELDS(def_gl_get_api)
 

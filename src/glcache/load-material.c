@@ -8,9 +8,12 @@
 #include <wf/wf.h>
 #include <rescache/rescache.h>
 
-#include "types.h"
-#include "load-mtllib.h"
-#include "load-material.h"
+#include <opengl/core.h>
+#include "include/types.h"
+#include "include/cache.h"
+#include "private.h"
+#include "caches.h"
+#include "decl.h"
 
 #define MTLLIB_PREFIX "mtllib"
 
@@ -60,7 +63,7 @@ static int get_mtllib_key(void const *key, size_t size, struct mtllib_key *out)
 static int load_mtllib(void const *key, size_t size, void *data, void *link)
 {
 	int result;
-	struct gl_state *state;
+	struct gl_cache *cache;
 	struct wf_mtllib const *const *mtllib;
 	struct wf_material const *wfmtl;
 	struct gl_material *mtl;
@@ -68,8 +71,8 @@ static int load_mtllib(void const *key, size_t size, void *data, void *link)
 
 	if (get_mtllib_key(key, size, &mkey)) { return -1; }
 
-	state = link;
-	mtllib = gl_load_wf_mtllib(&state->cache, mkey.filename);
+	cache = link;
+	mtllib = gl_load_wf_mtllib(cache, mkey.filename);
 	if (!mtllib) { return -1; }
 
 	wfmtl = wf_get_material(*mtllib, mkey.name);
@@ -92,7 +95,7 @@ static int load_mtllib(void const *key, size_t size, void *data, void *link)
 	} else {
 		result = -2;
 	}
-	gl_release_wf_mtllib(&state->cache, mtllib);
+	gl_release_wf_mtllib(cache, mtllib);
 	return result;
 }
 
@@ -104,7 +107,7 @@ static void unload_material(void const *key, size_t len, void *data, void *link)
 	(void)link;
 }
 
-struct rescache *gl_make_materials_cache(struct gl_state *state)
+struct rescache *gl_make_materials_cache(struct gl_cache *cache)
 {
 	return make_rescache(
 		sizeof(struct gl_material),
@@ -112,7 +115,7 @@ struct rescache *gl_make_materials_cache(struct gl_state *state)
 		alignof(char),
 		load_mtllib,
 		unload_material,
-		state);
+		cache);
 }
 
 struct gl_material const *gl_load_wf_material(

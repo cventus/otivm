@@ -7,7 +7,10 @@
 
 #include <fs/file.h>
 
-#include "types.h"
+#include <opengl/opengl.h>
+#include <opengl/core.h>
+#include "include/types.h"
+#include "private.h"
 #include "decl.h"
 #include "shader.h"
 
@@ -33,17 +36,19 @@ static int compile_shader(
 {
 	GLint compile_success;
 	char *info_log;
+	struct gl_core const *core;
 
-	state->f.glShaderSource(shader, 1, (GLchar const **)&source, NULL);
-	state->f.glCompileShader(shader);
-	state->f.glGetShaderiv(shader, GL_COMPILE_STATUS, &compile_success);
+	core = gl_get_core(state);
+	core->ShaderSource(shader, 1, (GLchar const **)&source, NULL);
+	core->CompileShader(shader);
+	core->GetShaderiv(shader, GL_COMPILE_STATUS, &compile_success);
 	if (compile_success) {
 		return 0;
 	} else {
 		info_log = get_info_log(
 			shader,
-			state->f.glGetShaderiv,
-			state->f.glGetShaderInfoLog);
+			core->GetShaderiv,
+			core->GetShaderInfoLog);
 		if (info_log) {
 			fprintf(stderr, "glCompileShader():\n%s\n", info_log);
 			free(info_log);
@@ -59,10 +64,11 @@ int gl_shader_init(
 	char const *source)
 {
 	GLuint name;
+	struct gl_core const *core = gl_get_core(state);
 
-	name = state->f.glCreateShader(type);
+	name = core->CreateShader(type);
 	if (compile_shader(state, source, name)) {
-		state->f.glDeleteShader(name);
+		core->DeleteShader(name);
 		return -1;
 	}
 	shader->name = name;
@@ -72,7 +78,8 @@ int gl_shader_init(
 
 void gl_shader_term(struct gl_state *state, struct gl_shader const *shader)
 {
-	state->f.glDeleteShader(shader->name);
+	struct gl_core const *core = gl_get_core(state);
+	core->DeleteShader(shader->name);
 }
 
 int gl_program_init(
@@ -85,18 +92,20 @@ int gl_program_init(
 	GLuint name;
 	size_t i;
 	char *info_log;
+	struct gl_core const *core;
 
-	name = state->f.glCreateProgram();
+	core = gl_get_core(state);
+	name = core->CreateProgram();
 	if (name == 0) { return -1; }
 	program->name = name;
 	for (i = 0; i < nshaders; i++) {
-		state->f.glAttachShader(name, shaders[i]->name);
+		core->AttachShader(name, shaders[i]->name);
 	}
-	state->f.glLinkProgram(name);
+	core->LinkProgram(name);
 	for(i = 0; i < nshaders; i++) {
-		state->f.glDetachShader(name, shaders[i]->name);
+		core->DetachShader(name, shaders[i]->name);
 	}
-	state->f.glGetProgramiv(name, GL_LINK_STATUS, &link_success);
+	core->GetProgramiv(name, GL_LINK_STATUS, &link_success);
 	if (link_success) {
 		return 0;
 	} else {
@@ -105,34 +114,37 @@ int gl_program_init(
 			fprintf(stderr, "glLinkProgram():\n%s\n", info_log);
 			free(info_log);
 		}
-		state->f.glDeleteProgram(name);
+		core->DeleteProgram(name);
 		return -2;
 	}
 }
 
 void gl_program_term(struct gl_state *state, struct gl_program const *program)
 {
-	state->f.glDeleteProgram(program->name);
+	struct gl_core const *core = gl_get_core(state);
+	core->DeleteProgram(program->name);
 }
 
 char *gl_get_shader_info_log(
 	struct gl_state *state,
 	struct gl_shader const *shader)
 {
+	struct gl_core const *core = gl_get_core(state);
 	return get_info_log(
 		shader->name,
-		state->f.glGetShaderiv,
-		state->f.glGetShaderInfoLog);
+		core->GetShaderiv,
+		core->GetShaderInfoLog);
 }
 
 char *gl_get_program_info_log(
 	struct gl_state *state,
 	struct gl_program const *program)
 {
+	struct gl_core const *core = gl_get_core(state);
 	return get_info_log(
 		program->name,
-		state->f.glGetProgramiv,
-		state->f.glGetProgramInfoLog);
+		core->GetProgramiv,
+		core->GetProgramInfoLog);
 }
 
 GLint gl_shader_type(
@@ -140,7 +152,8 @@ GLint gl_shader_type(
 	struct gl_shader const *shader)
 {
 	GLint type;
-	state->f.glGetShaderiv(shader->name, GL_SHADER_TYPE, &type);
+	struct gl_core const *core = gl_get_core(state);
+	core->GetShaderiv(shader->name, GL_SHADER_TYPE, &type);
 	return type;
 }
 

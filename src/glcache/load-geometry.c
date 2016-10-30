@@ -6,32 +6,34 @@
 #include <rescache/rescache.h>
 #include <wf/wf.h>
 
-#include "types.h"
+#include "include/types.h"
+#include "include/cache.h"
+#include "private.h"
 #include "geometry.h"
-#include "load-geometry.h"
+#include "caches.h"
 
 static int load_wf_obj(void const *key, size_t len, void *data, void *link)
 {
 	struct gl_geometries *geos = data;
-	struct gl_state *state = link;
+	struct gl_cache *cache = link;
 	char const *filename = key;
 	(void)len;
 
-	return gl_geometries_init_wfobj(state, geos, filename);
+	return gl_geometries_init_wfobj(cache, geos, filename);
 }
 
 static void unload_geometry(void const *key, size_t len, void *data, void *link)
 {
 	struct gl_geometries *geos = data;
-	struct gl_state *state = link;
+	struct gl_cache *cache = link;
 
 	(void)key;
 	(void)len;
 
-	gl_geometries_term(state, geos);
+	gl_geometries_term(cache, geos);
 }
 
-struct rescache *gl_make_geometries_cache(struct gl_state *state)
+struct rescache *gl_make_geometries_cache(struct gl_cache *cache)
 {
 	/* key: filename string */
 	return make_rescache(
@@ -40,7 +42,7 @@ struct rescache *gl_make_geometries_cache(struct gl_state *state)
 		alignof(char),
 		load_wf_obj,
 		unload_geometry,
-		state);
+		cache);
 }
 
 struct gl_geometries const *gl_load_geometry(

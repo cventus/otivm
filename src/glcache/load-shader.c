@@ -9,7 +9,12 @@
 #include <fs/file.h>
 #include <rescache/rescache.h>
 
-#include "types.h"
+#include <opengl/opengl.h>
+#include <opengl/core.h>
+#include "include/types.h"
+#include "include/cache.h"
+#include "caches.h"
+#include "private.h"
 #include "shader.h"
 
 static int load_shader_file(
@@ -17,7 +22,7 @@ static int load_shader_file(
 	size_t len,
 	char const *ext,
 	struct gl_shader *shader,
-	struct gl_state *state,
+	struct gl_cache *cache,
 	GLenum type)
 {
 	FILE *fp;
@@ -33,7 +38,7 @@ static int load_shader_file(
 	if (!fp) { return -1; }
 	source = read_all(fp);
 	if (!source) { fclose(fp); return -2; }
-	result = gl_shader_init(state, shader, type, source);
+	result = gl_shader_init(cache->state, shader, type, source);
 	free(source);
 	fclose(fp);
 	return result;
@@ -67,10 +72,11 @@ static void unload_shader(void const *key, size_t ksz, void *data, void *link)
 {
 	(void)key;
 	(void)ksz;
-	gl_shader_term((struct gl_state *)link, (struct gl_shader *)data);
+	struct gl_cache *cache = link;
+	gl_shader_term(cache->state, (struct gl_shader *)data);
 }
 
-struct rescache *gl_make_shaders_cache(struct gl_state *state)
+struct rescache *gl_make_shaders_cache(struct gl_cache *cache)
 {
 	loadfn *const loaders[] = { load_vshader, load_fshader };
 
@@ -82,7 +88,7 @@ struct rescache *gl_make_shaders_cache(struct gl_state *state)
 		loaders,
 		length_of(loaders),
 		unload_shader,
-		state);
+		cache);
 }
 
 struct gl_shader const *gl_load_shader(

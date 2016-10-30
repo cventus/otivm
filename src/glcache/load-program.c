@@ -6,10 +6,12 @@
 
 #include <rescache/rescache.h>
 
-#include "types.h"
+#include "include/types.h"
+#include <opengl/core.h>
+#include "include/cache.h"
+#include "caches.h"
+#include "private.h"
 #include "shader.h"
-#include "load-shader.h"
-#include "load-program.h"
 
 struct program_key
 {
@@ -68,25 +70,25 @@ static int load_program(void const *key, size_t ksz, void *data, void *link)
 
 	struct program_key const *pk = key;
 	struct gl_program *program = data;
-	struct gl_state *state = link;
+	struct gl_cache *cache = link;
 
 	(void)ksz;
 	shaders = malloc(pk->n * sizeof *shaders);
 	if (!shaders) { return -1; }
 
 	for (i = 0, p = pk->keys; i < pk->n; i++, p += strlen(p) + 1) {
-		shaders[i] = gl_load_shader(&state->cache, p);
+		shaders[i] = gl_load_shader(cache, p);
 		if (!shaders[i]) {
 			while (i--) {
-				gl_release_shader(&state->cache, shaders[i]);
+				gl_release_shader(cache, shaders[i]);
 			}
 			free(shaders);
 			return -2;
 		}
 	}
-	result = gl_program_init(state, program, shaders, pk->n);
+	result = gl_program_init(cache->state, program, shaders, pk->n);
 	for (i = 0; i < pk->n; i++) {
-		gl_release_shader(&state->cache, shaders[i]);
+		gl_release_shader(cache, shaders[i]);
 	}
 	free(shaders);
 	return result;
@@ -94,12 +96,13 @@ static int load_program(void const *key, size_t ksz, void *data, void *link)
 
 static void unload_program(void const *key, size_t ksz, void *data, void *link)
 {
+	struct gl_cache *cache = link;
 	(void)key;
 	(void)ksz;
-	gl_program_term(link, data);
+	gl_program_term(cache->state, data);
 }
 
-struct rescache *gl_make_programs_cache(struct gl_state *state)
+struct rescache *gl_make_programs_cache(struct gl_cache *cache)
 {
 	return make_rescache(
 		sizeof(struct gl_program),
@@ -107,7 +110,7 @@ struct rescache *gl_make_programs_cache(struct gl_state *state)
 		alignof(char),
 		load_program,
 		unload_program,
-		state);
+		cache);
 }
 
 struct gl_program const *gl_load_program(

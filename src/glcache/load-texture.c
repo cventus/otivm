@@ -6,8 +6,10 @@
 #include <base/mem.h>
 #include <rescache/rescache.h>
 
-#include "types.h"
-#include "load-texture.h"
+#include "include/types.h"
+#include "include/cache.h"
+#include "caches.h"
+#include "private.h"
 
 static int load_png(void const *filename, size_t len, void *data, void *link)
 {
@@ -39,7 +41,7 @@ static void unload_texture(
 	(void)link;
 }
 
-struct rescache *gl_make_textures_cache(struct gl_state *state)
+struct rescache *gl_make_textures_cache(struct gl_cache *cache)
 {
 	loadfn *const loaders[] = { load_png, load_tga };
 
@@ -51,7 +53,7 @@ struct rescache *gl_make_textures_cache(struct gl_state *state)
 		loaders,
 		length_of(loaders),
 		unload_texture,
-		state);
+		cache);
 }
 
 struct gl_texture const *gl_load_texture(

@@ -15,9 +15,12 @@
 
 #include <adt/hmap.h>
 
-#include "../types.h"
+#include "../include/core.h"
+#include "../include/dbgmsg.h"
+
 #include "../include/xtypes.h"
-#include "../decl.h"
+#include "../fwd.h"
+#include "../types.h"
 #include "../include/x.h"
 
 #include "private.h"
@@ -40,6 +43,7 @@ struct gl_state *gl_test_state(struct gl_test *test)
 
 static void swap_buffers(struct gl_test *test)
 {
+	assert(test);
 	glXSwapBuffers(test->display, test->drawable->glxid);
 }
 
@@ -73,8 +77,8 @@ static Window create_window(
 		0,		/* border width */
 		vi->depth,
 		InputOutput,	/* class */
-		vi->visual, 
-		CWBorderPixel | CWColormap | CWEventMask, 
+		vi->visual,
+		CWBorderPixel | CWColormap | CWEventMask,
 		&swa);
 
 	XStoreName(dpy, w, name);

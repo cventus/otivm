@@ -6,89 +6,49 @@
 
 #include <text/vstr.h>
 
-#include "test.h"
-#include "types.h"
-#include "decl.h"
+#include "include/dbgmsg.h"
+#include "include/test.h"
 
-typedef void (GLAPIENTRY *debug_proc)(
-	GLenum source,
-	GLenum type,
-	GLuint id,
-	GLenum severity,
-	GLsizei length,
-	GLchar const *message,
-	void const *userParam);
+#include "fwd.h"
 
-typedef void (GLAPIENTRY *debug_message_callback)(
-	debug_proc callback,
-	void const *userParam);
+char const *gl_strerror(GLenum error)
+{
+#define enumcase(name) case name: return #name; break;
+	switch (error) {
+	enumcase(GL_NO_ERROR)
+	enumcase(GL_INVALID_ENUM)
+	enumcase(GL_INVALID_VALUE)
+	enumcase(GL_INVALID_OPERATION)
+	enumcase(GL_INVALID_FRAMEBUFFER_OPERATION)
+	enumcase(GL_OUT_OF_MEMORY)
+	enumcase(GL_STACK_UNDERFLOW)
+	enumcase(GL_STACK_OVERFLOW)
+	default: return "unknown";
+	}
+#undef enumcase
+}
 
-void gl_print_errors(char const *fmt, ...)
+void gl_fprintf_errors(FILE *fp, char const *fmt, ...)
 {
 	va_list ap;
 	char *msg;
+	char const *prompt, *colon, *errstr;
+	GLenum error;
 
-	va_start(ap, fmt);
-	msg = vstrfmt(0, 0, fmt, ap);
-	va_end(ap);
-
-	do switch (glGetError()) {
-	case GL_NO_ERROR: break;
-
-	case GL_INVALID_ENUM:
-		printf("%s: GL_INVALID_ENUM\n", msg);
-		continue;
-
-	case GL_INVALID_VALUE:
-		printf("%s: GL_INVALID_VALUE\n", msg);
-		continue;
-
-	case GL_INVALID_OPERATION:
-		printf("%s: GL_INVALID_OPERATION\n", msg);
-		continue;
-
-	case GL_INVALID_FRAMEBUFFER_OPERATION:
-		printf("%s: GL_INVALID_FRAMEBUFFER_OPERATION\n", msg);
-		continue;
-
-	case GL_OUT_OF_MEMORY:
-		printf("%s: GL_OUT_OF_MEMORY\n", msg);
-		continue;
-
-	case GL_STACK_UNDERFLOW:
-		printf("%s: GL_STACK_UNDERFLOW\n", msg);
-		continue;
-
-	case GL_STACK_OVERFLOW:
-		printf("%s: GL_STACK_OVERFLOW\n", msg);
-		continue;
-
-	default: break;
-	} while (0);
-
-	free(msg);
-}
-
-int gl_run_test(
-	char const *name,
-	int (*fn)(struct gl_state *state, struct gl_test *test))
-{
-	int status;
-	struct gl_test *test;
-	struct gl_state *state;
-
-	test = gl_test_make(name);
-	if (test) {
-		state = gl_test_state(test);
-		gl_enable_debug_output(state);
-		status = fn(state, test);
-		gl_disable_debug_output(state);
-		gl_print_errors(__func__);
-		gl_test_free(test);
+	if (fmt) {
+		va_start(ap, fmt);
+		msg = vstrfmt(0, 0, fmt, ap);
+		va_end(ap);
 	} else {
-		status = -1;
+		msg = NULL;
 	}
-	return status;
+	while (error = glGetError(), error != GL_NO_ERROR) {
+		prompt = msg ? msg : "";
+		colon = msg ? ": " : "";
+		errstr = gl_strerror(error);
+		(void)fprintf(fp, "%s%s%s\n", prompt, colon, errstr);
+	}
+	free(msg);
 }
 
 static void GLAPIENTRY debug_callback(
@@ -154,8 +114,7 @@ static void GLAPIENTRY debug_callback(
 	default: typestr = "???"; break;
 	}
 
-	fprintf(
-		stderr,
+	(void)printf(
 		"[%s %s] %u: %s\n",
 		sourcestr,
 		typestr,
@@ -163,26 +122,31 @@ static void GLAPIENTRY debug_callback(
 		(char const *)message);
 }
 
-static debug_message_callback get_debug_message_callback(void)
+int gl_run_test(
+	char const *name,
+	int (*fn)(struct gl_state *state, struct gl_test *test))
 {
-	return (debug_message_callback)gl_get_proc("glDebugMessageCallbackARB");
-}
+	int status;
+	struct gl_test *test;
+	struct gl_state *state;
+	struct gl_dbgmsg const *dbgmsg;
 
-int gl_enable_debug_output(struct gl_state *state)
-{
-	if (!gl_is_new_extension_supported(state, "GL_ARB_debug_output")) {
-		return -1;
+	test = gl_test_make(name);
+	if (test) {
+		state = gl_test_state(test);
+		dbgmsg = gl_get_dbgmsg(state);
+		if (dbgmsg) {
+			dbgmsg->DebugMessageCallbackARB(debug_callback, state);
+		}
+		status = fn(state, test);
+		if (dbgmsg) {
+			dbgmsg->DebugMessageCallbackARB(NULL, NULL);
+		}
+		gl_fprintf_errors(stdout, "%s", name ? name : __func__);
+		gl_test_free(test);
+	} else {
+		status = -1;
 	}
-	get_debug_message_callback()(debug_callback, state);
-	return 0;
-}
-
-int gl_disable_debug_output(struct gl_state *state)
-{
-	if (!gl_is_new_extension_supported(state, "GL_ARB_debug_output")) {
-		return -1;
-	}
-	get_debug_message_callback()(NULL, NULL);
-	return 0;
+	return status;
 }
 

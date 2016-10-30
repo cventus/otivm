@@ -3,19 +3,38 @@
 #include <GL/gl.h>
 #include <ok/ok.h>
 
-#include "../test.h"
-#include "../types.h"
-#include "../decl.h"
+#include "../include/test.h"
+#include "../fwd.h"
 
 int info(void)
 {
 	struct gl_test *test = gl_test_make(0);
-	gl_print_info();
+
+#define print_gl_string(name) printf(#name ": %s\n", (char *)glGetString(name))
+	print_gl_string(GL_VERSION);
+	print_gl_string(GL_SHADING_LANGUAGE_VERSION);
+	print_gl_string(GL_RENDERER);
+	print_gl_string(GL_VENDOR);
+#undef print_gl_string
+
 	gl_test_free(test);
 	return 0;
 }
 
-int make_context(void)
+int iscurrent(void)
+{
+	struct gl_test *test = gl_test_make(0);
+	struct gl_state *state = gl_test_state(test);
+
+	if (!gl_is_current(state)) {
+		printf("Not current\n");
+		return -1;
+	} else {
+		return 0;
+	}
+}
+
+int swap_buffers(void)
 {
 	struct gl_test *test = gl_test_make(0);
 
@@ -30,33 +49,34 @@ int make_context(void)
 
 int extensions(void)
 {
-	const char *extensions = "abc defg hjklm";
-	const char *weird_extensions = " abc   defg  hjklm ";
+	char const *extensions = "abc defg hjklm";
+	char const *weird_extensions = " abc   defg  hjklm ";
 
 	/* valid extension names */
-	if (!gl_is_extension_supported(extensions, "abc")) { ok = -1; }
-	if (!gl_is_extension_supported(extensions, "defg")) { ok = -1; }
-	if (!gl_is_extension_supported(extensions, "hjklm")) { ok = -1; }
-	if (!gl_is_extension_supported(weird_extensions, "abc")) { ok = -1; }
-	if (!gl_is_extension_supported(weird_extensions, "defg")) { ok = -1; }
-	if (!gl_is_extension_supported(weird_extensions, "hjklm")) { ok = -1; }
+	if (!gl_find_ext(extensions, "abc")) { ok = -1; }
+	if (!gl_find_ext(extensions, "defg")) { ok = -1; }
+	if (!gl_find_ext(extensions, "hjklm")) { ok = -1; }
+	if (!gl_find_ext(weird_extensions, "abc")) { ok = -1; }
+	if (!gl_find_ext(weird_extensions, "defg")) { ok = -1; }
+	if (!gl_find_ext(weird_extensions, "hjklm")) { ok = -1; }
 
 	/* invalid extension names */
-	if (gl_is_extension_supported(extensions, "a")) { ok = -1; }
-	if (gl_is_extension_supported(extensions, "ab")) { ok = -1; }
-	if (gl_is_extension_supported(extensions, "jkl")) { ok = -1; }
-	if (gl_is_extension_supported(extensions, "xyz")) { ok = -1; }
-	if (gl_is_extension_supported(extensions, "abc ")) { ok = -1; }
-	if (gl_is_extension_supported(extensions, " defg ")) { ok = -1; }
-	if (gl_is_extension_supported(extensions, " hjklm")) { ok = -1; }
-	if (gl_is_extension_supported(extensions, "abc defg")) { ok = -1; }
+	if (gl_find_ext(extensions, "a")) { ok = -1; }
+	if (gl_find_ext(extensions, "ab")) { ok = -1; }
+	if (gl_find_ext(extensions, "jkl")) { ok = -1; }
+	if (gl_find_ext(extensions, "xyz")) { ok = -1; }
+	if (gl_find_ext(extensions, "abc ")) { ok = -1; }
+	if (gl_find_ext(extensions, " defg ")) { ok = -1; }
+	if (gl_find_ext(extensions, " hjklm")) { ok = -1; }
+	if (gl_find_ext(extensions, "abc defg")) { ok = -1; }
 
 	return ok;
 }
 
 struct test const tests[] = {
 	{ info, "display opengl context information" },
-	{ make_context, "create a simple context" },
+	{ iscurrent, "make and ensure context is current" },
+	{ swap_buffers, "create a simple context and swap bufffers" },
 	{ extensions, "is extension supported" },
 
 	{ NULL, NULL }

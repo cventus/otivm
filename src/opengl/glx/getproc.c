@@ -1,7 +1,7 @@
 
 #include <GL/glx.h>
 
-#include "../decl.h"
+#include "../fwd.h"
 
 void (*gl_get_proc(char const *name))(void)
 {

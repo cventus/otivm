@@ -14,22 +14,19 @@
 #include <rescache/rescache.h>
 #include <wf/wf.h>
 
-#include "types.h"
+#include <opengl/core.h>
+#include "include/types.h"
+#include "private.h"
 #include "decl.h"
 #include "shader.h"
 
-#include "load-material.h"
-#include "load-mtllib.h"
-#include "load-geometry.h"
-#include "load-texture.h"
-#include "load-program.h"
-#include "load-shader.h"
+#include "caches.h"
 
 #define cache_field(name) \
 	{ offsetof(struct gl_cache, name), #name, gl_make_##name##_cache }
 #define get_cache_field(c,f) (struct rescache **)((char *)&(c) + (f).offset)
 
-typedef struct rescache *makecache(struct gl_state *);
+typedef struct rescache *makecache(struct gl_cache *);
 
 struct field
 {
@@ -52,11 +49,10 @@ int gl_cache_init(struct gl_cache *cache, struct gl_state *state)
 	size_t i;
 	struct rescache **field;
 
-	assert(&state->cache == cache);
-
+	cache->state = state;
 	for (i = 0; i < length_of(cache_fields); i++) {
 		field = get_cache_field(*cache, cache_fields[i]);
-		*field = cache_fields[i].constructor(state);
+		*field = cache_fields[i].constructor(cache);
 		if (!*field) {
 			while (i-- > 0) {
 				field = get_cache_field(
@@ -69,6 +65,28 @@ int gl_cache_init(struct gl_cache *cache, struct gl_state *state)
 	}
 
 	return 0;
+}
+
+
+struct gl_cache *gl_make_cache(struct gl_state *state)
+{
+	struct gl_cache *cache;
+	cache = malloc(sizeof *cache);
+	if (gl_cache_init(cache, state)) {
+		free(cache);
+		cache = NULL;
+	}
+	return cache;
+}
+
+int gl_free_cache(struct gl_cache *cache)
+{
+	int n;
+	n = gl_cache_term(cache);
+	if (!n) {
+		free(cache);
+	}
+	return n;
 }
 
 size_t gl_clean_caches(struct gl_cache *cache)
