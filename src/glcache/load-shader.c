@@ -9,7 +9,7 @@
 #include <fs/file.h>
 #include <rescache/rescache.h>
 
-#include <glapi/opengl.h>
+#include <glapi/api.h>
 #include <glapi/core.h>
 #include "include/types.h"
 #include "include/cache.h"

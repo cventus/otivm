@@ -16,7 +16,7 @@
 #include <wf/wf.h>
 #include <adt/hmap.h>
 
-#include <glapi/opengl.h>
+#include <glapi/api.h>
 #include <glapi/core.h>
 
 #include "include/types.h"

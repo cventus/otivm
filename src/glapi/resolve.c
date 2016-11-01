@@ -5,6 +5,7 @@
 
 #include "include/core.h"
 #include "include/dbgmsg.h"
+#include "api.h"
 
 #include "fwd.h"
 

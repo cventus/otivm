@@ -20,6 +20,7 @@
 
 #include "../include/xtypes.h"
 #include "../fwd.h"
+#include "../api.inc"
 #include "../types.h"
 #include "../include/x.h"
 

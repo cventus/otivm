@@ -21,6 +21,7 @@
 #include "../include/xtypes.h"
 #include "../include/x.h"
 #include "../fwd.h"
+#include "../api.inc"
 #include "../types.h"
 
 #include "private.h"

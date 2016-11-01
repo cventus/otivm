@@ -5,6 +5,7 @@
 
 #include <gm/vector.h>
 
+#include "api.inc"
 #include "include/core.h"
 #include "include/dbgmsg.h"
 #include "types.h"
@@ -79,5 +80,5 @@ struct gl_##field const *gl_get_##field(struct gl_api *api) \
 	return api->no_##field ? NULL : &api->field; \
 }
 
-STATE_FIELDS(def_gl_get_api)
+GL_API(def_gl_get_api)
 

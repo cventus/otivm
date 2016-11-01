@@ -7,7 +7,7 @@
 
 #include <fs/file.h>
 
-#include <glapi/opengl.h>
+#include <glapi/api.h>
 #include <glapi/core.h>
 #include "include/types.h"
 #include "private.h"
