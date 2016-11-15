@@ -39,6 +39,7 @@ Usage: %s [-n] [-l] [-v] [-p <line prefix>] [-s seed] [<test>...]\n\
 \tline.\n\
  -p\tUse the specified prefix instead of a tab on each line\n\
  -s\tRandom seed used to seed srand() before each test (default 1)\n\
+ -i\tInteractive mode: allow tests to ask for user input\n\
 ", argv0);
 }
 
