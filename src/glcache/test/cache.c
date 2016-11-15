@@ -7,7 +7,7 @@
 #include <base/mem.h>
 #include <rescache/rescache.h>
 
-#include <glapi/get.h>
+#include <glapi/api.h>
 #include <glapi/core.h>
 #include <glapi/test.h>
 #include "../include/cache.h"

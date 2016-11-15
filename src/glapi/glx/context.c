@@ -216,14 +216,16 @@ void glx_term_context(struct glx_context *ctx)
 	struct hmap *drawables;
 	struct glx_drawable *d;
 
+	glXMakeCurrent(ctx->display, None, NULL);
+
 	drawables = &ctx->drawables;
 	for (b = hmap_first(drawables); b; b = hmap_next(drawables, b)) {
 		d = hmap_value(drawables, b);
 		d->destroy(ctx, d);
 	}
 	hmap_term(drawables);
+	(void)gl_term_api(&ctx->api);
 	glXDestroyContext(ctx->display, ctx->context);
-	assert(gl_term_api(&ctx->api) == 0);
 }
 
 void glx_free_context(struct glx_context *ctx)
@@ -234,8 +236,8 @@ void glx_free_context(struct glx_context *ctx)
 
 static void destroy_glxwindow(struct glx_context *ctx, struct glx_drawable *drawable)
 {
-	hmap_remove(&ctx->drawables, &drawable->xid, sizeof drawable->xid);
 	glXDestroyWindow(ctx->display, drawable->glxid);
+	hmap_remove(&ctx->drawables, &drawable->xid, sizeof drawable->xid);
 }
 
 struct glx_drawable *glx_make_drawable_window(struct glx_context *ctx, Window window)
@@ -260,8 +262,8 @@ struct glx_drawable *glx_make_drawable_window(struct glx_context *ctx, Window wi
 
 static void destroy_pixmap(struct glx_context *ctx, struct glx_drawable *drawable)
 {
-	hmap_remove(&ctx->drawables, &drawable->xid, sizeof drawable->xid);
 	glXDestroyPixmap(ctx->display, drawable->glxid);
+	hmap_remove(&ctx->drawables, &drawable->xid, sizeof drawable->xid);
 }
 
 struct glx_drawable *glx_make_drawable_pixmap(struct glx_context *ctx, Pixmap pixmap)
@@ -286,9 +288,8 @@ struct glx_drawable *glx_make_drawable_pixmap(struct glx_context *ctx, Pixmap pi
 
 int glx_make_current(struct glx_context *ctx, struct glx_drawable *drawable)
 {
-	return glXMakeContextCurrent(
+	return glXMakeCurrent(
 		ctx->display,
-		drawable->glxid,
 		drawable->glxid,
 		ctx->context) ? 0 : -1;
 }

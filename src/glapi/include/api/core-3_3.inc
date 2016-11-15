@@ -5,9 +5,15 @@ F(void,GenBuffers,(GLsizei, GLuint *)) \
 F(void,DeleteBuffers,(GLsizei, GLuint const *)) \
 F(void,BindBuffer,(GLenum, GLuint)) \
 F(void,BufferData,(GLenum, GLsizeiptr, GLvoid const *, GLenum)) \
+F(void,BufferSubData,(GLenum, GLintptr, GLsizeiptr, GLvoid const *)) \
+F(void,GetBufferSubData,(GLenum, GLintptr, GLsizeiptr, GLvoid *)) \
+F(void *,MapBuffer,(GLenum, GLenum)) \
+F(GLboolean,UnmapBuffer,(GLenum)) \
+F(void,GetBufferParameteriv,(GLenum, GLenum, GLint *)) \
+F(void,GetBufferPointerv,(GLenum, GLenum, GLvoid **)) \
 F(GLboolean,IsBuffer,(GLuint)) \
  \
-/*haders */ \
+/* Shaders */ \
 F(GLuint,CreateShader,(GLenum)) \
 F(void,DeleteShader,(GLuint)) \
 F(GLboolean,IsShader,(GLuint)) \
@@ -46,6 +52,10 @@ F(void,BindVertexArray,(GLuint)) \
 F(void,DeleteVertexArrays,(GLsizei, GLuint const *)) \
 F(GLboolean,IsVertexArray,(GLuint)) \
  \
+/* Draw */ \
+F(void,MultiDrawArrays,(GLenum, GLint const *, GLsizei const *, GLsizei)) \
+F(void,MultiDrawElements,(GLenum, GLsizei const *, GLenum, void const *const *, GLsizei)) \
+ \
 /* Other */ \
-F(const GLubyte *,GetStringi,(GLenum name, GLuint index)) \
+F(GLubyte const *,GetStringi,(GLenum name, GLuint index)) \
 
