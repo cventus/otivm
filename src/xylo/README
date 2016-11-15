@@ -1,0 +1,42 @@
+xylo: a renderer of filled rational quadratic Bézier curves
+-----------------------------------------------------------
+
+The OpenGL red book describes a method to fill an arbitrary polygon with a
+solid monochrome color using a triangle-fan and stenciling with XOR, which
+effectively counts how often triangles overlap (fragments which are drawn an
+odd number of times is inside the polygon). The on-curve control points forms a
+polygon which can be drawn this way. Secondly, in a 2005 paper by Loop and
+Blinn a method for drawing filled (rational) quadratic and cubic Bézier curves
+is presented. Since the convex hull of a quadratic bezier curve is a triangle,
+it's particularly easy to draw such curves using triangles. The curve triangles
+can be drawn in the same way as the polygon to add or carve out curved shapes.
+The monochrome shape could be used as a mask or alpha channel to render text or
+geometric shapes.
+
+When combining pixels using the XOR method, if a smaller closed curve is drawn
+on top of a larger one then the smaller will invert the area it covers.
+Therefore multiple shapes can be drawn on top of each other to create a shape
+with holes in it.
+
+Curves are passed to the xylo renderer with the `struct xylo_shape` data
+structure. It contains one or more outlines, which is a single filled curve,
+and each outline consists of a list of control points and weights. The control
+points are paired up, so that there is on on-curve and one-off curve point.
+
+The curve is stored more or less as is in a OpenGL buffer and rendered as a
+GL_LINE_LOOP. A vertex shader transforms the on and off curve points and a
+geometry shader creates two triangles out of the two points (plus the origin
+point). The curve triangle gets the perspective-corrected X/W, Y/W, and 1/W
+components of the ideal quadratic curve (see Loop and Blinn) and this is what
+the fragment shader uses to determine whether a fragment is above or below the
+parabola.
+
+References
+----------
+
+OpenGL 1.1 Programming Guide (red book) chapter 14
+
+Loop, Charles, and Blinn, Jim. "Resolution independent curve rendering using
+programmable graphics hardware." ACM Transactions on Graphics (TOG). Vol 24.
+No. 3. ACM, 2005.
+
