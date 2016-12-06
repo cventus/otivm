@@ -56,12 +56,93 @@ void init_gbuf(struct gbuf *buf)
 	*buf = empty_gbuf;
 }
 
+int copy_gbuf(struct gbuf *dest, struct gbuf const *src)
+{
+	size_t cap;
+	char *p;
+
+	cap = gbuf_capacity(src);
+	if (cap > 0) {
+		p = malloc(cap);
+		if (!p) { return -1; }
+		dest->lbegin = p;
+		dest->lend = p + gbuf_offset(src);
+		dest->rbegin = p + gbuf_roffset(src);
+		dest->rend = p + cap;
+		(void)memcpy(dest->lbegin, src->lbegin, gbuf_lsize(src));
+		(void)memcpy(dest->rbegin, src->rbegin, gbuf_rsize(src));
+	} else {
+		init_gbuf(dest);
+	}
+	return 0;
+}
+
 void term_gbuf(struct gbuf *buf)
 {
 	assert(buf != NULL);
 	if (buf->lbegin) {
 		free(buf->lbegin);
 		init_gbuf(buf);
+	}
+}
+
+static size_t min(size_t a, size_t b) { return a < b ? a : b; }
+
+int gbuf_cmp(struct gbuf const *a, struct gbuf const *b)
+{
+	int res;
+	size_t lsize, rest, a_lsize, a_rsize, b_lsize, b_rsize;
+	char *pa, *pb;
+
+	assert(a != NULL);
+	assert(b != NULL);
+
+	pa = a->lbegin;
+	pb = b->lbegin;
+
+	/* Compare shortest prefix/left side */
+	a_lsize = gbuf_lsize(a);
+	b_lsize = gbuf_lsize(b);
+	lsize = min(a_lsize, b_lsize);
+	if (lsize > 0) {
+		res = memcmp(pa, pb, lsize);
+		if (res) { return res; }
+	}
+
+	/* Compare rest of the longer prefix/left side */
+	a_rsize = gbuf_rsize(a);
+	b_rsize = gbuf_rsize(b);
+	if (rest = a_lsize - lsize, rest > 0) {
+		/* Compare remaining part of a's prefix */
+		pb = b->rbegin;
+		pa += lsize;
+		res = memcmp(pa, pb, min(rest, b_rsize));
+		if (res) { return res; } else if (b_rsize < rest) { return 1; }
+		pb += rest;
+		b_rsize -= rest;
+		pa = a->rbegin;
+	} else if (rest = b_lsize - lsize, rest > 0) {
+		/* Compare remaining part of b's prefix */
+		pa = a->rbegin;
+		pb += lsize;
+		res = memcmp(pa, pb, min(rest, a_rsize));
+		if (res) { return res; } else if (a_rsize < rest) { return -1; }
+		pa += rest;
+		a_rsize -= rest;
+		pb = b->rbegin;
+	} else {
+		pa = a->rbegin;
+		pb = b->rbegin;
+	}
+
+	/* Compare suffixes */
+	res = memcmp(pa, pb, min(a_rsize, b_rsize));
+	if (res || a_rsize == b_rsize) {
+		return res;
+	} else if (a_rsize < b_rsize) {
+		return -1;
+	} else {
+		return 1;
 	}
 }
 

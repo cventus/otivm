@@ -13,9 +13,16 @@ extern struct gbuf { void *lbegin, *lend, *rbegin, *rend; } const empty_gbuf;
 /* Initialize a gap buffer to become similar to `empty_gbuf`. */
 void init_gbuf(struct gbuf *buf);
 
+/* Copy a gap buffer (including capacity and offset) */
+int copy_gbuf(struct gbuf *dest, struct gbuf const *src);
+
 /* Free buffer, if one has been allocated, and clear out the structure. The
    passed in `buf` itself is not freed. */
 void term_gbuf(struct gbuf *buf);
+
+/* Compare contents of a and b with `memcmp` without changing the offsets of
+   either gap buffer. */
+int gbuf_cmp(struct gbuf const *a, struct gbuf const *b);
 
 /* Ensure that there is `size` available space in the gap for a subsequent
    allocation. Return zero on success, negative on error allocation error.
