@@ -58,6 +58,12 @@ size_t gbuf_available(struct gbuf const *buf);
    to. */
 size_t gbuf_capacity(struct gbuf const *buf);
 
+/* Return non-zero if the gab buffer ranges can be treated as arrays containing
+   elements of the given size and alignment. In other words, begin[0] to end[0]
+   and begin[1] to end[1] are properly aligned arrays containing elements of
+   the given size and the next allocation will be properly aligned. */
+int gbuf_isuniform(struct gbuf const *buf, size_t size, size_t align);
+
 /* Return the number of elements in `buf`, if its contents is interpreted as
    an array of objects of size `elem_size`. If `gbuf_size(buf)` isn't a
    multiple of `elem_size` the result is rounded down. */

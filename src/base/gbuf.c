@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stddef.h>
+#include <stdalign.h>
 #include <limits.h>
 #include <string.h>
 #include <assert.h>
@@ -9,24 +10,24 @@
 #include "include/gbuf.h"
 #include "include/mem.h"
 #define MINSIZE sizeof(double)
+#define MINALIGN alignof(max_align_t)
 
 struct gbuf const empty_gbuf = { { NULL, NULL} , { NULL, NULL } };
 
 static size_t newcapacity(size_t size, size_t hint)
 {
-	size_t nsize;
+	size_t nsize, aligned;
 
 	if (size < MINSIZE) {
 		nsize = (hint < MINSIZE) ? MINSIZE : hint;
 	} else {
 		/* Grow by 3/2 */
 		nsize = size + (size >> 1);
-		if (nsize < size) {
-			/* Overflow - use zero to indicate error */
-			nsize = (size < (size_t)-1) ? (size_t)-1 : 0;
-		}
+		if (nsize < size) { nsize = SIZE_MAX - MINALIGN; }
 	}
-	return nsize;
+	aligned = align_to(nsize, MINALIGN);
+	/* check for overflow - use zero to indicate error */
+	return aligned < nsize ? 0 : aligned;
 }
 
 /* Get buffer offset one past the end of the gap */
@@ -237,6 +238,16 @@ size_t gbuf_capacity(struct gbuf const *buf)
 {
 	assert(buf != NULL);
 	return buf->begin[0] ? (char *)buf->end[1] - (char *)buf->begin[0] : 0;
+}
+
+int gbuf_isuniform(struct gbuf const *buf, size_t size, size_t align)
+{
+	assert(buf != NULL);
+	assert(size != 0);
+	assert(is_power_of_2(align));
+	return (gbuf_size(buf) % size == 0) &&
+		(gbuf_offset(buf) % size == 0) &&
+		(gbuf_roffset(buf) % align == 0);
 }
 
 size_t gbuf_nmemb(struct gbuf const *buf, size_t elem_size)

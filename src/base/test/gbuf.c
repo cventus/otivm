@@ -269,10 +269,10 @@ static int reserve(void)
 	assert_capacity(&buf, 0);
 	assert_sizes(&buf);
 	try_reserve(&buf, 100);
-	assert_capacity(&buf, 100);
+	assert_capacity_ge(&buf, 100);
 	assert_sizes(&buf);
 	try_reserve(&buf, 10);
-	assert_capacity(&buf, 100);
+	assert_capacity_ge(&buf, 100);
 	assert_sizes(&buf);
 	try_reserve(&buf, 1000);
 	assert_capacity_ge(&buf, 1000);
@@ -406,6 +406,33 @@ static int align(void)
 	return ok;
 }
 
+static int keep_aligned(void)
+{
+	struct gbuf buf;
+	size_t i, nmemb, align, size;
+
+	for (align = 1; align <= alignof(max_align_t); align *= 2) {
+	for (nmemb = 1; nmemb <= 10; nmemb++)
+		/* defined hypothetical struct */
+		size = nmemb*align;
+		init_gbuf(&buf);
+		for (i = 0; i < 1000; i++) {
+			/* insert at random location */
+			gbuf_move_to(&buf, size * (i ? rand() % i : 0));
+			if (!gbuf_alloc(&buf, size)) {
+				fail_test("out of memory\n");
+			}
+			if (!gbuf_isuniform(&buf, size, align)) {
+				fail_test("not uniform element size=%zd and align=%zd, buffer size=%zd and capacity=%zd\n",
+					size, align, gbuf_size(&buf),
+					gbuf_capacity(&buf));
+			}
+		}
+		term_gbuf(&buf);
+	}
+	return ok;
+}
+
 static int edit(void)
 {
 	struct gbuf buf;
@@ -476,6 +503,7 @@ struct test const tests[] = {
 	{ array, 	"copy data from array" },
 	{ copy, 	"copy data from one gap buffer to another" },
 	{ align, 	"align write pointer" },
+	{ keep_aligned,	"buffer should remain aligned for uniform contents" },
 	{ edit, 	"write, retract, move, and trim" },
 	{ compare,	"compare buffers" },
 	{ NULL, NULL }
