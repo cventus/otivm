@@ -10,7 +10,7 @@
 #include "include/mem.h"
 #define MINSIZE sizeof(double)
 
-struct gbuf const empty_gbuf = { NULL, NULL, NULL, NULL };
+struct gbuf const empty_gbuf = { { NULL, NULL} , { NULL, NULL } };
 
 static size_t newcapacity(size_t size, size_t hint)
 {
@@ -33,21 +33,21 @@ static size_t newcapacity(size_t size, size_t hint)
 static size_t gbuf_roffset(struct gbuf const *buf)
 {
 	assert(buf != NULL);
-	return buf->lbegin ? (char *)buf->rbegin - (char *)buf->lbegin : 0;
+	return buf->begin[0] ? (char *)buf->begin[1] - (char *)buf->begin[0] : 0;
 }
 
 /* Size of the left side; the content before the gap */
 static size_t gbuf_lsize(struct gbuf const *buf)
 {
 	assert(buf != NULL);
-	return buf->lbegin ? (char *)buf->lend - (char *)buf->lbegin : 0;
+	return buf->begin[0] ? (char *)buf->end[0] - (char *)buf->begin[0] : 0;
 }
 
 /* Size of the right side; the content after the gap. */
 static size_t gbuf_rsize(struct gbuf const *buf)
 {
 	assert(buf != NULL);
-	return buf->lbegin ? (char *)buf->rend - (char *)buf->rbegin : 0;
+	return buf->begin[0] ? (char *)buf->end[1] - (char *)buf->begin[1] : 0;
 }
 
 void init_gbuf(struct gbuf *buf)
@@ -65,12 +65,12 @@ int copy_gbuf(struct gbuf *dest, struct gbuf const *src)
 	if (cap > 0) {
 		p = malloc(cap);
 		if (!p) { return -1; }
-		dest->lbegin = p;
-		dest->lend = p + gbuf_offset(src);
-		dest->rbegin = p + gbuf_roffset(src);
-		dest->rend = p + cap;
-		(void)memcpy(dest->lbegin, src->lbegin, gbuf_lsize(src));
-		(void)memcpy(dest->rbegin, src->rbegin, gbuf_rsize(src));
+		dest->begin[0] = p;
+		dest->end[0] = p + gbuf_offset(src);
+		dest->begin[1] = p + gbuf_roffset(src);
+		dest->end[1] = p + cap;
+		(void)memcpy(dest->begin[0], src->begin[0], gbuf_lsize(src));
+		(void)memcpy(dest->begin[1], src->begin[1], gbuf_rsize(src));
 	} else {
 		init_gbuf(dest);
 	}
@@ -80,8 +80,8 @@ int copy_gbuf(struct gbuf *dest, struct gbuf const *src)
 void term_gbuf(struct gbuf *buf)
 {
 	assert(buf != NULL);
-	if (buf->lbegin) {
-		free(buf->lbegin);
+	if (buf->begin[0]) {
+		free(buf->begin[0]);
 		init_gbuf(buf);
 	}
 }
@@ -97,8 +97,8 @@ int gbuf_cmp(struct gbuf const *a, struct gbuf const *b)
 	assert(a != NULL);
 	assert(b != NULL);
 
-	pa = a->lbegin;
-	pb = b->lbegin;
+	pa = a->begin[0];
+	pb = b->begin[0];
 
 	/* Compare shortest prefix/left side */
 	a_lsize = gbuf_lsize(a);
@@ -114,25 +114,25 @@ int gbuf_cmp(struct gbuf const *a, struct gbuf const *b)
 	b_rsize = gbuf_rsize(b);
 	if (rest = a_lsize - lsize, rest > 0) {
 		/* Compare remaining part of a's prefix */
-		pb = b->rbegin;
+		pb = b->begin[1];
 		pa += lsize;
 		res = memcmp(pa, pb, min(rest, b_rsize));
 		if (res) { return res; } else if (b_rsize < rest) { return 1; }
 		pb += rest;
 		b_rsize -= rest;
-		pa = a->rbegin;
+		pa = a->begin[1];
 	} else if (rest = b_lsize - lsize, rest > 0) {
 		/* Compare remaining part of b's prefix */
-		pa = a->rbegin;
+		pa = a->begin[1];
 		pb += lsize;
 		res = memcmp(pa, pb, min(rest, a_rsize));
 		if (res) { return res; } else if (a_rsize < rest) { return -1; }
 		pa += rest;
 		a_rsize -= rest;
-		pb = b->rbegin;
+		pb = b->begin[1];
 	} else {
-		pa = a->rbegin;
-		pb = b->rbegin;
+		pa = a->begin[1];
+		pb = b->begin[1];
 	}
 
 	/* Compare suffixes */
@@ -161,13 +161,13 @@ int gbuf_reserve(struct gbuf *buf, size_t alloc_size)
 			newcap = newcapacity(newcap, alloc_size);
 			if (newcap == 0) { return -1; }
 		} while (newcap - (lsize + rsize) < alloc_size);
-		p = realloc(buf->lbegin, newcap);
+		p = realloc(buf->begin[0], newcap);
 		if (!p) { return -2; }
-		buf->lbegin = p;
-		buf->lend = p + lsize;
-		buf->rbegin = p + (newcap - rsize);
-		buf->rend = p + newcap;
-		(void)memmove(buf->rbegin, p + roffset, rsize);
+		buf->begin[0] = p;
+		buf->end[0] = p + lsize;
+		buf->begin[1] = p + (newcap - rsize);
+		buf->end[1] = p + newcap;
+		(void)memmove(buf->begin[1], p + roffset, rsize);
 	}
 	return 0;
 }
@@ -182,14 +182,14 @@ int gbuf_trim(struct gbuf *buf)
 	trimsize = gbuf_size(buf);
 	offset = gbuf_offset(buf);
 	gbuf_append(buf);
-	p = realloc(buf->lbegin, trimsize);
+	p = realloc(buf->begin[0], trimsize);
 	if (!p) {
 		gbuf_move_to(buf, offset);
 		return -1;
 	}
-	buf->lbegin = p;
-	buf->lend = buf->rbegin = p + offset;
-	buf->rend = p + trimsize;
+	buf->begin[0] = p;
+	buf->end[0] = buf->begin[1] = p + offset;
+	buf->end[1] = p + trimsize;
 	return 0;
 }
 
@@ -202,9 +202,9 @@ void gbuf_append(struct gbuf *buf)
 	rsize = gbuf_rsize(buf);
 	if (rsize == 0) { return; }
 
-	(void)memmove(buf->lend, buf->rbegin, rsize);
-	buf->lend = (char *)buf->lend + rsize;
-	buf->rbegin = buf->rend;
+	(void)memmove(buf->end[0], buf->begin[1], rsize);
+	buf->end[0] = (char *)buf->end[0] + rsize;
+	buf->begin[1] = buf->end[1];
 }
 
 void gbuf_prepend(struct gbuf *buf)
@@ -216,9 +216,9 @@ void gbuf_prepend(struct gbuf *buf)
 	lsize = gbuf_lsize(buf);
 	if (lsize == 0) { return; }
 
-	buf->rbegin = (char *)buf->rbegin - lsize;
-	buf->lend = buf->lbegin;
-	(void)memmove(buf->rbegin, buf->lend, lsize);
+	buf->begin[1] = (char *)buf->begin[1] - lsize;
+	buf->end[0] = buf->begin[0];
+	(void)memmove(buf->begin[1], buf->end[0], lsize);
 }
 
 size_t gbuf_size(struct gbuf const *buf)
@@ -230,13 +230,13 @@ size_t gbuf_size(struct gbuf const *buf)
 size_t gbuf_available(struct gbuf const *buf)
 {
 	assert(buf != NULL);
-	return buf->lbegin ? (char *)buf->rbegin - (char *)buf->lend : 0;
+	return buf->begin[0] ? (char *)buf->begin[1] - (char *)buf->end[0] : 0;
 }
 
 size_t gbuf_capacity(struct gbuf const *buf)
 {
 	assert(buf != NULL);
-	return buf->lbegin ? (char *)buf->rend - (char *)buf->lbegin : 0;
+	return buf->begin[0] ? (char *)buf->end[1] - (char *)buf->begin[0] : 0;
 }
 
 size_t gbuf_nmemb(struct gbuf const *buf, size_t elem_size)
@@ -250,9 +250,9 @@ void *gbuf_get(struct gbuf *buf, size_t offset)
 	assert(buf != NULL);
 	size_t gap = gbuf_offset(buf);
 	if (offset < gap) {
-		return (char *)buf->lbegin + offset;
+		return (char *)buf->begin[0] + offset;
 	} else if (offset < gbuf_size(buf)){
-		return (char *)buf->rbegin + (offset - gap);
+		return (char *)buf->begin[1] + (offset - gap);
 	} else {
 		return NULL;
 	}
@@ -272,15 +272,15 @@ int gbuf_move_to(struct gbuf *buf, size_t offset)
 	gap = gbuf_offset(buf);
 	if (gap > offset) {
 		diff = gap - offset;
-		buf->lend = (char *)buf->lend - diff;
-		buf->rbegin = (char *)buf->rbegin - diff;
-		(void)memmove(buf->rbegin, buf->lend, diff);
+		buf->end[0] = (char *)buf->end[0] - diff;
+		buf->begin[1] = (char *)buf->begin[1] - diff;
+		(void)memmove(buf->begin[1], buf->end[0], diff);
 	} else if (gap < offset) {
 		if (offset > gbuf_size(buf)) { return -1; } 
 		diff = offset - gap;
-		(void)memmove(buf->lend, buf->rbegin, diff);
-		buf->rbegin = (char *)buf->rbegin + diff;
-		buf->lend = (char *)buf->lend + diff;
+		(void)memmove(buf->end[0], buf->begin[1], diff);
+		buf->begin[1] = (char *)buf->begin[1] + diff;
+		buf->end[0] = (char *)buf->end[0] + diff;
 	}
 	return 0;
 }
@@ -296,7 +296,7 @@ int gbuf_align(struct gbuf *buf, size_t align)
 	size_t off, pad;
 	assert(buf != NULL);
 	assert(is_power_of_2(align));
-	if (align == 1 || buf->lbegin == NULL) return 0;
+	if (align == 1 || buf->begin[0] == NULL) return 0;
 	off = gbuf_offset(buf);
 	pad = align_to(off, align) - off;
 	return gbuf_alloc(buf, pad) ? 0 : -1;
@@ -309,8 +309,8 @@ void *gbuf_alloc(struct gbuf *buf, size_t size)
 	if (gbuf_reserve(buf, size)) {
 		result = NULL;
 	} else {
-		result = buf->lend;
-		buf->lend = (char*)buf->lend + size;
+		result = buf->end[0];
+		buf->end[0] = (char*)buf->end[0] + size;
 	}
 	return result;
 }
@@ -326,7 +326,7 @@ int gbuf_retract(struct gbuf *buf, size_t size)
 {
 	assert(buf != NULL);
 	if (size > gbuf_lsize(buf)) { return -1; }
-	buf->lend = (char *)buf->lend - size;
+	buf->end[0] = (char *)buf->end[0] - size;
 	return 0;
 }
 
@@ -334,18 +334,18 @@ int gbuf_delete(struct gbuf *buf, size_t size)
 {
 	assert(buf != NULL);
 	if (size > gbuf_rsize(buf)) { return -1; }
-	buf->rbegin = (char *)buf->rbegin + size;
+	buf->begin[1] = (char *)buf->begin[1] + size;
 	return 0;
 }
 
 void *gbuf_copy(void *dest, struct gbuf const *src)
 {
 	size_t lsize, rsize;
-	if (src->lbegin) {
+	if (src->begin[0]) {
 		lsize = gbuf_lsize(src);
 		rsize = gbuf_rsize(src);
-		(void)memcpy(dest, src->lbegin, lsize);
-		(void)memcpy((char *)dest + lsize, src->rbegin, rsize);
+		(void)memcpy(dest, src->begin[0], lsize);
+		(void)memcpy((char *)dest + lsize, src->begin[1], rsize);
 	}
 	return dest;
 }

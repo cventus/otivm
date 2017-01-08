@@ -152,10 +152,10 @@ static void cmp(int how, struct gbuf *a, struct gbuf *b)
 	}
 	for (i = 0; i <= gbuf_size(a); i++) {
 		gbuf_move_to(a, i);
-		memset(a->lend, 0, gbuf_available(a));
+		memset(a->end[0], 0, gbuf_available(a));
 		for (j = 0; j <= gbuf_size(b); j++) {
 			gbuf_move_to(b, j);
-			memset(b->lend, 0, gbuf_available(b));
+			memset(b->end[0], 0, gbuf_available(b));
 			x = gbuf_cmp(a, b);
 			y = gbuf_cmp(b, a);
 			if (!same_side(cmp, x) || !same_side(-cmp, y)) {
@@ -321,10 +321,10 @@ static int write(void)
 
 	assert_used(&buf, len);
 
-	if (gbuf_capacity(&buf) < len || !buf.lbegin) {
+	if (gbuf_capacity(&buf) < len || !buf.begin[0]) {
 		printf("Not enough space in buffer!\n");
 		ok = -1;
-	} else if (strncmp(buf.lbegin, data, len) != 0) {
+	} else if (strncmp(buf.begin[0], data, len) != 0) {
 		printf("Buffer content doesn't match what was written!\n");
 		ok = -1;
 	}
@@ -351,7 +351,7 @@ static int array(void)
 
 	assert_used(&buf, sizeof data);
 
-	if (gbuf_capacity(&buf) < sizeof data || !buf.lbegin) {
+	if (gbuf_capacity(&buf) < sizeof data || !buf.begin[0]) {
 		printf("Not enough space in buffer!\n");
 		ok = -1;
 	} else {
@@ -414,19 +414,19 @@ static int edit(void)
 	gbuf_reserve(&buf, 1);
 
 	try_write(&buf, "llo", 3);
-	assert_streq(buf.lbegin, "llo");
+	assert_streq(buf.begin[0], "llo");
 	try_write(&buf, "rld", 3);
-	assert_streq(buf.lbegin, "llorld");
+	assert_streq(buf.begin[0], "llorld");
 	gbuf_move_to(&buf, 3);
-	assert_streq(buf.lbegin, "llo");
-	assert_streq(buf.rbegin, "rld");
+	assert_streq(buf.begin[0], "llo");
+	assert_streq(buf.begin[1], "rld");
 	try_write(&buf, ", wo", 4);
-	assert_streq(buf.lbegin, "llo, wo");
-	assert_streq(buf.rbegin, "rld");
+	assert_streq(buf.begin[0], "llo, wo");
+	assert_streq(buf.begin[1], "rld");
 	gbuf_prepend(&buf);
 	try_write(&buf, "he", 2);
-	assert_streq(buf.lbegin, "he");
-	assert_streq(buf.rbegin, "llo, world");
+	assert_streq(buf.begin[0], "he");
+	assert_streq(buf.begin[1], "llo, world");
 	gbuf_append(&buf);
 	try_write(&buf, "", 1);
 	assert_sizes(&buf);
@@ -434,7 +434,7 @@ static int edit(void)
 	gbuf_trim(&buf);
 
 	assert_sizes(&buf);
-	if (memcmp(buf.lbegin, "hello, world", 13)) {
+	if (memcmp(buf.begin[0], "hello, world", 13)) {
 		fail_test("failed to produce target string");
 	}
 	try_write(&buf, " ", 1);
@@ -443,8 +443,8 @@ static int edit(void)
 	try_write(&buf, "e", 1);
 	try_write(&buf, "r", 1);
 	try_write(&buf, "e", 1);
-	assert_streq(buf.lbegin, "hello there");
-	assert_streq(buf.rbegin, ", world");
+	assert_streq(buf.begin[0], "hello there");
+	assert_streq(buf.begin[1], ", world");
 
 	gbuf_retract(&buf, 4);
 	gbuf_write(&buf, "o you again and again and again", 31);
@@ -453,14 +453,14 @@ static int edit(void)
 	gbuf_write(&buf, "xxxxxxxxxx", 10);
 	gbuf_write(&buf, "xxxxxxxxxx", 10);
 	gbuf_write(&buf, "xxxxxxxxxx", 10);
-	assert_streq(buf.lbegin, "hello to you again and again and again");
-	assert_streq(buf.rbegin, ", world");
+	assert_streq(buf.begin[0], "hello to you again and again and again");
+	assert_streq(buf.begin[1], ", world");
 
 	gbuf_move_by(&buf, 1);
 	gbuf_retract(&buf, 27 + 50);
 
 	gbuf_trim(&buf);
-	assert_streq(buf.lbegin, "hello to you world");
+	assert_streq(buf.begin[0], "hello to you world");
 
 	term_gbuf(&buf);
 

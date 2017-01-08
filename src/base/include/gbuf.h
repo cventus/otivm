@@ -8,7 +8,7 @@
    `bound`. Content is always added at the beginning of the gap and the whole
    buffer is dynamically resized if necessary. The gap can be moved using
    various functions. */
-extern struct gbuf { void *lbegin, *lend, *rbegin, *rend; } const empty_gbuf;
+extern struct gbuf { void *begin[2], *end[2]; } const empty_gbuf;
 
 /* Initialize a gap buffer to become similar to `empty_gbuf`. */
 void init_gbuf(struct gbuf *buf);
