@@ -1,5 +1,5 @@
 
-MODULES=ok base adt gm text wf fs rescache glcache glapi xw main xylo
+MODULES=ok base adt gm text wf fs rescache glcache glapi xw main xylo spline
 TAGS=posix glx
 MODULE_DIR=src
 
