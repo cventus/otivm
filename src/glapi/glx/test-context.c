@@ -34,6 +34,7 @@ struct gl_test
 	struct glx_context ctx;
 	int (*free_xres)(Display *, XID);
 	void (*swap_buffers)(struct gl_test *);
+	int interactive;
 };
 
 struct gl_api *gl_test_api(struct gl_test *test)
@@ -149,6 +150,7 @@ struct gl_test *gl_test_make(char const *name)
 		return NULL;
 	}
 
+	test->interactive = name != NULL;
 	if (name) {
 		Window w = create_window(display, vi, name);
 		drawable = glx_make_drawable_window(ctx, w);
@@ -183,8 +185,28 @@ void gl_test_wait_for_key(struct gl_test *test)
 {
 	XEvent xev;
 	assert(test != NULL);
+	if (!test->interactive) {
+		return;
+	}
 	do {
 		XNextEvent(test->display, &xev);
 	} while (xev.type != KeyPress);
 }
 
+int gl_test_poll_key(struct gl_test *test)
+{
+	XEvent xev;
+	assert(test != NULL);
+
+	if (!test->interactive) {
+		return 1;
+	}
+
+	while (XPending(test->display) > 0) {
+		XNextEvent(test->display, &xev);
+		if (xev.type == KeyPress) {
+			return 1;
+		}
+	}
+	return 0;
+}

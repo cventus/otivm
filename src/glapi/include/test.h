@@ -12,4 +12,5 @@ void gl_test_free(struct gl_test *test);
 struct gl_api *gl_test_api(struct gl_test *test);
 void gl_test_swap_buffers(struct gl_test *test);
 void gl_test_wait_for_key(struct gl_test *test);
+int gl_test_poll_key(struct gl_test *test);
 
