@@ -8,6 +8,7 @@
 #include <gm/matrix.h>
 
 #include "../include/types.h"
+#include "../types.h"
 #include "../private.h"
 
 #define run(fn) gl_run_test(is_test_interactive() ? __func__ : NULL, fn)
@@ -69,17 +70,51 @@ static int draw_(struct gl_api *gl, struct gl_test *test)
 	glClearColor(1.f, 1.f, 1.f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	xylo_begin(xylo);
 	xylo_set_shape_set(xylo, set);
-	xylo_set_to_world(xylo, to_world);
-	xylo_set_to_clip(xylo, to_clip);
-	xylo_draw_shape(xylo, shape);
+
+	float t = 0.0;
+	size_t i = 0;
+
+	xylo_begin(xylo);
+	xylo_spline_set_viewport(&xylo->spline, gl, 0, 0, 600, 600);
+	for (i = 0; i < 1000; i++) {
+		glClear(GL_COLOR_BUFFER_BIT);
+		xylo_spline_set_frame_time(&xylo->spline, gl, t);
+		xylo_spline_set_to_world(&xylo->spline, gl, to_world);
+		xylo_spline_set_to_clip(&xylo->spline, gl, to_clip);
+		xylo_draw_shape(xylo, shape);
+
+		gl_test_swap_buffers(test);
+		//gl_test_wait_for_key(test);
+		if (gl_test_poll_key(test)) {
+			break;
+		}
+
+		t += 0.002 * 3.14;
+	}
 	xylo_end(xylo);
+/*
+	xylo_begin_lines(xylo);
+	xylo_lines_set_color(&xylo->lines, gl, 0.25, 0.25, 0.0);
+	xylo_lines_set_to_world(&xylo->lines, gl, to_world);
+	xylo_lines_set_to_clip(&xylo->lines, gl, to_clip);
+	xylo_draw_shape(xylo, shape);
+	xylo_end_lines(xylo);
+*/
+
+/*
+	xylo_begin_points(xylo);
+	xylo_points_set_ctrl(&xylo->points, gl, 0.25, 0.25, 0.0, 8.0);
+	xylo_points_set_knot(&xylo->points, gl, 0.6, 0.0, 0.6, 5.0);
+	xylo_points_set_to_world(&xylo->points, gl, to_world);
+	xylo_points_set_to_clip(&xylo->points, gl, to_clip);
+	xylo_draw_shape(xylo, shape);
+	xylo_end_points(xylo);
+*/
 
 	if (xylo_free_glshape_set(set, gl)) { return -1; }
 	gl_test_swap_buffers(test);
 
-	if (is_test_interactive()) { gl_test_wait_for_key(test); }
 	free_xylo(xylo);
 	return 0;
 }
@@ -91,4 +126,3 @@ struct test const tests[] = {
 
 	{ NULL, NULL }
 };
-

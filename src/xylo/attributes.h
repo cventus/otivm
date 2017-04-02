@@ -1,0 +1,8 @@
+
+enum
+{
+	LINE_POS_ATTRIB = 0,
+	WEIGHT_POS_ATTRIB = 1,
+	WEIGHT_VAL_ATTRIB = 2
+};
+
