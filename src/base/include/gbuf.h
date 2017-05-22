@@ -72,7 +72,7 @@ size_t gbuf_nmemb(struct gbuf const *buf, size_t elem_size);
    including the gap). */
 void *gbuf_get(struct gbuf *buf, size_t offset);
 
-/* Get the current byte offset of the insertion point (the gap). */ 
+/* Get the current byte offset of the insertion point (the gap). */
 size_t gbuf_offset(struct gbuf const *buf);
 
 /* Move the point of insertion (the gap) so that it begins `offset` bytes from
@@ -90,9 +90,20 @@ int gbuf_move_by(struct gbuf *buf, ptrdiff_t rel_offset);
    on allocation failure. */
 int gbuf_align(struct gbuf *buf, size_t align);
 
+/* Insert padding at the beginning of the gap, if necessary, so that the next
+   allocation has the specified alignment. Return zero on success, and non-zero
+   if there's not enough space in the gap buffer. This function never allocates
+   memory dynamically. */
+int gbuf_salign(struct gbuf *buf, size_t align);
+
 /* Reserve `size` bytes from the beginning of the gap and return a pointer to
    the newly allocated area, or NULL if memory allocation fails. */
 void *gbuf_alloc(struct gbuf *buf, size_t size);
+
+/* Reserve `size` bytes from the beginning of the gap and return a pointer to
+   the newly allocated area, or NULL if there is not enough space in the gap
+   buffer. This function never allocates memory dynamically. */
+void *gbuf_salloc(struct gbuf *buf, size_t size);
 
 /* Remove content from buffer by expanding the gap towards `lbegin` by `size`
    bytes. Return non-zero if `size` is greater than the size of the buffer. */
@@ -111,6 +122,12 @@ int gbuf_erase(struct gbuf *buf, size_t offset, size_t size);
    copy of `data`. Return a pointer to the newly allocated area, or NULL if
    memory allocation fails. */
 void *gbuf_write(struct gbuf *buf, void const *data, size_t size);
+
+/* Reserve `size` bytes from the beginning of the gap and initialize it with a
+   copy of `data`. Return a pointer to the newly allocated area, or NULL if
+   there isn't enough space in the gap. This function never allocates memory
+   dynamically. */
+void *gbuf_swrite(struct gbuf *buf, void const *data, size_t size);
 
 /* Copy `gbuf_size(src)` bytes from the buffer to `dest`. Return `dest`. */
 void *gbuf_copy(void *dest, struct gbuf const *src);
