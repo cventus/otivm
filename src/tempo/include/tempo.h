@@ -2,6 +2,14 @@
 
 typedef uint64_t usec64;
 
+/* Opaque struct of platform specific state for creating accurate time
+   stamps. */
+struct pfclock;
+
+/* Get microseconds since a previously selected point in time (process specific
+  epoch), similar to time(2). */
+usec64 pfclock_usec(struct pfclock *);
+
 /* struct stopwatch - calculate elapsed time based on timestamps with support
    for pausing and store times in microsecond precision. A separate source to
    samples (monotone) time stamps is needed and a single source can be used to
