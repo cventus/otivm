@@ -494,6 +494,39 @@ static int edit(void)
 	return ok;
 }
 
+static int find(struct gbuf *buf, int value)
+{
+	int i, *p, *q;
+	for (i = 0; i < 2; i++)
+	for (p = buf->begin[i], q = buf->end[i]; p != q; p++)
+		if (*p == value) return 1;
+	
+	return 0;
+}
+
+static int erase(void)
+{
+	int i, it, values[] = { 6, 3, 4, 1, 4, 1, 2, 0, 0 };
+	struct gbuf buf;
+	size_t sz;
+
+	sz = sizeof(int);
+	init_gbuf(&buf);
+	/* Add items in linear order */
+	for (i = 0; i < (int)length_of(values); i++) {
+		gbuf_write(&buf, &i, sz);
+	}
+	/* Erase items in non-linear order */
+	for (i = 0; i < (int)length_of(values); i++) {
+		gbuf_read(&it, &buf, values[i]*sz, sz);
+		if (!find(&buf, it)) fail_test("item %d is missing \n", it);
+		gbuf_erase(&buf, values[i]*sz, sz);
+		if (find(&buf, it)) fail_test("erased item %d found!\n", it);
+	}
+	term_gbuf(&buf);
+	return 0;
+}
+
 struct test const tests[] = {
 	{ empty, 	"validate the empty gap buffer" },
 	{ init, 	"initiate" },
@@ -506,6 +539,7 @@ struct test const tests[] = {
 	{ keep_aligned,	"buffer should remain aligned for uniform contents" },
 	{ edit, 	"write, retract, move, and trim" },
 	{ compare,	"compare buffers" },
+	{ erase,	"erase items" },
 	{ NULL, NULL }
 };
 

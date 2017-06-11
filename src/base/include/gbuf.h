@@ -1,4 +1,3 @@
-
 /* Gap buffer: wrapper around realloc and memmove
 
    When `lbegin` is non-NULL it points to a a block of memory and `rend`
@@ -103,6 +102,11 @@ int gbuf_retract(struct gbuf *buf, size_t size);
    bytes. Return non-zero if `size` is greater than the size of the buffer. */
 int gbuf_delete(struct gbuf *buf, size_t size);
 
+/* Remove content from buffer range [offset, offset + size) by moving the gap,
+   if necessary, and expanding the gap extents. Return non-zero if the range is
+   outside of the buffer. */
+int gbuf_erase(struct gbuf *buf, size_t offset, size_t size);
+
 /* Reserve `size` bytes from the beginning of the gap and initialize it with a
    copy of `data`. Return a pointer to the newly allocated area, or NULL if
    memory allocation fails. */
@@ -111,3 +115,6 @@ void *gbuf_write(struct gbuf *buf, void const *data, size_t size);
 /* Copy `gbuf_size(src)` bytes from the buffer to `dest`. Return `dest`. */
 void *gbuf_copy(void *dest, struct gbuf const *src);
 
+/* Copy `size` bytes starting from `offset` into the region `dest` points at.
+   Return non-zero if `offset+size` is greater than `gbuf_size(buf)`. */
+int gbuf_read(void *dest, struct gbuf *src, size_t offset, size_t size);
