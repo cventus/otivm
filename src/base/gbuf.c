@@ -30,25 +30,42 @@ static size_t newcapacity(size_t size, size_t hint)
 	return aligned < nsize ? 0 : aligned;
 }
 
+static size_t range_size(void const *begin, void const *end)
+{
+	return begin ? (char *)end - (char *)begin : 0;
+}
+
 /* Get buffer offset one past the end of the gap */
 static size_t gbuf_roffset(struct gbuf const *buf)
 {
 	assert(buf != NULL);
-	return buf->begin[0] ? (char *)buf->begin[1] - (char *)buf->begin[0] : 0;
+	return range_size(buf->begin[0], buf->begin[1]);
 }
 
 /* Size of the left side; the content before the gap */
 static size_t gbuf_lsize(struct gbuf const *buf)
 {
 	assert(buf != NULL);
-	return buf->begin[0] ? (char *)buf->end[0] - (char *)buf->begin[0] : 0;
+	return range_size(buf->begin[0], buf->end[0]);
 }
 
 /* Size of the right side; the content after the gap. */
 static size_t gbuf_rsize(struct gbuf const *buf)
 {
 	assert(buf != NULL);
-	return buf->begin[0] ? (char *)buf->end[1] - (char *)buf->begin[1] : 0;
+	return range_size(buf->begin[1], buf->end[1]);
+}
+
+/* Check if `offset+size <= gbuf_size(buf)` */
+static int validate_range(struct gbuf const *buf, size_t offset, size_t size)
+{
+	size_t bufsz;
+
+	assert(buf != NULL);
+	bufsz = gbuf_size(buf);
+	if (bufsz < offset) { return -1; }
+	if (bufsz - offset < size) { return -2; }
+	return 0;
 }
 
 void init_gbuf(struct gbuf *buf)
@@ -349,6 +366,37 @@ int gbuf_delete(struct gbuf *buf, size_t size)
 	return 0;
 }
 
+/* Remove content from buffer range [offset, offset + size) by moving the gap,
+   if necessary, and expanding the gap byte size. Return non-zero if the range
+   is outside of the buffer. */
+int gbuf_erase(struct gbuf *buf, size_t offset, size_t size)
+{
+	size_t lsize, rsize;
+
+	if (validate_range(buf, offset, size)) { return -1; }
+	if (size == 0) { return 0; } /* early exit */
+
+	/* no risk of overflow at this point */
+	if (offset + size < gbuf_offset(buf)) {
+		/* move gap to the left */
+		(void)gbuf_move_to(buf, offset + size);
+		rsize = 0;
+		lsize = size;
+	} else if (offset > gbuf_offset(buf)) {
+		/* move gap to the right */
+		(void)gbuf_move_to(buf, offset);
+		rsize = size;
+		lsize = 0;
+	} else {
+		/* no need to move gap */
+		lsize = gbuf_offset(buf) - offset;
+		rsize = size - lsize;
+	}
+	if (lsize > 0) { (void)gbuf_retract(buf, lsize); }
+	if (rsize > 0) { (void)gbuf_delete(buf, rsize); }
+	return 0;
+}
+
 void *gbuf_copy(void *dest, struct gbuf const *src)
 {
 	size_t lsize, rsize;
@@ -361,3 +409,24 @@ void *gbuf_copy(void *dest, struct gbuf const *src)
 	return dest;
 }
 
+int gbuf_read(void *dest, struct gbuf *src, size_t offset, size_t size)
+{
+	size_t srcoff, lsize, rsize;
+
+	if (validate_range(src, offset, size)) { return -1; }
+
+	srcoff = gbuf_offset(src);
+
+	lsize = (offset < srcoff) ? min(size, srcoff - offset) : 0;
+	rsize = size - lsize;
+
+	if (lsize > 0) {
+		(void)memcpy(dest, (char *)src->begin[0] + offset, lsize);
+	}
+	if (rsize > 0) {
+		size_t off = offset > srcoff ? offset - srcoff : 0;
+		void *rbegin = (char *)src->begin[1] + off;
+		(void)memcpy((char *)dest + lsize, rbegin, rsize);
+	}
+	return 0;
+}
