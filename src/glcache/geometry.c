@@ -5,7 +5,6 @@
 #include <stdalign.h>
 #include <limits.h>
 #include <string.h>
-#include <GL/gl.h>
 
 #include <gm/vector.h>
 #include <base/mem.h>
@@ -27,10 +26,10 @@
 
 
 static void set_gl_attrib_pointer(
-	struct gl_core const *f,
+	struct gl_core30 const *restrict gl,
 	struct gl_vertexattrib const *va)
 {
-	f->VertexAttribPointer(
+	gl->VertexAttribPointer(
 		va->index,
 		va->size,
 		va->type,
@@ -188,7 +187,7 @@ static int push_vertex(
 }
 
 static GLuint make_vertex_buffer(
-	struct gl_core const *restrict f,
+	struct gl_core30 const *restrict gl,
 	void *vertices,
 	size_t size,
 	struct gl_vertexattrib const *attributes,
@@ -198,14 +197,14 @@ static GLuint make_vertex_buffer(
 	size_t i;
 
 	/* Make vertex buffer and fill data */
-	f->GenBuffers(1, &name);
-	f->BindBuffer(GL_ARRAY_BUFFER, name);
-	f->BufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
+	gl->GenBuffers(1, &name);
+	gl->BindBuffer(GL_ARRAY_BUFFER, name);
+	gl->BufferData(GL_ARRAY_BUFFER, size, vertices, GL_STATIC_DRAW);
 
 	/* Associate vertex attributes with VAO */
 	for (i = 0; i < nattributes; i++) {
-		f->EnableVertexAttribArray(attributes[i].index);
-		set_gl_attrib_pointer(f, attributes + i);
+		gl->EnableVertexAttribArray(attributes[i].index);
+		set_gl_attrib_pointer(gl, attributes + i);
 	}
 
 	return name;
@@ -213,7 +212,7 @@ static GLuint make_vertex_buffer(
 
 /* Turn an array of GLuint into an array of GLushort or GLubyte, if possible */
 static struct element_buffer make_element_buffer(
-	struct gl_core const *restrict f,
+	struct gl_core30 const *restrict gl,
 	GLuint *indicies,
 	size_t nmemb,
 	GLenum mode,
@@ -254,9 +253,9 @@ static struct element_buffer make_element_buffer(
 		data = indicies;
 	}
 
-	f->GenBuffers(1, &name);
-	f->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, name);
-	f->BufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+	gl->GenBuffers(1, &name);
+	gl->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, name);
+	gl->BufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 	if (data != indicies) { free(data); }
 
 	return (struct element_buffer) { name, count, type, mode };
@@ -328,20 +327,20 @@ static struct gl_vertexattrib const vertex_attrib[] = {
 
 static void gl_geometry_term(const void *p, const void *ctx)
 {
-	struct gl_core const *f = ctx;
+	struct gl_core30 const *restrict gl = ctx;
 	struct gl_geometry const *geo = (void *)p;
 
-	f->DeleteVertexArrays(1, &geo->vao);
-	f->DeleteBuffers(2, (GLuint [2]){ geo->vbo, geo->eb.name });
+	gl->DeleteVertexArrays(1, &geo->vao);
+	gl->DeleteBuffers(2, (GLuint [2]){ geo->vbo, geo->eb.name });
 }
 
 static int geometry_init_wf(
-	struct gl_api *gl,
+	struct gl_api *api,
 	struct gl_geometry *geo,
 	struct wf_triangles const *group,
 	struct wf_object const *obj)
 {
-	struct gl_core const *f = gl_get_core(gl);
+	struct gl_core30 const *restrict gl = gl_get_core30(api);
 	struct wbuf vertices, elements;
 	jmp_buf errbuf;
 	struct tstack ts;
@@ -356,24 +355,24 @@ static int geometry_init_wf(
 	tstack_push_wbuf(&ts, &vertices);
 	tstack_push_wbuf(&ts, &elements);
 
-	f->GenVertexArrays(1, &geo->vao);
-	f->BindVertexArray(geo->vao);
+	gl->GenVertexArrays(1, &geo->vao);
+	gl->BindVertexArray(geo->vao);
 
 	geo->vbo = make_vertex_buffer(
-		f,
+		gl,
 		vertices.begin,
 		wbuf_size(&vertices),
 		vertex_attrib,
 		length_of(vertex_attrib));
 
 	geo->eb = make_element_buffer(
-		f,
+		gl,
 		elements.begin,
 		wbuf_nmemb(&elements, sizeof (GLuint)),
 		GL_TRIANGLES,
 		wbuf_nmemb(&vertices, sizeof (struct gl_vertex)));
 
-	f->BindVertexArray(0);
+	gl->BindVertexArray(0);
 
 	tstack_term(&ts);
 
@@ -381,7 +380,7 @@ static int geometry_init_wf(
 }
 
 static int geometires_init_wf(
-	struct gl_api *gl,
+	struct gl_api *api,
 	struct wf_object const *obj,
 	struct gl_material const *const *mtllist,
 	struct gl_geometries *geos)
@@ -402,9 +401,9 @@ static int geometires_init_wf(
 	for (i = 0; i < geos->n; i++) {
 		geo = p + i;
 		geo->material = mtllist[i];
-		err = geometry_init_wf(gl, geo, obj->groups + i, obj);
+		err = geometry_init_wf(api, geo, obj->groups + i, obj);
 		if (err) { tstack_fail(&ts); }
-		tstack_push(&ts, &gl_geometry_term, geo, gl_get_core(gl));
+		tstack_push(&ts, &gl_geometry_term, geo, gl_get_core30(api));
 	}
 	tstack_retain_all(&ts);
 	tstack_term(&ts);
@@ -423,7 +422,7 @@ int gl_geometries_init_wfobj(
 
 	if (!(obj = wf_parse_object(filename))) { goto clean; }
 	if (!(mtllist = load_materials(cache, filename, obj))) { goto clean; }
-	result = geometires_init_wf(cache->gl, obj, mtllist, geos);
+	result = geometires_init_wf(cache->api, obj, mtllist, geos);
 clean:
 	if (mtllist) {
 		free_materials(cache, mtllist, obj->ngroups);
@@ -440,7 +439,7 @@ void gl_geometries_term(struct gl_cache *cache, struct gl_geometries *geos)
 
 	for (geo = geos->geo, i = 0; i < geos->n; i++, geo++) {
 		gl_release_material(cache, geo->material);
-		gl_geometry_term(geo, gl_get_core(cache->gl));
+		gl_geometry_term(geo, gl_get_core30(cache->api));
 	}
 	if (geos->geo) {
 		free((void *)geos->geo);
@@ -452,19 +451,19 @@ struct gl_material *gl_default_material(struct gl_cache *cache)
 	return &cache->defmat;
 }
 
-void gl_draw_geometry(struct gl_api *gl, struct gl_geometry const *geo)
+void gl_draw_geometry(struct gl_api *api, struct gl_geometry const *geo)
 {
-	struct gl_core const *core = gl_get_core(gl);
-	core->BindVertexArray(geo->vao);
-	glDrawElements(geo->eb.mode, geo->eb.count, geo->eb.type, 0);
-	core->BindVertexArray(0);
+	struct gl_core30 const *restrict gl = gl_get_core30(api);
+	gl->BindVertexArray(geo->vao);
+	gl->DrawElements(geo->eb.mode, geo->eb.count, geo->eb.type, 0);
+	gl->BindVertexArray(0);
 }
 
-void gl_draw_geometries(struct gl_api *gl, struct gl_geometries const *geos)
+void gl_draw_geometries(struct gl_api *api, struct gl_geometries const *geos)
 {
 	size_t i;
 	for (i = 0; i < geos->n; i++) {
-		gl_draw_geometry(gl, geos->geo + i);
+		gl_draw_geometry(api, geos->geo + i);
 	}
 }
 

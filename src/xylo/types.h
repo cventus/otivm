@@ -1,7 +1,7 @@
 
 struct xylo
 {
-	struct gl_api *gl;
+	struct gl_api *api;
 	GLuint program, to_world, to_clip, center;
 };
 

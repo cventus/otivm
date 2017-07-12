@@ -1,4 +1,3 @@
-
 struct gl_texture { GLuint name; };
 struct gl_shader { GLuint name; };
 struct gl_program { GLuint name; };
@@ -22,4 +21,3 @@ struct gl_geometries
 	size_t n;
 	struct gl_geometry const *geo;
 };
-

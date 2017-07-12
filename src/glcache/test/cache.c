@@ -1,7 +1,5 @@
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <GL/gl.h>
 
 #include <ok/ok.h>
 #include <base/mem.h>
@@ -10,6 +8,7 @@
 #include <glapi/api.h>
 #include <glapi/core.h>
 #include <glapi/test.h>
+
 #include "../include/cache.h"
 #include "../include/types.h"
 #include "../private.h"
@@ -18,17 +17,16 @@
 
 #define run(fn) gl_run_test(is_test_interactive() ? __func__ : NULL, fn)
 
-static void white(void)
+static void white(struct gl_core30 const *gl)
 {
-	glClearColor(1.f, 1.f, 1.f, 1.f);
-	glClear(GL_COLOR_BUFFER_BIT);
-	glFlush();
+	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
+	gl->Clear(GL_COLOR_BUFFER_BIT);
+	gl->Flush();
 }
 
 static int init_cache_(struct gl_api *gl, struct gl_test *test)
 {
-	(void)gl;
-	white();
+	white(gl_get_core30(gl));
 	gl_test_swap_buffers(test);
 	if (is_test_interactive()) { gl_test_wait_for_key(test); }
 	return 0;
@@ -36,49 +34,49 @@ static int init_cache_(struct gl_api *gl, struct gl_test *test)
 static int init_cache(void) { return run(init_cache_); }
 
 static void check_shader(
-	struct gl_api *gl,
+	struct gl_api *api,
 	struct gl_shader const *shader,
 	char const *filename,
 	GLint shader_type)
 {
 	GLint status;
 	char *log;
-	struct gl_core const *core = gl_get_core(gl);
+	struct gl_core30 const *gl = gl_get_core30(api);
 
 	if (!shader) {
 		printf("Shader is NULL\n");
 		ok = -1;
 		return;
 	}
-	if (!core->IsShader(shader->name)) {
+	if (!gl->IsShader(shader->name)) {
 		printf("Not a shader: %s\n", filename);
 		ok = -1;
 		return;
 	}
-	if (gl_shader_type(gl, shader) != shader_type) {
+	if (gl_shader_type(api, shader) != shader_type) {
 		printf("Invalid shader type\n");
 		ok = -1;
 	}
-	core->GetShaderiv(shader->name, GL_COMPILE_STATUS, &status);
+	gl->GetShaderiv(shader->name, GL_COMPILE_STATUS, &status);
 	if (status == GL_FALSE) {
 		ok = -1;
-		log = gl_get_shader_info_log(gl, shader);
+		log = gl_get_shader_info_log(api, shader);
 		printf("shader log:\n%s\n", log);
 		free(log);
 	}
 }
 
-static int load_material_(struct gl_api *gl, struct gl_test *test)
+static int load_material_(struct gl_api *api, struct gl_test *test)
 {
 	struct gl_cache *cache;
 	struct gl_geometries const *geo;
 	int n;
 
-	cache = gl_make_cache(gl);
+	cache = gl_make_cache(api);
 	geo = gl_load_geometry(cache, "asset/test/triangle.obj");
 	if (!geo) { ok = -1; }
 
-	white();
+	white(gl_get_core30(api));
 
 	gl_release_geometry(cache, geo);
 
@@ -92,7 +90,7 @@ static int load_material_(struct gl_api *gl, struct gl_test *test)
 }
 static int load_material(void) { return run(load_material_); }
 
-static int load_shader_(struct gl_api *gl, struct gl_test *test)
+static int load_shader_(struct gl_api *api, struct gl_test *test)
 {
 	int n;
 	static char const *vs_filename =  "asset/test/shader.vert";
@@ -101,14 +99,14 @@ static int load_shader_(struct gl_api *gl, struct gl_test *test)
 	struct gl_shader const *vert, *frag;
 	struct gl_cache *cache;
 
-	cache = gl_make_cache(gl);
+	cache = gl_make_cache(api);
 	vert = gl_load_shader(cache, vs_filename);
-	check_shader(gl, vert, vs_filename, GL_VERTEX_SHADER);
+	check_shader(api, vert, vs_filename, GL_VERTEX_SHADER);
 
 	frag = gl_load_shader(cache, fs_filename);
-	check_shader(gl, frag, fs_filename, GL_FRAGMENT_SHADER);
+	check_shader(api, frag, fs_filename, GL_FRAGMENT_SHADER);
 
-	white();
+	white(gl_get_core30(api));
 
 	gl_test_swap_buffers(test);
 	if (is_test_interactive()) { gl_test_wait_for_key(test); }
@@ -123,7 +121,7 @@ static int load_shader_(struct gl_api *gl, struct gl_test *test)
 }
 static int load_shader(void) { return run(load_shader_); }
 
-static int load_program_(struct gl_api *gl, struct gl_test *test)
+static int load_program_(struct gl_api *api, struct gl_test *test)
 {
 	int n;
 	char const *vs_filename =  "asset/test/shader.vert";
@@ -135,7 +133,7 @@ static int load_program_(struct gl_api *gl, struct gl_test *test)
 	struct gl_cache *cache;
 	struct gl_program const *prog1, *prog2;
 
-	cache = gl_make_cache(gl);
+	cache = gl_make_cache(api);
 	prog1 = gl_load_program(cache, shaders1, length_of(shaders1));
 
 	if (!prog1) {
@@ -149,7 +147,7 @@ static int load_program_(struct gl_api *gl, struct gl_test *test)
 	}
 	if (prog2) gl_release_program(cache, prog2);
 
-	white();
+	white(gl_get_core30(api));
 
 	gl_test_swap_buffers(test);
 	if (is_test_interactive()) { gl_test_wait_for_key(test); }
@@ -171,4 +169,3 @@ struct test const tests[] = {
 
 	{ NULL, NULL }
 };
-

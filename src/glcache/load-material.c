@@ -1,9 +1,7 @@
-
 #include <string.h>
 #include <stdlib.h>
 #include <stdalign.h>
 #include <assert.h>
-#include <GL/gl.h>
 
 #include <wf/wf.h>
 #include <rescache/rescache.h>
@@ -139,4 +137,3 @@ void gl_release_material(
 {
 	rescache_release(cache->materials, material);
 }
-

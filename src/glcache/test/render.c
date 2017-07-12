@@ -1,7 +1,5 @@
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <GL/gl.h>
 
 #include <ok/ok.h>
 #include <base/mem.h>
@@ -18,13 +16,13 @@
 
 #define run(fn) gl_run_test(is_test_interactive() ? __func__ : NULL, fn)
 
-static void white(void)
+static void white(struct gl_core30 const *gl)
 {
-	glClearColor(1.f, 1.f, 1.f, 1.f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
+	gl->Clear(GL_COLOR_BUFFER_BIT);
 }
 
-static int draw_triangle_(struct gl_api *gl, struct gl_test *test)
+static int draw_triangle_(struct gl_api *api, struct gl_test *test)
 {
 	static char const *shaders[] = {
 		"asset/test/shader.vert",
@@ -34,10 +32,10 @@ static int draw_triangle_(struct gl_api *gl, struct gl_test *test)
 	struct gl_cache *cache;
 	struct gl_geometries const *geo;
 	struct gl_program const *prog;
-	struct gl_core const *core;
+	struct gl_core30 const *gl;
 
-	core = gl_get_core(gl);
-	cache = gl_make_cache(gl);
+	gl = gl_get_core30(api);
+	cache = gl_make_cache(api);
 	if (!cache) { fail_test("Unable to create cache\n"); }
 
 	geo = gl_load_geometry(cache, "asset/test/triangle.obj");
@@ -46,10 +44,10 @@ static int draw_triangle_(struct gl_api *gl, struct gl_test *test)
 	prog = gl_load_program(cache, shaders, length_of(shaders));
 	if (!prog) { fail_test("Unable to create shader program\n"); }
 
-	white();
+	white(gl);
 
-	core->UseProgram(prog->name);
-	gl_draw_geometries(gl, geo);
+	gl->UseProgram(prog->name);
+	gl_draw_geometries(api, geo);
 
 	gl_test_swap_buffers(test);
 	if (is_test_interactive()) { gl_test_wait_for_key(test); }
@@ -68,4 +66,3 @@ struct test const tests[] = {
 
 	{ NULL, NULL }
 };
-

@@ -1,10 +1,9 @@
-
 #include <stddef.h>
 #include <stdalign.h>
-#include <GL/gl.h>
 
 #include <base/mem.h>
 #include <rescache/rescache.h>
+#include <glapi/core.h>
 
 #include "include/types.h"
 #include "include/cache.h"
@@ -69,4 +68,3 @@ void gl_release_texture(
 {
 	rescache_release(cache->textures, texture);
 }
-

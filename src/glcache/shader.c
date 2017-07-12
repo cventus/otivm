@@ -1,9 +1,6 @@
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <GL/gl.h>
-#include <GL/glext.h>
 
 #include <fs/file.h>
 
@@ -30,25 +27,25 @@ static char *get_info_log(
 }
 
 static int compile_shader(
-	struct gl_api *gl,
+	struct gl_api *api,
 	char const *source,
 	GLuint shader)
 {
 	GLint compile_success;
 	char *info_log;
-	struct gl_core const *core;
+	struct gl_core30 const *restrict gl;
 
-	core = gl_get_core(gl);
-	core->ShaderSource(shader, 1, (GLchar const **)&source, NULL);
-	core->CompileShader(shader);
-	core->GetShaderiv(shader, GL_COMPILE_STATUS, &compile_success);
+	gl = gl_get_core30(api);
+	gl->ShaderSource(shader, 1, (GLchar const **)&source, NULL);
+	gl->CompileShader(shader);
+	gl->GetShaderiv(shader, GL_COMPILE_STATUS, &compile_success);
 	if (compile_success) {
 		return 0;
 	} else {
 		info_log = get_info_log(
 			shader,
-			core->GetShaderiv,
-			core->GetShaderInfoLog);
+			gl->GetShaderiv,
+			gl->GetShaderInfoLog);
 		if (info_log) {
 			fprintf(stderr, "glCompileShader():\n%s\n", info_log);
 			free(info_log);
@@ -58,17 +55,17 @@ static int compile_shader(
 }
 
 int gl_shader_init(
-	struct gl_api *gl,
+	struct gl_api *api,
 	struct gl_shader *shader,
 	GLenum type,
 	char const *source)
 {
 	GLuint name;
-	struct gl_core const *core = gl_get_core(gl);
+	struct gl_core30 const *restrict gl = gl_get_core30(api);
 
-	name = core->CreateShader(type);
-	if (compile_shader(gl, source, name)) {
-		core->DeleteShader(name);
+	name = gl->CreateShader(type);
+	if (compile_shader(api, source, name)) {
+		gl->DeleteShader(name);
 		return -1;
 	}
 	shader->name = name;
@@ -76,14 +73,14 @@ int gl_shader_init(
 	return 0;
 }
 
-void gl_shader_term(struct gl_api *gl, struct gl_shader const *shader)
+void gl_shader_term(struct gl_api *api, struct gl_shader const *shader)
 {
-	struct gl_core const *core = gl_get_core(gl);
-	core->DeleteShader(shader->name);
+	struct gl_core30 const *restrict gl = gl_get_core30(api);
+	gl->DeleteShader(shader->name);
 }
 
 int gl_program_init(
-	struct gl_api *gl,
+	struct gl_api *api,
 	struct gl_program *program,
 	struct gl_shader const *const *shaders,
 	size_t nshaders)
@@ -92,68 +89,67 @@ int gl_program_init(
 	GLuint name;
 	size_t i;
 	char *info_log;
-	struct gl_core const *core;
+	struct gl_core30 const *restrict gl;
 
-	core = gl_get_core(gl);
-	name = core->CreateProgram();
+	gl = gl_get_core30(api);
+	name = gl->CreateProgram();
 	if (name == 0) { return -1; }
 	program->name = name;
 	for (i = 0; i < nshaders; i++) {
-		core->AttachShader(name, shaders[i]->name);
+		gl->AttachShader(name, shaders[i]->name);
 	}
-	core->LinkProgram(name);
+	gl->LinkProgram(name);
 	for(i = 0; i < nshaders; i++) {
-		core->DetachShader(name, shaders[i]->name);
+		gl->DetachShader(name, shaders[i]->name);
 	}
-	core->GetProgramiv(name, GL_LINK_STATUS, &link_success);
+	gl->GetProgramiv(name, GL_LINK_STATUS, &link_success);
 	if (link_success) {
 		return 0;
 	} else {
-		info_log = gl_get_program_info_log(gl, program);
+		info_log = gl_get_program_info_log(api, program);
 		if (info_log) {
 			fprintf(stderr, "glLinkProgram():\n%s\n", info_log);
 			free(info_log);
 		}
-		core->DeleteProgram(name);
+		gl->DeleteProgram(name);
 		return -2;
 	}
 }
 
-void gl_program_term(struct gl_api *gl, struct gl_program const *program)
+void gl_program_term(struct gl_api *api, struct gl_program const *program)
 {
-	struct gl_core const *core = gl_get_core(gl);
-	core->DeleteProgram(program->name);
+	struct gl_core30 const *restrict gl = gl_get_core30(api);
+	gl->DeleteProgram(program->name);
 }
 
 char *gl_get_shader_info_log(
-	struct gl_api *gl,
+	struct gl_api *api,
 	struct gl_shader const *shader)
 {
-	struct gl_core const *core = gl_get_core(gl);
+	struct gl_core30 const *gl = gl_get_core30(api);
 	return get_info_log(
 		shader->name,
-		core->GetShaderiv,
-		core->GetShaderInfoLog);
+		gl->GetShaderiv,
+		gl->GetShaderInfoLog);
 }
 
 char *gl_get_program_info_log(
-	struct gl_api *gl,
+	struct gl_api *api,
 	struct gl_program const *program)
 {
-	struct gl_core const *core = gl_get_core(gl);
+	struct gl_core30 const *gl = gl_get_core30(api);
 	return get_info_log(
 		program->name,
-		core->GetProgramiv,
-		core->GetProgramInfoLog);
+		gl->GetProgramiv,
+		gl->GetProgramInfoLog);
 }
 
 GLint gl_shader_type(
-	struct gl_api *gl,
+	struct gl_api *api,
 	struct gl_shader const *shader)
 {
 	GLint type;
-	struct gl_core const *core = gl_get_core(gl);
-	core->GetShaderiv(shader->name, GL_SHADER_TYPE, &type);
+	struct gl_core30 const *restrict gl = gl_get_core30(api);
+	gl->GetShaderiv(shader->name, GL_SHADER_TYPE, &type);
 	return type;
 }
-

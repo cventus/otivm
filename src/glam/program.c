@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <GL/gl.h>
 
 #include <base/mem.h>
 #include <glapi/api.h>
@@ -7,9 +6,9 @@
 
 #include "include/program.h"
 
-GLuint gl_make_program(struct gl_api *gl, struct gl_program_layout const *pl)
+GLuint gl_make_program(struct gl_api *api, struct gl_program_layout const *pl)
 {
-	struct gl_core const *restrict core;
+	struct gl_core30 const *restrict gl;
 	GLchar const *src;
 	GLuint shader, prog, result, names[16];
 	GLint status;
@@ -18,45 +17,45 @@ GLuint gl_make_program(struct gl_api *gl, struct gl_program_layout const *pl)
 	struct gl_shader_source const *source;
 	struct gl_location const *attrib, *frag;
 
-	if (!gl || !pl) { return 0; }
-	core = gl_get_core(gl);
-	result = prog = core->CreateProgram();
+	if (!api || !pl) { return 0; }
+	gl = gl_get_core30(api);
+	result = prog = gl->CreateProgram();
 	for (attrib = pl->attrib; attrib && attrib->name; attrib++) {
-		core->BindAttribLocation(prog, attrib->index, attrib->name);
+		gl->BindAttribLocation(prog, attrib->index, attrib->name);
 	}
 	for (frag = pl->frag; frag && frag->name; frag++) {
-		core->BindFragDataLocation(prog, frag->index, frag->name);
+		gl->BindFragDataLocation(prog, frag->index, frag->name);
 	}
 	for (source = pl->source; source && source->source; source++) {
-		shader = core->CreateShader(source->type);
+		shader = gl->CreateShader(source->type);
 		src = source->source;
-		core->ShaderSource(shader, 1, &src, NULL);
-		core->CompileShader(shader);
-		core->GetShaderiv(shader, GL_COMPILE_STATUS, &status);
+		gl->ShaderSource(shader, 1, &src, NULL);
+		gl->CompileShader(shader);
+		gl->GetShaderiv(shader, GL_COMPILE_STATUS, &status);
 		if (status == 0) {
-			core->DeleteShader(shader);
+			gl->DeleteShader(shader);
 			result = 0;
 			goto clean;
 		}
-		core->AttachShader(prog, shader);
+		gl->AttachShader(prog, shader);
 	}
-	core->LinkProgram(prog);
-	core->GetProgramiv(prog, GL_LINK_STATUS, &status);
+	gl->LinkProgram(prog);
+	gl->GetProgramiv(prog, GL_LINK_STATUS, &status);
 clean:	do {
-		core->GetAttachedShaders(prog, length_of(names), &count, names);
+		gl->GetAttachedShaders(prog, length_of(names), &count, names);
 		for (i = count; i --> 0; ) {
-			core->DetachShader(prog, names[i]);
-			core->DeleteShader(names[i]);
+			gl->DetachShader(prog, names[i]);
+			gl->DeleteShader(names[i]);
 		}
 	} while (count > 0);
 	if (status == 0) {
-		core->DeleteProgram(prog);
+		gl->DeleteProgram(prog);
 	}
 	return result;
 }
 
 void gl_get_uniforms(
-        struct gl_api *gl,
+        struct gl_api *api,
         void *dest,
         GLuint program,
         struct gl_uniform_layout const *uniforms)
@@ -64,7 +63,7 @@ void gl_get_uniforms(
         struct gl_uniform_layout const *u;
         GLint loc, (*GetUniformLocation)(GLuint, GLchar const *);
 
-        GetUniformLocation = gl_get_core(gl)->GetUniformLocation;
+        GetUniformLocation = gl_get_core30(api)->GetUniformLocation;
 	for (u = uniforms; u->name; u++) {
                 loc = GetUniformLocation(program, u->name);
                 if (loc < 0) { loc = GL_INVALID_INDEX; }
@@ -72,11 +71,14 @@ void gl_get_uniforms(
         }
 }
 
-void gl_unuse_program(struct gl_api *gl, GLuint name)
+void gl_unuse_program(struct gl_api *api, GLuint name)
 {
         GLint current;
-        gl_get_core(gl)->GetIntegerv(GL_CURRENT_PROGRAM, &current);
+	struct gl_core30 const *restrict gl;
+
+        gl = gl_get_core30(api);
+	gl->GetIntegerv(GL_CURRENT_PROGRAM, &current);
         if (name == (GLuint)current) {
-                gl_get_core(gl)->UseProgram(0);
+                gl->UseProgram(0);
        }
 }

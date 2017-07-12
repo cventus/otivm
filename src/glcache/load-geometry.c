@@ -1,9 +1,8 @@
-
 #include <stddef.h>
 #include <stdalign.h>
-#include <GL/gl.h>
 
 #include <rescache/rescache.h>
+#include <glapi/core.h>
 #include <wf/wf.h>
 
 #include "include/types.h"
@@ -58,4 +57,3 @@ void gl_release_geometry(
 {
 	rescache_release(cache->geometries, geometries);
 }
-
