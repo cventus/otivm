@@ -10,7 +10,7 @@
 #include "fwd.h"
 
 #define gl_def_api(ret, name, args) field->name = \
-	(ret (GLAPIENTRY *) args)gl_get_proc("gl" #name);
+	(ret (GLAPIENTRY *) args)gl_get_proc(api, "gl" #name);
 
 int gl_resolve_core(struct gl_api *api, struct gl_core *field)
 {
