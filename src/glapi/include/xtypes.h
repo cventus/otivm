@@ -1,4 +1,3 @@
-
 struct glx_config
 {
 	_Bool
@@ -11,4 +10,3 @@ struct glx_config
 	int vmajor, vminor;
 	int sample_buffers, samples;
 };
-

@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <GL/gl.h>
 #include <ok/ok.h>
@@ -81,4 +80,3 @@ struct test const tests[] = {
 
 	{ NULL, NULL }
 };
-

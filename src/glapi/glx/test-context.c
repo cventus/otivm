@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -7,20 +6,18 @@
 
 #include <X11/X.h>
 #include <X11/Xlib.h>
-#include <GL/gl.h>
-#include <GL/glx.h>
 
 #define WIDTH 600
 #define HEIGHT WIDTH
 
 #include <adt/hmap.h>
 
+#include "../include/api.h"
 #include "../include/core.h"
-#include "../include/dbgmsg.h"
+#include <GL/glx.h>
 
 #include "../include/xtypes.h"
 #include "../fwd.h"
-#include "../api.inc"
 #include "../types.h"
 #include "../include/x.h"
 
