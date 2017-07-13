@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -9,19 +8,17 @@
 
 #include <X11/X.h>
 #include <X11/Xlib.h>
-#include <GL/gl.h>
-#include <GL/glx.h>
 
 #include <adt/hmap.h>
 #include <base/mem.h>
 
+#include "../include/api.h"
 #include "../include/core.h"
-#include "../include/dbgmsg.h"
+#include <GL/glx.h>
 
 #include "../include/xtypes.h"
 #include "../include/x.h"
 #include "../fwd.h"
-#include "../api.inc"
 #include "../types.h"
 
 #include "private.h"
@@ -314,4 +311,3 @@ int gl_is_current(struct gl_api *api)
 	struct glx_context *ctx = container_of(api, struct glx_context, api);
 	return ctx->context == glXGetCurrentContext();
 }
-

@@ -1,16 +1,14 @@
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdalign.h>
-#include <GL/gl.h>
 
 #include <base/mem.h>
 #include <fs/file.h>
 #include <rescache/rescache.h>
-
 #include <glapi/api.h>
 #include <glapi/core.h>
+
 #include "include/types.h"
 #include "include/cache.h"
 #include "caches.h"
@@ -38,7 +36,7 @@ static int load_shader_file(
 	if (!fp) { return -1; }
 	source = read_all(fp);
 	if (!source) { fclose(fp); return -2; }
-	result = gl_shader_init(cache->gl, shader, type, source);
+	result = gl_shader_init(cache->api, shader, type, source);
 	free(source);
 	fclose(fp);
 	return result;
@@ -73,7 +71,7 @@ static void unload_shader(void const *key, size_t ksz, void *data, void *link)
 	(void)key;
 	(void)ksz;
 	struct gl_cache *cache = link;
-	gl_shader_term(cache->gl, (struct gl_shader *)data);
+	gl_shader_term(cache->api, (struct gl_shader *)data);
 }
 
 struct rescache *gl_make_shaders_cache(struct gl_cache *cache)
@@ -102,4 +100,3 @@ void gl_release_shader(struct gl_cache *cache, struct gl_shader const *shader)
 {
 	rescache_release(cache->shaders, shader);
 }
-

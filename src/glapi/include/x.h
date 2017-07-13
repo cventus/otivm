@@ -1,4 +1,3 @@
-
 struct gl_api;
 struct glx_context;
 struct glx_drawable;
@@ -37,4 +36,3 @@ void glx_swap_buffers(struct glx_context *, struct glx_drawable *window);
 
 /* Make the context current with a specific drawable */
 int glx_make_current(struct glx_context *, struct glx_drawable *);
-

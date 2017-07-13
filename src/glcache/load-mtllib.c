@@ -1,11 +1,10 @@
-
 #include <string.h>
 #include <stdlib.h>
 #include <stdalign.h>
-#include <GL/gl.h>
 
 #include <wf/wf.h>
 #include <rescache/rescache.h>
+#include <glapi/core.h>
 
 #include "include/types.h"
 #include "private.h"
@@ -64,4 +63,3 @@ void gl_release_wf_mtllib(
 {
 	rescache_release(cache->wf_mtllibs, mtllib);
 }
-

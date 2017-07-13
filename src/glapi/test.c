@@ -1,12 +1,11 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <GL/gl.h>
 
 #include <text/vstr.h>
 
-#include "include/dbgmsg.h"
+#include "include/api.h"
+#include "include/core.h"
 #include "include/test.h"
 
 #include "fwd.h"
@@ -28,13 +27,15 @@ char const *gl_strerror(GLenum error)
 #undef enumcase
 }
 
-void gl_fprintf_errors(FILE *fp, char const *fmt, ...)
+void gl_fprintf_errors(struct gl_api *api, FILE *fp, char const *fmt, ...)
 {
 	va_list ap;
 	char *msg;
 	char const *prompt, *colon, *errstr;
 	GLenum error;
+	struct gl_core30 const *restrict gl;
 
+	gl = gl_get_core30(api);
 	if (fmt) {
 		va_start(ap, fmt);
 		msg = vstrfmt(0, 0, fmt, ap);
@@ -42,7 +43,7 @@ void gl_fprintf_errors(FILE *fp, char const *fmt, ...)
 	} else {
 		msg = NULL;
 	}
-	while (error = glGetError(), error != GL_NO_ERROR) {
+	while (error = gl->GetError(), error != GL_NO_ERROR) {
 		prompt = msg ? msg : "";
 		colon = msg ? ": " : "";
 		errstr = gl_strerror(error);
@@ -51,7 +52,7 @@ void gl_fprintf_errors(FILE *fp, char const *fmt, ...)
 	free(msg);
 }
 
-static void GLAPIENTRY debug_callback(
+static void APIENTRY debug_callback(
 	GLenum source,
 	GLenum type,
 	GLuint id,
@@ -129,12 +130,12 @@ int gl_run_test(
 	int status;
 	struct gl_test *test;
 	struct gl_api *api;
-	struct gl_dbgmsg const *dbgmsg;
+	struct gl_ARB_debug_output const *restrict dbgmsg;
 
 	test = gl_test_make(name);
 	if (test) {
 		api = gl_test_api(test);
-		dbgmsg = gl_get_dbgmsg(api);
+		dbgmsg = gl_get_ARB_debug_output(api);
 		if (dbgmsg) {
 			dbgmsg->DebugMessageCallbackARB(debug_callback, api);
 		}
@@ -142,11 +143,10 @@ int gl_run_test(
 		if (dbgmsg) {
 			dbgmsg->DebugMessageCallbackARB(NULL, NULL);
 		}
-		gl_fprintf_errors(stdout, "%s", name ? name : __func__);
+		gl_fprintf_errors(api, stdout, "%s", name ? name : __func__);
 		gl_test_free(test);
 	} else {
 		status = -1;
 	}
 	return status;
 }
-

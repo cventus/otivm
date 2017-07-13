@@ -1,20 +1,16 @@
-
 #include <stdalign.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 
-#include <GL/gl.h>
-#include <GL/glext.h>
-
 #include <base/mem.h>
 #include <text/re.h>
 #include <text/str.h>
 #include <rescache/rescache.h>
 #include <wf/wf.h>
-
 #include <glapi/core.h>
+
 #include "include/types.h"
 #include "private.h"
 #include "decl.h"
@@ -44,12 +40,12 @@ static struct field const cache_fields[] = {
 	cache_field(wf_mtllibs)
 };
 
-int gl_cache_init(struct gl_cache *cache, struct gl_api *gl)
+int gl_cache_init(struct gl_cache *cache, struct gl_api *api)
 {
 	size_t i;
 	struct rescache **field;
 
-	cache->gl = gl;
+	cache->api = api;
 	for (i = 0; i < length_of(cache_fields); i++) {
 		field = get_cache_field(*cache, cache_fields[i]);
 		*field = cache_fields[i].constructor(cache);
@@ -68,11 +64,11 @@ int gl_cache_init(struct gl_cache *cache, struct gl_api *gl)
 }
 
 
-struct gl_cache *gl_make_cache(struct gl_api *gl)
+struct gl_cache *gl_make_cache(struct gl_api *api)
 {
 	struct gl_cache *cache;
 	cache = malloc(sizeof *cache);
-	if (gl_cache_init(cache, gl)) {
+	if (gl_cache_init(cache, api)) {
 		free(cache);
 		cache = NULL;
 	}
@@ -128,4 +124,3 @@ int gl_cache_term(struct gl_cache *cache)
 	}
 	return nfailed;
 }
-

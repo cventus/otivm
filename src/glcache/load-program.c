@@ -1,13 +1,11 @@
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdalign.h>
-#include <GL/gl.h>
 
 #include <rescache/rescache.h>
+#include <glapi/core.h>
 
 #include "include/types.h"
-#include <glapi/core.h>
 #include "include/cache.h"
 #include "caches.h"
 #include "private.h"
@@ -86,7 +84,7 @@ static int load_program(void const *key, size_t ksz, void *data, void *link)
 			return -2;
 		}
 	}
-	result = gl_program_init(cache->gl, program, shaders, pk->n);
+	result = gl_program_init(cache->api, program, shaders, pk->n);
 	for (i = 0; i < pk->n; i++) {
 		gl_release_shader(cache, shaders[i]);
 	}
@@ -99,7 +97,7 @@ static void unload_program(void const *key, size_t ksz, void *data, void *link)
 	struct gl_cache *cache = link;
 	(void)key;
 	(void)ksz;
-	gl_program_term(cache->gl, data);
+	gl_program_term(cache->api, data);
 }
 
 struct rescache *gl_make_programs_cache(struct gl_cache *cache)
@@ -134,4 +132,3 @@ void gl_release_program(
 {
 	rescache_release(cache->programs, program);
 }
-

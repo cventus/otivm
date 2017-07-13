@@ -1,4 +1,3 @@
-
 struct gl_geometries;
 struct gl_cache;
 
@@ -9,4 +8,3 @@ int gl_geometries_init_wfobj(
 	char const *);
 
 void gl_geometries_term(struct gl_cache *cache, struct gl_geometries *geos);
-

@@ -1,4 +1,3 @@
-
 typedef int loadfn(void const *, size_t, void *, void *);
 
 struct gl_vertex
@@ -36,6 +35,5 @@ struct gl_cache
 	struct rescache *wf_mtllibs;
 
 	struct gl_material defmat;
-	struct gl_api *gl;
+	struct gl_api *api;
 };
-
