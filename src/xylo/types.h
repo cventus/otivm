@@ -1,4 +1,3 @@
-
 struct xylo
 {
 	struct gl_api *api;
@@ -17,4 +16,3 @@ struct xylo_glshape_set
 	struct xylo_glshape *shapes;
 	size_t n;
 };
-
