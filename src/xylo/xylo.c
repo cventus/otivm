@@ -4,8 +4,10 @@
 #include <stdalign.h>
 #include <string.h>
 #include <base/mem.h>
+
 #include <glapi/api.h>
 #include <glapi/core.h>
+#include <glam/program.h>
 
 #include "include/types.h"
 #include "private.h"
@@ -13,114 +15,119 @@
 
 #define GLSL(version,src) ("#version " #version " core\n" #src)
 
-static char const *vs_src = GLSL(330,
+#define VERTEX_SHADER(version,src) { GL_VERTEX_SHADER, GLSL(version, src) }
+#define GEOMETRY_SHADER(version,src) { GL_GEOMETRY_SHADER, GLSL(version, src) }
+#define FRAGMENT_SHADER(version,src) { GL_FRAGMENT_SHADER, GLSL(version, src) }
 
-in vec2 model_lpos;
-in vec2 model_wpos;
-in float weight;
+static struct gl_shader_source const sources[] = {
+	VERTEX_SHADER(330,
+	in vec2 model_lpos;
+	in vec2 model_wpos;
+	in float weight;
 
-uniform mat4 to_world;
-uniform mat4 to_clip;
+	uniform mat4 to_world;
+	uniform mat4 to_clip;
 
-out vertex_layout
-{
-	vec4 clip_lpos;
-	vec4 clip_wpos;
-	float weight;
-} vertex;
+	out vertex_layout
+	{
+		vec4 clip_lpos;
+		vec4 clip_wpos;
+		float weight;
+	} vertex;
 
-void main()
-{
-	// Each vertex contains two verticies: the on-curve point (lpos) and
-	// the off-curve point (wpos). Transform both. These are turned into
-	// polygons in the geometry shader.
-	mat4 m = to_clip * to_world;
+	void main()
+	{
+		// Each vertex contains two verticies: the on-curve point
+		// (lpos) and the off-curve point (wpos). Transform both. These
+		// are turned into polygons in the geometry shader.
+		mat4 m = to_clip * to_world;
 
-	vertex.clip_lpos = m * vec4(model_lpos, 0.0, 1.0);
-	vertex.clip_wpos = m * vec4(model_wpos, 0.0, 1.0);
-	vertex.weight = weight;
-}
-);
+		vertex.clip_lpos = m * vec4(model_lpos, 0.0, 1.0);
+		vertex.clip_wpos = m * vec4(model_wpos, 0.0, 1.0);
+		vertex.weight = weight;
+	}),
 
-static char const *gs_src = GLSL(330,
+	GEOMETRY_SHADER(330,
+	layout(lines) in;
+	layout(triangle_strip, max_vertices = 4) out;
 
-layout(lines) in;
-layout(triangle_strip, max_vertices = 4) out;
+	uniform vec4 center = vec4(0.0, 0.0, 0.0, 1.0);
 
-uniform vec4 center = vec4(0.0, 0.0, 0.0, 1.0);
+	in vertex_layout
+	{
+		vec4 clip_lpos;
+		vec4 clip_wpos;
+		float weight;
+	} vertices[2];
 
-in vertex_layout
-{
-	vec4 clip_lpos;
-	vec4 clip_wpos;
-	float weight;
-} vertices[2];
+	out fragment_layout
+	{
+		vec3 coord;
+	};
 
-out fragment_layout
-{
-	vec3 coord;
+	void main()
+	{
+		// clip space vertices
+		vec4 p0 = vertices[0].clip_wpos;
+		vec4 p1 = vertices[0].clip_lpos;
+		vec4 p2 = vertices[1].clip_lpos;
+		vec4 p3 = center;
+
+		// Perspective corrected quadratic curve vertices
+		float w = vertices[0].weight;
+		vec3 q0 = vec3(0.5/w, 0.0, 1.0/w);
+
+		// Shared vertices
+		vec3 q1 = vec3(0.0, 0.0, 1.0);
+		vec3 q2 = vec3(1.0, 1.0, 1.0);
+
+		// The second triangle is a fully internal/external part of the
+		// shape and should count towards the winding number. Set its
+		// vertex location to (0, 1), but anything above the x^2 curve
+		// is filled.
+		vec3 q3 = vec3(0.0, 1.0, 1.0);
+
+		// Create a strip of two triangles starting with the weighed
+		// off-curve point. It is the only point that has a weight
+		// other than one, and the second one should be flat z=1
+		// throughout.
+		gl_Position = p0;
+		coord = q0;
+		EmitVertex();
+		gl_Position = p1;
+		coord = q1;
+		EmitVertex();
+		gl_Position = p2;
+		coord = q2;
+		EmitVertex();
+		gl_Position = p3;
+		coord = q3;
+		EmitVertex();
+		EndPrimitive();
+	}),
+
+	FRAGMENT_SHADER(330,
+
+	in fragment_layout
+	{
+		vec3 coord;
+	};
+
+	out vec4 fill_mask;
+
+	void main()
+	{
+		float k = coord.x;
+		float l = coord.y;
+		float m = coord.z;
+		float c;
+
+		if (k*k - l*m >= 0) { c = 0.0; } else { c = 1.0; }
+		fill_mask = vec4(c, c, c, 1.0);
+	}),
+
+	{ 0, 0 }
 };
-
-void main()
-{
-	// clip space vertices
-	vec4 p0 = vertices[0].clip_wpos;
-	vec4 p1 = vertices[0].clip_lpos;
-	vec4 p2 = vertices[1].clip_lpos;
-	vec4 p3 = center;
-
-	// Perspective corrected quadratic curve vertices
-	float w = vertices[0].weight;
-	vec3 q0 = vec3(0.5/w, 0.0, 1.0/w);
-
-	// Shared vertices
-	vec3 q1 = vec3(0.0, 0.0, 1.0);
-	vec3 q2 = vec3(1.0, 1.0, 1.0);
-
-	// The second triangle is a fully internal/external part of the shape
-	// and should count towards the winding number. Set its vertex location
-	// to (0, 1), but anything above the x^2 curve is filled.
-	vec3 q3 = vec3(0.0, 1.0, 1.0);
-
-	// Create a strip of two triangles starting with the weighed off-curve
-	// point. It is the only point that has a weight other than one, and
-	// the second one should be flat z=1 throughout.
-	gl_Position = p0;
-	coord = q0;
-	EmitVertex();
-	gl_Position = p1;
-	coord = q1;
-	EmitVertex();
-	gl_Position = p2;
-	coord = q2;
-	EmitVertex();
-	gl_Position = p3;
-	coord = q3;
-	EmitVertex();
-	EndPrimitive();
-}
-);
-
-static char const *fs_src = GLSL(330,
-
-in fragment_layout
-{
-	vec3 coord;
-};
-
-out vec4 fill_mask;
-
-void main()
-{
-	float k = coord.x;
-	float l = coord.y;
-	float m = coord.z;
-	float c;
-
-	if (k*k - l*m >= 0) { c = 0.0; } else { c = 1.0; }
-	fill_mask = vec4(c, c, c, 1.0);
-}
-);
 
 enum
 {
@@ -129,30 +136,33 @@ enum
 	WEIGHT_VAL_ATTRIB = 2
 };
 
-static struct
+enum
 {
-	GLuint loc;
-	char const *name;
-} const attrib_locs[] = {
+	FILL_MASK_LOC = 0,
+};
+
+static struct gl_location const attrib[] = {
 	{ LINE_POS_ATTRIB, "model_lpos" },
 	{ WEIGHT_POS_ATTRIB, "model_wpos" },
-	{ WEIGHT_VAL_ATTRIB, "weight" }
-}, frag_locs[] = {
-	{ 0, "fill_mask" }
+	{ WEIGHT_VAL_ATTRIB, "weight" },
+	{ 0, 0 }
 };
 
-static struct
-{
-	ptrdiff_t offset;
-	char const *name;
-} const uniforms[] = {
-	{ offsetof(struct xylo, to_world), "to_world" },
-	{ offsetof(struct xylo, to_clip), "to_clip" },
-	{ offsetof(struct xylo, center), "center" }
+static struct gl_location const frag[] = {
+	{ FILL_MASK_LOC, "fill_mask" },
+	{ 0, 0 }
 };
 
-static GLuint make_shader_program(struct gl_api *api);
-static int get_uniforms(struct gl_api *api, GLuint program, struct xylo *dest);
+static struct gl_program_layout const prog = { sources, attrib, frag };
+
+#define UNIFORM(name) { offsetof(struct xylo, name), #name }
+
+static struct gl_uniform_layout const uniforms[] = {
+	UNIFORM(to_world),
+	UNIFORM(to_clip),
+	UNIFORM(center),
+	{ 0, 0 }
+};
 
 struct xylo *make_xylo(struct gl_api *api)
 {
@@ -161,17 +171,13 @@ struct xylo *make_xylo(struct gl_api *api)
 	if (!gl_get_core33(api)) {
 		return NULL;
 	}
-	
 	xylo = malloc(sizeof *xylo);
-	xylo->program = make_shader_program(api);
+	xylo->program = gl_make_program(api, &prog);
 	if (!xylo->program) {
 		free(xylo);
 		return NULL;
 	}
-	if (get_uniforms(api, xylo->program, xylo) != 0) {
-		free_xylo(xylo);
-		return NULL;
-	}
+	gl_get_uniforms(api, xylo, xylo->program, uniforms);
 	xylo->api = api;
 	return xylo;
 }
@@ -180,77 +186,10 @@ void free_xylo(struct xylo *xylo)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
 	if (xylo->program) {
-		gl->UseProgram(0);
+		gl_unuse_program(xylo->api, xylo->program);
 		gl->DeleteProgram(xylo->program);
 	}
 	free(xylo);
-}
-
-static GLuint make_shader_program(struct gl_api *api)
-{
-	struct {
-		GLenum type;
-		GLchar const **src;
-	} const shaders[] = {
-		{ GL_VERTEX_SHADER, (const GLchar **)&vs_src },
-		{ GL_GEOMETRY_SHADER, (const GLchar **)&gs_src },
-		{ GL_FRAGMENT_SHADER, (const GLchar **)&fs_src }
-	};
-
-	struct gl_core33 const *restrict gl = gl_get_core33(api);
-	char const *name;
-	GLuint names[3], shader, prog, result, loc;
-	GLint status;
-	size_t i, j;
-
-	result = prog = gl->CreateProgram();
-	for (i = 0; i < length_of(shaders); i++) {
-		shader = gl->CreateShader(shaders[i].type);
-		names[i] = shader;
-		gl->ShaderSource(shader, 1, shaders[i].src, NULL);
-		gl->CompileShader(shader);
-		gl->GetShaderiv(shader, GL_COMPILE_STATUS, &status);
-		if (status == 0) {
-			result = 0;
-			goto clean;
-		}
-		gl->AttachShader(prog, shader);
-	}
-	for (j = 0; j < length_of(attrib_locs); j++) {
-		loc = attrib_locs[j].loc;
-		name = attrib_locs[j].name;
-		gl->BindAttribLocation(prog, loc, name);
-	}
-	for (j = 0; j < length_of(frag_locs); j++) {
-		loc = frag_locs[j].loc;
-		name = frag_locs[j].name;
-		gl->BindFragDataLocation(prog, loc, name);
-	}
-	gl->LinkProgram(prog);
-	gl->GetProgramiv(prog, GL_LINK_STATUS, &status);
-	while (i-- > 0) {
-		gl->DetachShader(prog, names[i]);
-clean:		gl->DeleteShader(names[i]);
-	}
-	if (status == 0) {
-		gl->DeleteProgram(prog);
-	}
-	return result;
-}
-
-static int get_uniforms(struct gl_api *api, GLuint program, struct xylo *dest)
-{
-	size_t i;
-	GLuint *loc;
-	char const *name;
-	struct gl_core33 const *restrict gl = gl_get_core33(api);
-
-	for (i = 0; i < length_of(uniforms); i++) {
-		loc = (GLuint *)((char *)dest + uniforms[i].offset);
-		name = uniforms[i].name;
-		*loc = gl->GetUniformLocation(program, name);
-	}
-	return 0;
 }
 
 void xylo_begin(struct xylo *xylo)
