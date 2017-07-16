@@ -7,8 +7,10 @@
 #include <gm/matrix.h>
 #include <base/gbuf.h>
 
+#include "../include/xylo.h"
 #include "../include/types.h"
 #include "../include/draw.h"
+#include "../include/shape.h"
 #include "../private.h"
 
 #define run(fn) gl_run_test(is_test_interactive() ? __func__ : NULL, fn)
@@ -51,7 +53,7 @@ static int draw_(struct gl_api *gl, struct gl_test *test)
 {
 	struct xylo *xylo = make_xylo(gl);
 	struct xylo_glshape_set *set;
-	struct xylo_glshape *shape;
+	struct xylo_glshape const *shape;
 	float transform[16], proj[16], to_clip[16], to_world[16];
 
 	if (!xylo) { return -1; }
@@ -90,7 +92,7 @@ static int dlist_(struct gl_api *gl, struct gl_test *test)
 {
 	struct xylo *xylo = make_xylo(gl);
 	struct xylo_glshape_set *set;
-	struct xylo_glshape *shape;
+	struct xylo_glshape const *shape;
 	float transform[16], proj[16], to_clip[16];
 	struct xylo_dlist dlist;
 	struct xylo_dshape a, b, c;

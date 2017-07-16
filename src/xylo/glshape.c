@@ -9,6 +9,7 @@
 #include <glapi/core.h>
 
 #include "include/types.h"
+#include "include/shape.h"
 #include "private.h"
 #include "types.h"
 
@@ -175,7 +176,9 @@ struct xylo_glshape_set *xylo_make_glshape_set(
 	return set;
 }
 
-struct xylo_glshape *xylo_get_glshape(struct xylo_glshape_set *set, size_t i)
+struct xylo_glshape const *xylo_get_glshape(
+	struct xylo_glshape_set *set,
+	size_t i)
 {
 	return set->shapes + i;
 }

@@ -10,6 +10,7 @@
 #include <glam/program.h>
 
 #include "include/types.h"
+#include "include/xylo.h"
 #include "private.h"
 #include "types.h"
 
@@ -131,7 +132,7 @@ static struct gl_shader_source const sources[] = {
 
 enum
 {
-	FILL_MASK_LOC = 0,
+	FILL_MASK_LOC = 0
 };
 
 static struct gl_location const attrib[] = {
