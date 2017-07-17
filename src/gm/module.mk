@@ -8,12 +8,12 @@ GINC=$(addprefix $(GINCDIR)/,\
 override common_CPPFLAGS:=$(CPPFLAGS)
 
 # List of type generic tests
-tests=	matrix44 matrix44x
+tests=	matrix22 matrix22x matrix44 matrix44x
 
 gfiles=	vector2 \
 	vector3 vector3x \
 	quaternion quaternionx \
-	matrix22 \
+	matrix22 matrix22x \
 	matrix33 matrix33x \
 	matrix44 matrix44x \
 	array \
@@ -78,6 +78,7 @@ $(eval $S: CPPFLAGS:=-D'T=$1' -D'S=$2' -D'F=$3' -D'FPFX=$4' \
 $(call def_source,vector2 vector3 quaternion,vector)
 $(call def_source,matrix22 matrix33 matrix44,matrix)
 $(call def_source,vector3x)
+$(call def_source,matrix22x)
 $(call def_source,matrix33x)
 $(call def_source,matrix44x)
 $(call def_source,quaternionx)
@@ -87,19 +88,21 @@ $(call def_source,plane)
 
 # The same for tests, but tests do not have generic headers
 $(call def_test_source,matrix22 matrix33 matrix44,matrix)
+$(call def_test_source,matrix22x)
 $(call def_test_source,matrix44x)
-$(call def_test_source,equals)
 
 $(call def_cppextra,vector2,-D'L=2')
 $(call def_cppextra,vector3 vector3x,-D'L=3')
 $(call def_cppextra,quaternion quaternionx,-D'L=4' -D'VECTOR_TAG=q')
-$(call def_cppextra,matrix22,-D'M=2' -D'N=2')
+$(call def_cppextra,matrix22 matrix22x,-D'M=2' -D'N=2')
 $(call def_cppextra,matrix33 matrix33x,-D'M=3' -D'N=3')
 $(call def_cppextra,matrix44 matrix44x,-D'M=4' -D'N=4')
 
 $(call def_header,vector,vector2 vector3 vector3x)
 $(call def_header,quaternion,quaternion quaternionx)
-$(call def_header,matrix,matrix22 matrix33 matrix33x matrix44 matrix44x)
+$(call def_header,matrix,matrix22 matrix22x)
+$(call def_header,matrix,matrix33 matrix33x)
+$(call def_header,matrix,matrix44 matrix44x)
 $(call def_header,misc,misc)
 $(call def_header,array,array)
 $(call def_header,plane,plane)
@@ -112,4 +115,3 @@ $(call def_type_cpp,long double,l,l,LDBL,L,L)
 OBJ+=$(foreach F,$(gfiles),$(foreach X,$(EXT_O),$(OBJDIR)/$F$X))
 GSRC+=$(foreach F,$(gfiles),$(foreach X,$(EXT_H),$(GSRCDIR)/$F$X))
 TEST_OBJ+=$(foreach T,$(tests),$(addprefix $(OBJDIR)/test/$T,$(EXT_O)))
-
