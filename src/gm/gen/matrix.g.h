@@ -114,4 +114,3 @@ int mneareqe(T const a[static M*N], T const b[static M*N], T rel_e, T abs_e);
 #undef mneareq
 #define mneareq MAT(neareq)
 int mneareq(T const a[static M*N], T const b[static M*N]);
-

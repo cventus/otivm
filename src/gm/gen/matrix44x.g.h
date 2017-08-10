@@ -67,4 +67,3 @@ T *morthographic(T a[static M*N], T left, T right, T bottom, T top, T near, T fa
 #undef mquat
 #define mquat MAT(quat)
 T *mquat(T dest[static M*N], T const q[4]);
-
