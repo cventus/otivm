@@ -31,6 +31,13 @@ void wbuf_init(struct wbuf buf[static 1])
 	buf->begin = buf->end = buf->bound = NULL;
 }
 
+void wbuf_init_buffer(struct wbuf buf[static 1], void *buffer, size_t size)
+{
+	assert(buffer != NULL);
+	buf->begin = buf->end = buffer;
+	buf->bound = (char *)buffer + size;
+}
+
 int wbuf_reserve(struct wbuf buf[static 1], size_t alloc_size)
 {
 	size_t size, use;
@@ -97,7 +104,7 @@ size_t wbuf_capacity(struct wbuf const buf[static 1])
 	return buf->begin ? (char *)buf->bound - (char *)buf->begin : 0;
 }
 
-void *wbuf_get(struct wbuf buf[static 1], size_t offset)
+void *wbuf_get(struct wbuf const buf[static 1], size_t offset)
 {
 	assert(buf != NULL);
 	return (char *)buf->begin + offset;

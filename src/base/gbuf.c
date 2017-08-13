@@ -96,6 +96,13 @@ int gbuf_init_copy(struct gbuf *dest, struct gbuf const *src)
 	return 0;
 }
 
+void gbuf_init_buffer(struct gbuf *buf, void *buffer, size_t size)
+{
+	assert(buffer != NULL);
+	buf->begin[0] = buf->end[0] = buffer;
+	buf->begin[1] = buf->end[1] = (char *)buffer + size;
+}
+
 void gbuf_term(struct gbuf *buf)
 {
 	assert(buf != NULL);

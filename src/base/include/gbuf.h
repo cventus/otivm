@@ -15,6 +15,17 @@ void gbuf_init(struct gbuf *buf);
 /* Copy a gap buffer (including capacity and offset) */
 int gbuf_init_copy(struct gbuf *dest, struct gbuf const *src);
 
+/* Initialize a gap buffer with a pre-allocated memory block. If the block
+   was returned by `malloc(3)` or its related functions, then the buffer
+   effectively takes ownership of the block (and maybe reallocates it) if the
+   typical `gbuf_alloc`, `gbuf_write`, `gbuf_trim`, `gbuf_term`, etc. functions
+   are called on it. Alternatively, if only const functions or the static
+   allocation functions `gbuf_salloc`, `gbuf_swrite`, or `gbuf_salign` (and
+   others which do not re-allocate) are called on it, the buffer is at most
+   written to, but is not freed or reallocated. In that case e.g. a statically
+   allocated buffer can be used. */
+void gbuf_init_buffer(struct gbuf *buf, void *buffer, size_t size);
+
 /* Free buffer, if one has been allocated, and clear out the structure. The
    passed in `buf` itself is not freed. */
 void gbuf_term(struct gbuf *buf);
