@@ -8,7 +8,7 @@
 
 #include "include/gbuf.h"
 #include "include/mem.h"
-#define MINSIZE sizeof(double)
+#define MINSIZE (sizeof(double) * 10)
 #define MINALIGN alignof(max_align_t)
 
 struct gbuf const empty_gbuf = { { NULL, NULL} , { NULL, NULL } };
@@ -67,17 +67,19 @@ static int validate_range(struct gbuf const *buf, size_t offset, size_t size)
 	return 0;
 }
 
-void init_gbuf(struct gbuf *buf)
+void gbuf_init(struct gbuf *buf)
 {
 	assert(buf != NULL);
 	*buf = empty_gbuf;
 }
 
-int copy_gbuf(struct gbuf *dest, struct gbuf const *src)
+int gbuf_init_copy(struct gbuf *dest, struct gbuf const *src)
 {
 	size_t cap;
 	char *p;
 
+	assert(dest != NULL);
+	assert(src != NULL);
 	cap = gbuf_capacity(src);
 	if (cap > 0) {
 		p = malloc(cap);
@@ -89,17 +91,17 @@ int copy_gbuf(struct gbuf *dest, struct gbuf const *src)
 		(void)memcpy(dest->begin[0], src->begin[0], gbuf_lsize(src));
 		(void)memcpy(dest->begin[1], src->begin[1], gbuf_rsize(src));
 	} else {
-		init_gbuf(dest);
+		gbuf_init(dest);
 	}
 	return 0;
 }
 
-void term_gbuf(struct gbuf *buf)
+void gbuf_term(struct gbuf *buf)
 {
 	assert(buf != NULL);
 	if (buf->begin[0]) {
 		free(buf->begin[0]);
-		init_gbuf(buf);
+		gbuf_init(buf);
 	}
 }
 
