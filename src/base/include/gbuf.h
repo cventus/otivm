@@ -10,14 +10,25 @@
 extern struct gbuf { void *begin[2], *end[2]; } const empty_gbuf;
 
 /* Initialize a gap buffer to become similar to `empty_gbuf`. */
-void init_gbuf(struct gbuf *buf);
+void gbuf_init(struct gbuf *buf);
 
 /* Copy a gap buffer (including capacity and offset) */
-int copy_gbuf(struct gbuf *dest, struct gbuf const *src);
+int gbuf_init_copy(struct gbuf *dest, struct gbuf const *src);
+
+/* Initialize a gap buffer with a pre-allocated memory block. If the block
+   was returned by `malloc(3)` or its related functions, then the buffer
+   effectively takes ownership of the block (and maybe reallocates it) if the
+   typical `gbuf_alloc`, `gbuf_write`, `gbuf_trim`, `gbuf_term`, etc. functions
+   are called on it. Alternatively, if only const functions or the static
+   allocation functions `gbuf_salloc`, `gbuf_swrite`, or `gbuf_salign` (and
+   others which do not re-allocate) are called on it, the buffer is at most
+   written to, but is not freed or reallocated. In that case e.g. a statically
+   allocated buffer can be used. */
+void gbuf_init_buffer(struct gbuf *buf, void *buffer, size_t size);
 
 /* Free buffer, if one has been allocated, and clear out the structure. The
    passed in `buf` itself is not freed. */
-void term_gbuf(struct gbuf *buf);
+void gbuf_term(struct gbuf *buf);
 
 /* Compare contents of a and b with `memcmp` without changing the offsets of
    either gap buffer. */
@@ -72,7 +83,7 @@ size_t gbuf_nmemb(struct gbuf const *buf, size_t elem_size);
    including the gap). */
 void *gbuf_get(struct gbuf *buf, size_t offset);
 
-/* Get the current byte offset of the insertion point (the gap). */ 
+/* Get the current byte offset of the insertion point (the gap). */
 size_t gbuf_offset(struct gbuf const *buf);
 
 /* Move the point of insertion (the gap) so that it begins `offset` bytes from
@@ -90,9 +101,20 @@ int gbuf_move_by(struct gbuf *buf, ptrdiff_t rel_offset);
    on allocation failure. */
 int gbuf_align(struct gbuf *buf, size_t align);
 
+/* Insert padding at the beginning of the gap, if necessary, so that the next
+   allocation has the specified alignment. Return zero on success, and non-zero
+   if there's not enough space in the gap buffer. This function never allocates
+   memory dynamically. */
+int gbuf_salign(struct gbuf *buf, size_t align);
+
 /* Reserve `size` bytes from the beginning of the gap and return a pointer to
    the newly allocated area, or NULL if memory allocation fails. */
 void *gbuf_alloc(struct gbuf *buf, size_t size);
+
+/* Reserve `size` bytes from the beginning of the gap and return a pointer to
+   the newly allocated area, or NULL if there is not enough space in the gap
+   buffer. This function never allocates memory dynamically. */
+void *gbuf_salloc(struct gbuf *buf, size_t size);
 
 /* Remove content from buffer by expanding the gap towards `lbegin` by `size`
    bytes. Return non-zero if `size` is greater than the size of the buffer. */
@@ -111,6 +133,12 @@ int gbuf_erase(struct gbuf *buf, size_t offset, size_t size);
    copy of `data`. Return a pointer to the newly allocated area, or NULL if
    memory allocation fails. */
 void *gbuf_write(struct gbuf *buf, void const *data, size_t size);
+
+/* Reserve `size` bytes from the beginning of the gap and initialize it with a
+   copy of `data`. Return a pointer to the newly allocated area, or NULL if
+   there isn't enough space in the gap. This function never allocates memory
+   dynamically. */
+void *gbuf_swrite(struct gbuf *buf, void const *data, size_t size);
 
 /* Copy `gbuf_size(src)` bytes from the buffer to `dest`. Return `dest`. */
 void *gbuf_copy(void *dest, struct gbuf const *src);

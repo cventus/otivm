@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -121,7 +120,7 @@ static int init(void)
 {
 	struct gbuf buf;
 
-	init_gbuf(&buf);
+	gbuf_init(&buf);
 	assert_used(&buf, 0);
 	assert_available(&buf, 0);
 	assert_capacity(&buf, 0);
@@ -131,7 +130,7 @@ static int init(void)
 	if (gbuf_retract(&buf, 0)) { fail_test("failed to retract"); }
 	gbuf_append(&buf);
 	gbuf_prepend(&buf);
-	term_gbuf(&buf);
+	gbuf_term(&buf);
 
 	return ok;
 }
@@ -192,12 +191,12 @@ static int compare(void)
 	for (i = 0; i < length_of(contents); i++) {
 		for (j = 0; j < 2; j++) {
 			p = bufs[i] + j;
-			init_gbuf(p);
+			gbuf_init(p);
 			gbuf_reserve(p, contents[i].size + rand()%100);
 			gbuf_write(p, contents[i].data, contents[i].size);
 		}
 	}
-	init_gbuf(&empty);
+	gbuf_init(&empty);
 
 	/* Everything equals itself */
 	for (i = 0; i < length_of(contents); i++) {
@@ -213,8 +212,8 @@ static int compare(void)
 	}
 
 	for (i = 0; i < length_of(contents); i++) {
-		term_gbuf(bufs[i]);
-		term_gbuf(bufs[i] + 1);
+		gbuf_term(bufs[i]);
+		gbuf_term(bufs[i] + 1);
 	}
 
 	return ok;
@@ -227,7 +226,7 @@ static int copy(void)
 	int val;
 
 	for (i = 1; i <= 100; i++) {
-		init_gbuf(&buf);
+		gbuf_init(&buf);
 		for (j = 0; j < 100; j++) {
 			val = rand();
 			if (val & 1) {
@@ -239,7 +238,7 @@ static int copy(void)
 				}
 			}
 		}
-		copy_gbuf(&copy, &buf);
+		gbuf_init_copy(&copy, &buf);
 		if (gbuf_size(&copy) != gbuf_size(&buf)) {
 			fail_test("copied size %zd != source size %zd\n",
 				gbuf_size(&copy),
@@ -253,8 +252,8 @@ static int copy(void)
 		if (gbuf_cmp(&copy, &buf) != 0) {
 			fail_test("content of copy different from source");
 		}
-		term_gbuf(&copy);
-		term_gbuf(&buf);
+		gbuf_term(&copy);
+		gbuf_term(&buf);
 	}
 
 	return ok;
@@ -264,7 +263,7 @@ static int reserve(void)
 {
 	struct gbuf buf;
 
-	init_gbuf(&buf);
+	gbuf_init(&buf);
 	
 	assert_capacity(&buf, 0);
 	assert_sizes(&buf);
@@ -278,7 +277,7 @@ static int reserve(void)
 	assert_capacity_ge(&buf, 1000);
 	assert_sizes(&buf);
 
-	term_gbuf(&buf);
+	gbuf_term(&buf);
 
 	assert_capacity(&buf, 0);
 	assert_sizes(&buf);
@@ -291,14 +290,14 @@ static int alloc(void)
 	struct gbuf buf;
 	size_t i;
 
-	init_gbuf(&buf);
+	gbuf_init(&buf);
 	
 	for (i = 1; i <= 100; i++) {
 		try_alloc(&buf, 100);
 		assert_used(&buf, i * 100);
 	}
 
-	term_gbuf(&buf);
+	gbuf_term(&buf);
 
 	assert_used(&buf, 0);
 	assert_capacity(&buf, 0);
@@ -313,7 +312,7 @@ static int write(void)
 
 	char const *data = "hello, world";
 
-	init_gbuf(&buf);
+	gbuf_init(&buf);
 	
 	for (i = 0, len = strlen(data); i < len; i++) {
 		try_write(&buf, data + i, 1);
@@ -329,7 +328,7 @@ static int write(void)
 		ok = -1;
 	}
 
-	term_gbuf(&buf);
+	gbuf_term(&buf);
 	assert_used(&buf, 0);
 	assert_capacity(&buf, 0);
 
@@ -343,7 +342,7 @@ static int array(void)
 	int const data[6] = { -1, 0, 1, 2, 3, 4 };
 	int target[6];
 
-	init_gbuf(&buf);
+	gbuf_init(&buf);
 	
 	for (i = 0; i < 6; i++) {
 		try_write(&buf, data + i, sizeof(data[i]));
@@ -365,7 +364,7 @@ static int array(void)
 		}
 	}
 
-	term_gbuf(&buf);
+	gbuf_term(&buf);
 	assert_used(&buf, 0);
 	assert_capacity(&buf, 0);
 
@@ -384,7 +383,7 @@ static int align(void)
 	long int l = 4;
 	double d = 5;
 
-	init_gbuf(&buf);
+	gbuf_init(&buf);
 
 	if (gbuf_align(&buf, alignof(c))) { fail_test("out of memory\n"); }
 	gbuf_write(&buf, &c, sizeof c);
@@ -401,7 +400,7 @@ static int align(void)
 	if (gbuf_align(&buf, alignof(d))) { fail_test("out of memory\n"); }
 	gbuf_write(&buf, &d, sizeof d);
 
-	term_gbuf(&buf);
+	gbuf_term(&buf);
 
 	return ok;
 }
@@ -415,7 +414,7 @@ static int keep_aligned(void)
 	for (nmemb = 1; nmemb <= 10; nmemb++)
 		/* defined hypothetical struct */
 		size = nmemb*align;
-		init_gbuf(&buf);
+		gbuf_init(&buf);
 		for (i = 0; i < 1000; i++) {
 			/* insert at random location */
 			gbuf_move_to(&buf, size * (i ? rand() % i : 0));
@@ -428,7 +427,7 @@ static int keep_aligned(void)
 					gbuf_capacity(&buf));
 			}
 		}
-		term_gbuf(&buf);
+		gbuf_term(&buf);
 	}
 	return ok;
 }
@@ -437,7 +436,7 @@ static int edit(void)
 {
 	struct gbuf buf;
 
-	init_gbuf(&buf);
+	gbuf_init(&buf);
 	gbuf_reserve(&buf, 1);
 
 	try_write(&buf, "llo", 3);
@@ -489,7 +488,7 @@ static int edit(void)
 	gbuf_trim(&buf);
 	assert_streq(buf.begin[0], "hello to you world");
 
-	term_gbuf(&buf);
+	gbuf_term(&buf);
 
 	return ok;
 }
@@ -511,7 +510,7 @@ static int erase(void)
 	size_t sz;
 
 	sz = sizeof(int);
-	init_gbuf(&buf);
+	gbuf_init(&buf);
 	/* Add items in linear order */
 	for (i = 0; i < (int)length_of(values); i++) {
 		gbuf_write(&buf, &i, sz);
@@ -523,7 +522,7 @@ static int erase(void)
 		gbuf_erase(&buf, values[i]*sz, sz);
 		if (find(&buf, it)) fail_test("erased item %d found!\n", it);
 	}
-	term_gbuf(&buf);
+	gbuf_term(&buf);
 	return 0;
 }
 
@@ -542,4 +541,3 @@ struct test const tests[] = {
 	{ erase,	"erase items" },
 	{ NULL, NULL }
 };
-

@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -9,7 +8,7 @@
 
 #include "include/gbuf.h"
 #include "include/mem.h"
-#define MINSIZE sizeof(double)
+#define MINSIZE (sizeof(double) * 10)
 #define MINALIGN alignof(max_align_t)
 
 struct gbuf const empty_gbuf = { { NULL, NULL} , { NULL, NULL } };
@@ -68,17 +67,19 @@ static int validate_range(struct gbuf const *buf, size_t offset, size_t size)
 	return 0;
 }
 
-void init_gbuf(struct gbuf *buf)
+void gbuf_init(struct gbuf *buf)
 {
 	assert(buf != NULL);
 	*buf = empty_gbuf;
 }
 
-int copy_gbuf(struct gbuf *dest, struct gbuf const *src)
+int gbuf_init_copy(struct gbuf *dest, struct gbuf const *src)
 {
 	size_t cap;
 	char *p;
 
+	assert(dest != NULL);
+	assert(src != NULL);
 	cap = gbuf_capacity(src);
 	if (cap > 0) {
 		p = malloc(cap);
@@ -90,17 +91,24 @@ int copy_gbuf(struct gbuf *dest, struct gbuf const *src)
 		(void)memcpy(dest->begin[0], src->begin[0], gbuf_lsize(src));
 		(void)memcpy(dest->begin[1], src->begin[1], gbuf_rsize(src));
 	} else {
-		init_gbuf(dest);
+		gbuf_init(dest);
 	}
 	return 0;
 }
 
-void term_gbuf(struct gbuf *buf)
+void gbuf_init_buffer(struct gbuf *buf, void *buffer, size_t size)
+{
+	assert(buffer != NULL);
+	buf->begin[0] = buf->end[0] = buffer;
+	buf->begin[1] = buf->end[1] = (char *)buffer + size;
+}
+
+void gbuf_term(struct gbuf *buf)
 {
 	assert(buf != NULL);
 	if (buf->begin[0]) {
 		free(buf->begin[0]);
-		init_gbuf(buf);
+		gbuf_init(buf);
 	}
 }
 
@@ -304,7 +312,7 @@ int gbuf_move_to(struct gbuf *buf, size_t offset)
 		buf->begin[1] = (char *)buf->begin[1] - diff;
 		(void)memmove(buf->begin[1], buf->end[0], diff);
 	} else if (gap < offset) {
-		if (offset > gbuf_size(buf)) { return -1; } 
+		if (offset > gbuf_size(buf)) { return -1; }
 		diff = offset - gap;
 		(void)memmove(buf->end[0], buf->begin[1], diff);
 		buf->begin[1] = (char *)buf->begin[1] + diff;
@@ -319,7 +327,10 @@ int gbuf_move_by(struct gbuf *buf, ptrdiff_t rel)
 	return gbuf_move_to(buf, gbuf_offset(buf) + rel);
 }
 
-int gbuf_align(struct gbuf *buf, size_t align)
+static int do_align(
+	struct gbuf *buf,
+	size_t align,
+	void *alloc(struct gbuf *, size_t))
 {
 	size_t off, pad;
 	assert(buf != NULL);
@@ -327,7 +338,17 @@ int gbuf_align(struct gbuf *buf, size_t align)
 	if (align == 1 || buf->begin[0] == NULL) return 0;
 	off = gbuf_offset(buf);
 	pad = align_to(off, align) - off;
-	return gbuf_alloc(buf, pad) ? 0 : -1;
+	return alloc(buf, pad) ? 0 : -1;
+}
+
+int gbuf_align(struct gbuf *buf, size_t align)
+{
+	return do_align(buf, align, gbuf_alloc);
+}
+
+int gbuf_salign(struct gbuf *buf, size_t align)
+{
+	return do_align(buf, align, gbuf_salloc);
 }
 
 void *gbuf_alloc(struct gbuf *buf, size_t size)
@@ -343,10 +364,27 @@ void *gbuf_alloc(struct gbuf *buf, size_t size)
 	return result;
 }
 
+void *gbuf_salloc(struct gbuf *buf, size_t size)
+{
+	void *result;
+	assert(buf != NULL);
+	if (size > gbuf_available(buf)) { return NULL; }
+	result = buf->end[0];
+	buf->end[0] = (char*)buf->end[0] + size;
+	return result;
+}
+
 void *gbuf_write(struct gbuf *buf, void const *data, size_t size)
 {
 	assert(buf != NULL);
 	void *result = gbuf_alloc(buf, size);
+	return result ? memcpy(result, data, size) : NULL;
+}
+
+void *gbuf_swrite(struct gbuf *buf, void const *data, size_t size)
+{
+	assert(buf != NULL);
+	void *result = gbuf_salloc(buf, size);
 	return result ? memcpy(result, data, size) : NULL;
 }
 
@@ -372,6 +410,8 @@ int gbuf_delete(struct gbuf *buf, size_t size)
 int gbuf_erase(struct gbuf *buf, size_t offset, size_t size)
 {
 	size_t lsize, rsize;
+
+	assert(buf != NULL);
 
 	if (validate_range(buf, offset, size)) { return -1; }
 	if (size == 0) { return 0; } /* early exit */
@@ -400,6 +440,8 @@ int gbuf_erase(struct gbuf *buf, size_t offset, size_t size)
 void *gbuf_copy(void *dest, struct gbuf const *src)
 {
 	size_t lsize, rsize;
+	assert(src != NULL);
+	assert(dest != NULL);
 	if (src->begin[0]) {
 		lsize = gbuf_lsize(src);
 		rsize = gbuf_rsize(src);
@@ -412,6 +454,9 @@ void *gbuf_copy(void *dest, struct gbuf const *src)
 int gbuf_read(void *dest, struct gbuf *src, size_t offset, size_t size)
 {
 	size_t srcoff, lsize, rsize;
+
+	assert(src != NULL);
+	assert(dest != NULL);
 
 	if (validate_range(src, offset, size)) { return -1; }
 

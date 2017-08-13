@@ -25,16 +25,25 @@ static size_t newsize(size_t size, size_t hint)
 	return nsize;
 }
 
-void wbuf_init(struct wbuf buf[static 1])
+void wbuf_init(struct wbuf *buf)
 {
+	assert(buf != NULL);
 	buf->begin = buf->end = buf->bound = NULL;
 }
 
-int wbuf_reserve(struct wbuf buf[static 1], size_t alloc_size)
+void wbuf_init_buffer(struct wbuf *buf, void *buffer, size_t size)
+{
+	assert(buffer != NULL);
+	buf->begin = buf->end = buffer;
+	buf->bound = (char *)buffer + size;
+}
+
+int wbuf_reserve(struct wbuf *buf, size_t alloc_size)
 {
 	size_t size, use;
 	char *p;
 
+	assert(buf != NULL);
 	if (wbuf_available(buf) < alloc_size) {
 		size = wbuf_capacity(buf);
 		use = wbuf_size(buf);
@@ -51,8 +60,9 @@ int wbuf_reserve(struct wbuf buf[static 1], size_t alloc_size)
 	return 0;
 }
 
-int wbuf_trim(struct wbuf buf[static 1])
+int wbuf_trim(struct wbuf *buf)
 {
+	assert(buf != NULL);
 	size_t use = wbuf_size(buf);
 	char *p = realloc(buf->begin, use);
 	if (!p) { return -1; }
@@ -61,53 +71,69 @@ int wbuf_trim(struct wbuf buf[static 1])
 	return 0;
 }
 
-void wbuf_term(struct wbuf buf[static 1])
+void wbuf_term(struct wbuf *buf)
 {
+	assert(buf != NULL);
 	if (buf->begin) {
 		free(buf->begin);
 		wbuf_init(buf);
 	}
 }
 
-size_t wbuf_nmemb(struct wbuf const buf[static 1], size_t elem_size)
+size_t wbuf_nmemb(struct wbuf const *buf, size_t elem_size)
 {
+	assert(buf != NULL);
 	return wbuf_size(buf) / elem_size;
 }
 
-size_t wbuf_size(struct wbuf const buf[static 1])
+size_t wbuf_size(struct wbuf const *buf)
 {
+	assert(buf != NULL);
 	return buf->begin ? (char *)buf->end - (char *)buf->begin : 0;
 }
 
-size_t wbuf_available(struct wbuf const buf[static 1])
+size_t wbuf_available(struct wbuf const *buf)
 {
+	assert(buf != NULL);
 	return buf->begin ? (char *)buf->bound - (char *)buf->end : 0;
 }
 
-size_t wbuf_capacity(struct wbuf const buf[static 1])
+size_t wbuf_capacity(struct wbuf const *buf)
 {
+	assert(buf != NULL);
 	return buf->begin ? (char *)buf->bound - (char *)buf->begin : 0;
 }
 
-void *wbuf_get(struct wbuf buf[static 1], size_t offset)
+void *wbuf_get(struct wbuf const *buf, size_t offset)
 {
+	assert(buf != NULL);
 	return (char *)buf->begin + offset;
 }
 
-int wbuf_align(struct wbuf buf[static 1], size_t align)
+static int do_align(
+	struct wbuf *buf,
+	size_t align,
+	void *alloc(struct wbuf *, size_t))
 {
 	size_t off, pad;
+	assert(buf != NULL);
 	assert(is_power_of_2(align));
 	if (align == 1 || buf->begin == NULL) return 0;
 	off = wbuf_size(buf);
 	pad = align_to(off, align) - off;
-	return wbuf_alloc(buf, pad) ? 0 : -1;
+	return alloc(buf, pad) ? 0 : -1;
 }
 
-void *wbuf_alloc(struct wbuf buf[static 1], size_t size)
+int wbuf_align(struct wbuf *buf, size_t align)
+{
+	return do_align(buf, align, wbuf_alloc);
+}
+
+void *wbuf_alloc(struct wbuf *buf, size_t size)
 {
 	void *result;
 
+	assert(buf != NULL);
 	if (wbuf_reserve(buf, size)) {
 		result = NULL;
 	} else {
@@ -117,39 +143,63 @@ void *wbuf_alloc(struct wbuf buf[static 1], size_t size)
 	return result;
 }
 
-void *wbuf_write(struct wbuf buf[static 1], void const *data, size_t size)
+void *wbuf_write(struct wbuf *buf, void const *data, size_t size)
 {
+	assert(buf != NULL);
 	void *result = wbuf_alloc(buf, size);
-	if (result) { memcpy(result, data, size); }
+	if (result) { (void)memcpy(result, data, size); }
 	return result;
 }
 
-int wbuf_retract(struct wbuf buf[static 1], size_t size)
+int wbuf_salign(struct wbuf *buf, size_t align)
 {
 	assert(buf != NULL);
+	return do_align(buf, align, wbuf_salloc);
+}
 
+void *wbuf_salloc(struct wbuf *buf, size_t size)
+{
+	void *result;
+
+	assert(buf != NULL);
+	if (wbuf_available(buf) < size) { return NULL; }
+	result = buf->end;
+	buf->end = (char*)buf->end + size;
+	return result;
+}
+
+void *wbuf_swrite(struct wbuf *buf, void const *data, size_t size)
+{
+	assert(buf != NULL);
+	void *result = wbuf_salloc(buf, size);
+	if (result) { (void)memcpy(result, data, size); }
+	return result;
+}
+
+int wbuf_retract(struct wbuf *buf, size_t size)
+{
+	assert(buf != NULL);
 	if (size > wbuf_size(buf)) { return -1; }
 	buf->end = (char *)buf->end - size;
-
 	return 0;
 }
 
-int wbuf_pop(struct wbuf buf[static 1], void *data, size_t size)
+int wbuf_pop(struct wbuf *buf, void *data, size_t size)
 {
 	assert(buf != NULL);
-
 	if (size > wbuf_size(buf)) { return -1; }
 	(void)memmove(data, (char *)buf->end - size, size);
 	return wbuf_retract(buf, size);
 }
 
-void *wbuf_concat(struct wbuf dest[static 1], struct wbuf const src[static 1])
+void *wbuf_concat(struct wbuf *dest, struct wbuf const *src)
 {
+	assert(src != NULL);
+	assert(dest != NULL);
 	return wbuf_write(dest, src->begin, wbuf_size(src));
 }
 
-void *wbuf_copy(void *dest, struct wbuf const src[static 1])
+void *wbuf_copy(void *dest, struct wbuf const *src)
 {
 	return src->begin ? memcpy(dest, src->begin, wbuf_size(src)) : dest;
 }
-
