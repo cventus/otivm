@@ -19,6 +19,13 @@ void wbuf_init_buffer(struct wbuf *buf, void *buffer, size_t size);
    itself is not freed. */
 void wbuf_term(struct wbuf *buf);
 
+/* Move writing pointer (`end`) back to beginning, but don't touch contents
+   of buffer. */
+void wbuf_rewind(struct wbuf *buf);
+
+/* Swap buffers and offsets */
+void wbuf_swap(struct wbuf *a, struct wbuf *b);
+
 /* Ensure that there is `size` free space, reallocating the buffer if
    necessary. Return zero on success, negative on error. This call might
    re-allocate the buffer, and any pointer into it is potentially invalidated.

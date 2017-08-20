@@ -54,12 +54,12 @@ void xylo_draw(struct xylo *xylo, struct xylo_draw *draw)
 void xylo_init_dlist(struct xylo_dlist *list)
 {
 	list->header.type = xylo_dlist;
-	init_gbuf(&list->elements);
+	gbuf_init(&list->elements);
 }
 
 void xylo_term_dlist(struct xylo_dlist *list)
 {
-	term_gbuf(&list->elements);
+	gbuf_term(&list->elements);
 }
 
 struct xylo_dlist *xylo_dlist_cast(struct xylo_draw *d)

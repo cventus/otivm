@@ -38,6 +38,20 @@ void wbuf_init_buffer(struct wbuf *buf, void *buffer, size_t size)
 	buf->bound = (char *)buffer + size;
 }
 
+void wbuf_rewind(struct wbuf *buf)
+{
+	assert(buf != NULL);
+	buf->end = buf->begin;
+}
+
+void wbuf_swap(struct wbuf *a, struct wbuf *b)
+{
+	struct wbuf tmp;
+	tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
+
 int wbuf_reserve(struct wbuf *buf, size_t alloc_size)
 {
 	size_t size, use;
@@ -187,9 +201,9 @@ int wbuf_retract(struct wbuf *buf, size_t size)
 int wbuf_pop(struct wbuf *buf, void *data, size_t size)
 {
 	assert(buf != NULL);
-	if (size > wbuf_size(buf)) { return -1; }
-	(void)memmove(data, (char *)buf->end - size, size);
-	return wbuf_retract(buf, size);
+	if (wbuf_retract(buf, size)) { return -1; }
+	(void)memmove(data, buf->end, size);
+	return 0;
 }
 
 void *wbuf_concat(struct wbuf *dest, struct wbuf const *src)
