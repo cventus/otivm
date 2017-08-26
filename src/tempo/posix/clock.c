@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
 
@@ -43,4 +44,22 @@ usec64 pfclock_usec(struct pfclock *c)
 	s = ts.tv_sec - c->ps_epoch;
 	us = ts.tv_nsec / 1000;
 	return s * 1000000 + us;
+}
+
+struct pfclock *pfclock_make(void)
+{
+	struct pfclock *p;
+	p = malloc(sizeof *p);
+	if (p) {
+		if (init_posix_pfclock(p)) {
+			free(p);
+			return NULL;
+		}
+	}
+	return p;
+}
+
+void pfclock_free(struct pfclock *p)
+{
+	free(p);
 }

@@ -10,6 +10,12 @@ struct pfclock;
   epoch), similar to time(2). */
 usec64 pfclock_usec(struct pfclock *);
 
+/* Create default time source */
+struct pfclock *pfclock_make(void);
+
+/* Free time source */
+void pfclock_free(struct pfclock *);
+
 /* struct stopwatch - calculate elapsed time based on timestamps with support
    for pausing and store times in microsecond precision. A separate source to
    samples (monotone) time stamps is needed and a single source can be used to
