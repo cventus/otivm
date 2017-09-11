@@ -8,6 +8,7 @@
 #include <glapi/api.h>
 #include <glapi/core.h>
 #include <glam/program.h>
+#include <gm/matrix.h>
 
 #include "include/types.h"
 #include "include/xylo.h"
@@ -16,20 +17,16 @@
 
 #define GLSL(version,src) ("#version " #version " core\n" #src)
 
-#define VERTEX_SHADER(version,src) { GL_VERTEX_SHADER, GLSL(version, src) }
-#define GEOMETRY_SHADER(version,src) { GL_GEOMETRY_SHADER, GLSL(version, src) }
-#define FRAGMENT_SHADER(version,src) { GL_FRAGMENT_SHADER, GLSL(version, src) }
-
-static struct gl_shader_source const sources[] = {
-	VERTEX_SHADER(330,
+static struct gl_shader_source const vertex_shader = {
+	GL_VERTEX_SHADER,
+	GLSL(330,
 	in vec2 model_lpos;
 	in vec2 model_wpos;
 	in float weight;
 
-	uniform mat4 to_world;
-	uniform mat4 to_clip;
+	uniform mat4 mvp;
 
-	out vertex_layout
+	out vertex_data
 	{
 		vec4 clip_lpos;
 		vec4 clip_wpos;
@@ -41,27 +38,28 @@ static struct gl_shader_source const sources[] = {
 		// Each vertex contains two verticies: the on-curve point
 		// (lpos) and the off-curve point (wpos). Transform both. These
 		// are turned into polygons in the geometry shader.
-		mat4 m = to_clip * to_world;
-
-		vertex.clip_lpos = m * vec4(model_lpos, 0.0, 1.0);
-		vertex.clip_wpos = m * vec4(model_wpos, 0.0, 1.0);
+		vertex.clip_lpos = mvp * vec4(model_lpos, 0.0, 1.0);
+		vertex.clip_wpos = mvp * vec4(model_wpos, 0.0, 1.0);
 		vertex.weight = weight;
-	}),
+	})
+};
 
-	GEOMETRY_SHADER(330,
+static struct gl_shader_source const geometry_shader = {
+	GL_GEOMETRY_SHADER,
+	GLSL(330,
 	layout(lines) in;
 	layout(triangle_strip, max_vertices = 4) out;
 
 	uniform vec4 center = vec4(0.0, 0.0, 0.0, 1.0);
 
-	in vertex_layout
+	in vertex_data
 	{
 		vec4 clip_lpos;
 		vec4 clip_wpos;
 		float weight;
 	} vertices[2];
 
-	out fragment_layout
+	out fragment_data
 	{
 		vec3 coord;
 	};
@@ -105,16 +103,21 @@ static struct gl_shader_source const sources[] = {
 		coord = q3;
 		EmitVertex();
 		EndPrimitive();
-	}),
+	})
+};
 
-	FRAGMENT_SHADER(330,
+static struct gl_shader_source const fragment_shader = {
+	GL_FRAGMENT_SHADER,
+	GLSL(330,
 
-	in fragment_layout
+	uniform vec4 color;
+
+	in fragment_data
 	{
 		vec3 coord;
 	};
 
-	out vec4 fill_mask;
+	out vec4 fill_color;
 
 	void main()
 	{
@@ -123,55 +126,59 @@ static struct gl_shader_source const sources[] = {
 		float m = coord.z;
 		float c;
 
-		if (k*k - l*m >= 0) { c = 0.0; } else { c = 1.0; }
-		fill_mask = vec4(c, c, c, 1.0);
+		if (k*k - l*m >= 0.0f) { c = 0.0; } else { c = 1.0; }
+		fill_color = vec4(c, c, c, 1.0);
 	}),
-
-	{ 0, 0 }
 };
 
 enum
 {
-	FILL_MASK_LOC = 0
+	FILL_COLOR_LOC = 0
 };
 
-static struct gl_location const attrib[] = {
+static struct gl_location const shape_attributes[] = {
 	{ LINE_POS_ATTRIB, "model_lpos" },
 	{ WEIGHT_POS_ATTRIB, "model_wpos" },
 	{ WEIGHT_VAL_ATTRIB, "weight" },
 	{ 0, 0 }
 };
 
-static struct gl_location const frag[] = {
-	{ FILL_MASK_LOC, "fill_mask" },
-	{ 0, 0 }
-};
-
-static struct gl_program_layout const prog = { sources, attrib, frag };
-
-#define UNIFORM(name) { offsetof(struct xylo, name), #name }
-
+#define UNIFORM(name) { offsetof(struct xylo_uniforms, name), #name }
 static struct gl_uniform_layout const uniforms[] = {
-	UNIFORM(to_world),
-	UNIFORM(to_clip),
+	UNIFORM(mvp),
 	UNIFORM(center),
+	UNIFORM(color),
 	{ 0, 0 }
 };
+#undef UNIFORM
 
 struct xylo *make_xylo(struct gl_api *api)
 {
 	struct xylo *xylo;
+	struct gl_program_layout program = {
+		(struct gl_shader_source[]) {
+			vertex_shader,
+			geometry_shader,
+			fragment_shader,
+			{ GL_NONE, 0 }
+		},
+		shape_attributes,
+		(struct gl_location[]){
+			{ FILL_COLOR_LOC, "fill_color" },
+			{ 0, 0 }
+		}
+	};
+	struct gl_core33 const *restrict gl;
 
-	if (!gl_get_core33(api)) {
-		return NULL;
-	}
+	gl = gl_get_core33(api);
+	if (!gl) { return NULL; }
 	xylo = malloc(sizeof *xylo);
-	xylo->program = gl_make_program(api, &prog);
+	xylo->program = gl_make_program(api, &program);
 	if (!xylo->program) {
 		free(xylo);
 		return NULL;
 	}
-	gl_get_uniforms(api, xylo, xylo->program, uniforms);
+	gl_get_uniforms(api, &xylo->uniforms, xylo->program, uniforms);
 	xylo->api = api;
 	return xylo;
 }
@@ -204,20 +211,20 @@ void xylo_end(struct xylo *xylo)
 
 void xylo_set_shape_set(struct xylo *xylo, struct xylo_glshape_set *set)
 {
-	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
-	gl->BindVertexArray(set->vao);
+	gl_get_core33(xylo->api)->BindVertexArray(set->vao);
 }
 
-void xylo_set_to_clip(struct xylo *xylo, float const *matrix)
+void xylo_set_color4fv(struct xylo *xylo, float const *color)
 {
-	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
-	gl->UniformMatrix4fv(xylo->to_clip, 1, GL_FALSE, matrix);
+	gl_get_core33(xylo->api)->Uniform4fv(xylo->uniforms.color, 1, color);
 }
 
-void xylo_set_to_world(struct xylo *xylo, float const *matrix)
+void xylo_set_mvp(struct xylo *xylo, float const *mvp)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
-	gl->UniformMatrix4fv(xylo->to_world, 1, GL_FALSE, matrix);
+	float center[4], origin[4] = { 0.f, 0.f, 0.f, 1.f };
+	gl->Uniform4fv(xylo->uniforms.center, 1, m44mulvf(center, mvp, origin));
+	gl->UniformMatrix4fv(xylo->uniforms.mvp, 1, GL_FALSE, mvp);
 }
 
 void xylo_draw_glshape(struct xylo *xylo, struct xylo_glshape const *shape)

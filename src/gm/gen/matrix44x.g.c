@@ -178,13 +178,13 @@ T *muscale(T a[static M*N], T s)
 }
 
 T *
-mmul(T a[static M*N], T const b [static M*N], T const c [static M*N])
+mmul(T a[static M*N], T const b [restrict static M*N], T const c [restrict static M*N])
 {
 	for (size_t i = 0; i < 4; i++) {
 #define A(row,col) a[(col<<2)+row]
 #define B(row,col) b[(col<<2)+row]
 #define C(row,col) c[(col<<2)+row]
-		T const bi0=B(i,0), bi1=B(i,1), bi2=B(i,2), bi3=B(i,3);
+		T const bi0 = B(i,0), bi1 = B(i,1), bi2 = B(i,2), bi3 = B(i,3);
 		A(i,0) = bi0*C(0,0) + bi1*C(1,0) + bi2*C(2,0) + bi3*C(3,0);
 		A(i,1) = bi0*C(0,1) + bi1*C(1,1) + bi2*C(2,1) + bi3*C(3,1);
 		A(i,2) = bi0*C(0,2) + bi1*C(1,2) + bi2*C(2,2) + bi3*C(3,2);
@@ -194,6 +194,31 @@ mmul(T a[static M*N], T const b [static M*N], T const c [static M*N])
 #undef C
 	}
 	return a;
+}
+
+T *
+mmulv(T dest[static M*1], T const m44 [restrict static M*N], T const x [restrict static M*1])
+{
+	T const x0 = x[0], x1 = x[1], x2 = x[2], x3 = x[3];
+#define A(row,col) m44[(col<<2)+row]
+	dest[0] = x0*A(0,0) + x1*A(0,1) + x2*A(0,2) + x3*A(0,3);
+	dest[1] = x0*A(1,0) + x1*A(1,1) + x2*A(1,2) + x3*A(1,3);
+	dest[2] = x0*A(2,0) + x1*A(2,1) + x2*A(2,2) + x3*A(2,3);
+	dest[3] = x0*A(3,0) + x1*A(3,1) + x2*A(3,2) + x3*A(3,3);
+#undef A
+	return dest;
+}
+
+T *
+mmulv3(T dest[static 3*1], T const m44 [restrict static M*N], T const x [restrict static 3*1])
+{
+	T const x0 = x[0], x1 = x[1], x2 = x[2];
+#define A(row,col) m44[(col<<2)+row]
+	dest[0] = x0*A(0,0) + x1*A(0,1) + x2*A(0,2) + A(0,3);
+	dest[1] = x0*A(1,0) + x1*A(1,1) + x2*A(1,2) + A(1,3);
+	dest[2] = x0*A(2,0) + x1*A(2,1) + x2*A(2,2) + A(2,3);
+#undef A
+	return dest;
 }
 
 T *
@@ -343,4 +368,3 @@ T *mquat(T dest[static M*N], T const q[static 4]) {
 
 	return dest;
 }
-

@@ -3,6 +3,7 @@
 #include <base/mem.h>
 #include <base/gbuf.h>
 #include <stdio.h>
+#include <string.h>
 #include <gm/matrix.h>
 
 #include "private.h"
@@ -14,22 +15,23 @@ void xylo_draw(struct xylo *xylo, struct xylo_draw *draw)
 	struct xylo_dshape *shape;
 	struct xylo_dlist *list;
 	struct xylo_draw **p, **q;
-	float to_world[16];
+	float mvp[16];
 
 	assert(xylo != 0);
 	assert(draw != 0);
 	switch (draw->type) {
 	case xylo_dshape:
 		shape = xylo_dshape_cast(draw);
-		(void)m44idf(to_world);
-		to_world[0*4 + 0] = shape->m22[0];
-		to_world[0*4 + 1] = shape->m22[1];
-		to_world[1*4 + 0] = shape->m22[2];
-		to_world[1*4 + 1] = shape->m22[3];
-		to_world[3*4 + 0] = shape->pos[0];
-		to_world[3*4 + 1] = shape->pos[1];
+		(void)m44idf(mvp);
+		mvp[0*4 + 0] = shape->m22[0];
+		mvp[0*4 + 1] = shape->m22[1];
+		mvp[1*4 + 0] = shape->m22[2];
+		mvp[1*4 + 1] = shape->m22[3];
+		mvp[3*4 + 0] = shape->pos[0];
+		mvp[3*4 + 1] = shape->pos[1];
 
-		xylo_set_to_world(xylo, to_world);
+		xylo_set_mvp(xylo, mvp);
+		xylo_set_color4fv(xylo, shape->color);
 		xylo_draw_glshape(xylo, shape->glshape);
 		break;
 	
@@ -129,6 +131,7 @@ ptrdiff_t xylo_dlist_indexof(struct xylo_dlist *list, struct xylo_draw *needle)
 
 void xylo_init_dshape(
 	struct xylo_dshape *shape,
+	float const color[4],
 	struct xylo_glshape const *glshape)
 {
 	shape->draw.type = xylo_dshape;
@@ -136,6 +139,7 @@ void xylo_init_dshape(
 	shape->m22[0] = shape->m22[3] = 1.f;
 	shape->m22[1] = shape->m22[2] = 0.f;
 	shape->glshape = glshape;
+	memcpy(shape->color, color, sizeof shape->color);
 }
 
 void xylo_term_dshape(struct xylo_dshape *shape)

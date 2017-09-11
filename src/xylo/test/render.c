@@ -21,6 +21,9 @@
 
 #define run(fn) gl_run_test(is_test_interactive() ? __func__ : NULL, fn)
 
+static float const red[4] = { 0.87, 0.05, 0.11, 1.0 };
+static float const black[4] = { 0.02, 0.02, 0.02, 1.0 };
+
 static int creation_(struct gl_api *gl, struct gl_test *test)
 {
 	struct xylo *xylo = make_xylo(gl);
@@ -60,10 +63,9 @@ static int draw_(struct gl_api *gl, struct gl_test *test)
 	struct xylo *xylo = make_xylo(gl);
 	struct xylo_glshape_set *set;
 	struct xylo_glshape const *shape;
-	float transform[16], proj[16], to_clip[16], to_world[16];
+	float transform[16], proj[16], to_clip[16], to_world[16], mvp[16];
 
 	if (!xylo) { return -1; }
-
 	set = xylo_make_glshape_set(gl, 1, &test_shape);
 	if (!set) { return -1; }
 	shape = xylo_get_glshape(set, 0);
@@ -74,14 +76,14 @@ static int draw_(struct gl_api *gl, struct gl_test *test)
 	m44translatef(transform, 0.f, 0.f, -1.f);
 	m44perspectivef(proj, 1.570796327, 1.0f, 0.4f, 10.0f);
 	m44mulf(to_clip, proj, transform);
+	m44mulf(mvp, to_clip, to_world);
 
 	glClearColor(1.f, 1.f, 1.f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	xylo_begin(xylo);
 	xylo_set_shape_set(xylo, set);
-	xylo_set_to_world(xylo, to_world);
-	xylo_set_to_clip(xylo, to_clip);
+	xylo_set_mvp(xylo, mvp);
 	xylo_draw_glshape(xylo, shape);
 	xylo_end(xylo);
 
@@ -99,7 +101,6 @@ static int dlist_(struct gl_api *gl, struct gl_test *test)
 	struct xylo *xylo = make_xylo(gl);
 	struct xylo_glshape_set *set;
 	struct xylo_glshape const *shape;
-	float transform[16], proj[16], to_clip[16];
 	struct xylo_dlist dlist;
 	struct xylo_dshape a, b, c;
 
@@ -110,13 +111,12 @@ static int dlist_(struct gl_api *gl, struct gl_test *test)
 	if (!shape) { return -1; }
 
 	/* create list nodes */
-	xylo_init_dshape(&a, shape);
-	xylo_init_dshape(&b, shape);
-	xylo_init_dshape(&c, shape);
+	xylo_init_dshape(&a, black, shape);
+	xylo_init_dshape(&b, black, shape);
+	xylo_init_dshape(&c, red, shape);
 
 	/* create draw list */
 	xylo_init_dlist(&dlist);
-
 	xylo_dlist_append(&dlist, &a.draw);
 	xylo_dlist_append(&dlist, &b.draw);
 	xylo_dlist_append(&dlist, &c.draw);
@@ -128,17 +128,11 @@ static int dlist_(struct gl_api *gl, struct gl_test *test)
 	a.pos[0] = a.pos[1] = -0.3;
 	c.pos[0] = b.pos[1] = 0.3;
 
-	/* setup matrices */
-	m44translatef(transform, 0.f, 0.f, -1.f);
-	m44perspectivef(proj, 1.570796327, 1.0f, 0.4f, 10.0f);
-	m44mulf(to_clip, proj, transform);
-
 	glClearColor(1.f, 1.f, 1.f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	xylo_begin(xylo);
 	xylo_set_shape_set(xylo, set);
-	xylo_set_to_clip(xylo, to_clip);
 	xylo_draw(xylo, &dlist.draw);
 	xylo_end(xylo);
 
@@ -174,7 +168,6 @@ static int transformed_(struct gl_api *gl, struct gl_test *test)
 	struct xylo *xylo;
 	struct xylo_glshape_set *set;
 	struct xylo_glshape const *shape;
-	float transform[16], proj[16], to_clip[16];
 	struct xylo_dlist dlist;
 	struct xylo_dshape a, b, c;
 	struct xylo_tgraph *tgraph;
@@ -195,9 +188,9 @@ static int transformed_(struct gl_api *gl, struct gl_test *test)
 	if (!shape) { return -1; }
 
 	/* create list nodes */
-	xylo_init_dshape(&a, shape);
-	xylo_init_dshape(&b, shape);
-	xylo_init_dshape(&c, shape);
+	xylo_init_dshape(&a, black, shape);
+	xylo_init_dshape(&b, red, shape);
+	xylo_init_dshape(&c, red, shape);
 
 	/* create draw list */
 	xylo_init_dlist(&dlist);
@@ -224,17 +217,11 @@ static int transformed_(struct gl_api *gl, struct gl_test *test)
 	p[4] = 0.3f;
 	p[6] = 0.3f;
 
-	/* setup matrices */
-	m44translatef(transform, 0.f, 0.f, -1.f);
-	m44perspectivef(proj, 1.570796327, 1.0f, 0.4f, 10.0f);
-	m44mulf(to_clip, proj, transform);
-
 	glClearColor(1.f, 1.f, 1.f, 1.f);
 
 	stopwatch_start(&sw, pfclock_usec(clk));
 	xylo_begin(xylo);
 	xylo_set_shape_set(xylo, set);
-	xylo_set_to_clip(xylo, to_clip);
 	do {
 		dt = stopwatch_elapsed(&sw, pfclock_usec(clk)) * 1.e-6;
 

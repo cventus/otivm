@@ -29,6 +29,7 @@ struct xylo_dshape
 	float m22[4], pos[2];
 
 	/* shape to draw */
+	float color[4];
 	struct xylo_glshape const *glshape;
 };
 
@@ -48,6 +49,9 @@ int xylo_dlist_append(
 int xylo_dlist_remove(struct xylo_dlist *, ptrdiff_t index);
 ptrdiff_t xylo_dlist_indexof(struct xylo_dlist *, struct xylo_draw *d);
 
-void xylo_init_dshape(struct xylo_dshape *, struct xylo_glshape const *);
+void xylo_init_dshape(
+	struct xylo_dshape *,
+	float const color[4],
+	struct xylo_glshape const *);
 void xylo_term_dshape(struct xylo_dshape *);
 struct xylo_dshape *xylo_dshape_cast(struct xylo_draw *);
