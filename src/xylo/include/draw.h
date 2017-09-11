@@ -17,13 +17,13 @@ struct xylo_draw {
 
 struct xylo_dlist
 {
-	struct xylo_draw header;
+	struct xylo_draw draw;
 	struct gbuf elements; /* struct xylo_draw *[] */
 };
 
 struct xylo_dshape
 {
-	struct xylo_draw header;
+	struct xylo_draw draw;
 
 	/* transformation */
 	float m22[4], pos[2];

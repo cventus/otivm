@@ -117,9 +117,9 @@ static int dlist_(struct gl_api *gl, struct gl_test *test)
 	/* create draw list */
 	xylo_init_dlist(&dlist);
 
-	xylo_dlist_append(&dlist, &a.header);
-	xylo_dlist_append(&dlist, &b.header);
-	xylo_dlist_append(&dlist, &c.header);
+	xylo_dlist_append(&dlist, &a.draw);
+	xylo_dlist_append(&dlist, &b.draw);
+	xylo_dlist_append(&dlist, &c.draw);
 
 	m22mulsf(a.m22, a.m22, 0.1f);
 	m22mulsf(b.m22, b.m22, 0.2f);
@@ -139,7 +139,7 @@ static int dlist_(struct gl_api *gl, struct gl_test *test)
 	xylo_begin(xylo);
 	xylo_set_shape_set(xylo, set);
 	xylo_set_to_clip(xylo, to_clip);
-	xylo_draw(xylo, &dlist.header);
+	xylo_draw(xylo, &dlist.draw);
 	xylo_end(xylo);
 
 	xylo_term_dlist(&dlist);
@@ -202,9 +202,9 @@ static int transformed_(struct gl_api *gl, struct gl_test *test)
 	/* create draw list */
 	xylo_init_dlist(&dlist);
 
-	xylo_dlist_append(&dlist, &a.header);
-	xylo_dlist_append(&dlist, &b.header);
-	xylo_dlist_append(&dlist, &c.header);
+	xylo_dlist_append(&dlist, &a.draw);
+	xylo_dlist_append(&dlist, &b.draw);
+	xylo_dlist_append(&dlist, &c.draw);
 
 	/* create transformation graph */
 	tgraph = xylo_make_tgraph(sizeof id);
@@ -269,7 +269,7 @@ static int transformed_(struct gl_api *gl, struct gl_test *test)
 
 		/* draw */
 		glClear(GL_COLOR_BUFFER_BIT);
-		xylo_draw(xylo, &dlist.header);
+		xylo_draw(xylo, &dlist.draw);
 		gl_test_swap_buffers(test);
 	} while (gl_test_poll_key(test) == 0);
 	xylo_end(xylo);

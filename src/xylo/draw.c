@@ -53,7 +53,7 @@ void xylo_draw(struct xylo *xylo, struct xylo_draw *draw)
 
 void xylo_init_dlist(struct xylo_dlist *list)
 {
-	list->header.type = xylo_dlist;
+	list->draw.type = xylo_dlist;
 	gbuf_init(&list->elements);
 }
 
@@ -64,7 +64,7 @@ void xylo_term_dlist(struct xylo_dlist *list)
 
 struct xylo_dlist *xylo_dlist_cast(struct xylo_draw *d)
 {
-	return container_of(d, struct xylo_dlist, header);
+	return container_of(d, struct xylo_dlist, draw);
 }
 
 #define DLIST_ELEM_SIZE (sizeof(struct xylo_draw *))
@@ -131,7 +131,7 @@ void xylo_init_dshape(
 	struct xylo_dshape *shape,
 	struct xylo_glshape const *glshape)
 {
-	shape->header.type = xylo_dshape;
+	shape->draw.type = xylo_dshape;
 	shape->pos[0] = shape->pos[1] = 0.f;
 	shape->m22[0] = shape->m22[3] = 1.f;
 	shape->m22[1] = shape->m22[2] = 0.f;
@@ -145,5 +145,5 @@ void xylo_term_dshape(struct xylo_dshape *shape)
 
 struct xylo_dshape *xylo_dshape_cast(struct xylo_draw *d)
 {
-	return container_of(d, struct xylo_dshape, header);
+	return container_of(d, struct xylo_dshape, draw);
 }
