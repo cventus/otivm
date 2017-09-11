@@ -2,10 +2,10 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
-#include <GL/gl.h>
-#include <ok/ok.h>
 
+#include <ok/ok.h>
 #include <glapi/api.h>
+#include <glapi/core.h>
 #include <glapi/test.h>
 #include <gm/matrix.h>
 #include <base/gbuf.h>
@@ -144,9 +144,9 @@ static struct xylo_shape test_shape[] = {
 	}
 };
 
-static int creation_(struct gl_api *gl, struct gl_test *test)
+static int creation_(struct gl_api *api, struct gl_test *test)
 {
-	struct xylo *xylo = make_xylo(gl);
+	struct xylo *xylo = make_xylo(api);
 	if (!xylo) { return -1; }
 	free_xylo(xylo);
 	(void)test;
@@ -154,15 +154,19 @@ static int creation_(struct gl_api *gl, struct gl_test *test)
 }
 static int creation(void) { return run(creation_); }
 
-static int draw_(struct gl_api *gl, struct gl_test *test)
+static int draw_(struct gl_api *api, struct gl_test *test)
 {
-	struct xylo *xylo = make_xylo(gl);
+	struct xylo *xylo;
 	struct xylo_glshape_set *set;
 	struct xylo_glshape const *shape;
+	struct gl_core33 const *gl;
 	float transform[16], proj[16], to_clip[16], to_world[16], mvp[16];
 
+	gl = gl_get_core33(api);
+	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
+	xylo = make_xylo(api);
 	if (!xylo) { return -1; }
-	set = xylo_make_glshape_set(gl, length_of(test_shape), test_shape);
+	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
 	if (!set) { return -1; }
 	shape = xylo_get_glshape(set, 0);
 	if (!shape) { return -1; }
@@ -174,8 +178,8 @@ static int draw_(struct gl_api *gl, struct gl_test *test)
 	m44mulf(to_clip, proj, transform);
 	m44mulf(mvp, to_clip, to_world);
 
-	glClearColor(1.f, 1.f, 1.f, 1.f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
+	gl->Clear(GL_COLOR_BUFFER_BIT);
 
 	xylo_begin(xylo);
 	xylo_set_shape_set(xylo, set);
@@ -183,7 +187,7 @@ static int draw_(struct gl_api *gl, struct gl_test *test)
 	xylo_draw_glshape(xylo, shape);
 	xylo_end(xylo);
 
-	if (xylo_free_glshape_set(set, gl)) { return -1; }
+	if (xylo_free_glshape_set(set, api)) { return -1; }
 	gl_test_swap_buffers(test);
 
 	if (is_test_interactive()) { gl_test_wait_for_key(test); }
@@ -192,15 +196,19 @@ static int draw_(struct gl_api *gl, struct gl_test *test)
 }
 static int draw(void) { return run(draw_); }
 
-static int dlist_(struct gl_api *gl, struct gl_test *test)
+static int dlist_(struct gl_api *api, struct gl_test *test)
 {
-	struct xylo *xylo = make_xylo(gl);
+	struct xylo *xylo;
 	struct xylo_glshape_set *set;
 	struct xylo_dlist dlist;
 	struct xylo_dshape a, b, c;
+	struct gl_core33 const *gl;
 
+	gl = gl_get_core33(api);
+	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
+	xylo = make_xylo(api);
 	if (!xylo) { return -1; }
-	set = xylo_make_glshape_set(gl, length_of(test_shape), test_shape);
+	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
 	if (!set) { return -1; }
 
 	/* create list nodes */
@@ -221,8 +229,8 @@ static int dlist_(struct gl_api *gl, struct gl_test *test)
 	a.pos[0] = a.pos[1] = -0.3;
 	c.pos[0] = b.pos[1] = 0.3;
 
-	glClearColor(1.f, 1.f, 1.f, 1.f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
+	gl->Clear(GL_COLOR_BUFFER_BIT);
 
 	xylo_begin(xylo);
 	xylo_set_shape_set(xylo, set);
@@ -233,7 +241,7 @@ static int dlist_(struct gl_api *gl, struct gl_test *test)
 	xylo_term_dshape(&a);
 	xylo_term_dshape(&b);
 	xylo_term_dshape(&c);
-	if (xylo_free_glshape_set(set, gl)) { return -1; }
+	if (xylo_free_glshape_set(set, api)) { return -1; }
 	gl_test_swap_buffers(test);
 
 	if (is_test_interactive()) { gl_test_wait_for_key(test); }
@@ -256,7 +264,7 @@ static void update(void *dest, void const *child, void const *parent)
 	(void)m33mulf(dest, parent, child);
 }
 
-static int transformed_(struct gl_api *gl, struct gl_test *test)
+static int transformed_(struct gl_api *api, struct gl_test *test)
 {
 	struct xylo *xylo;
 	struct xylo_glshape_set *set;
@@ -266,6 +274,7 @@ static int transformed_(struct gl_api *gl, struct gl_test *test)
 	struct xylo_tgraph *tgraph;
 	struct xylo_tnode *root, *a_t[2], *b_t[1], *c_t[3];
 	struct pfclock *clk;
+	struct gl_core33 const *gl;
 	float id[9] = { 1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f };
 	float *p;
 	struct stopwatch sw;
@@ -273,9 +282,11 @@ static int transformed_(struct gl_api *gl, struct gl_test *test)
 
 	clk = pfclock_make();
 	if (!clk) { return -1; }
-	xylo = make_xylo(gl);
+	gl = gl_get_core33(api);
+	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
+	xylo = make_xylo(api);
 	if (!xylo) { return -1; }
-	set = xylo_make_glshape_set(gl, length_of(test_shape), test_shape);
+	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
 	if (!set) { return -1; }
 	clubs = xylo_get_glshape(set, 0);
 	if (!clubs) { return -1; }
@@ -316,7 +327,7 @@ static int transformed_(struct gl_api *gl, struct gl_test *test)
 	p[4] = 0.3f;
 	p[6] = 0.3f;
 
-	glClearColor(1.f, 1.f, 1.f, 1.f);
+	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
 
 	stopwatch_start(&sw, pfclock_usec(clk));
 	xylo_begin(xylo);
@@ -354,9 +365,10 @@ static int transformed_(struct gl_api *gl, struct gl_test *test)
 		copy_transform(c_t[2], &c);
 
 		/* draw */
-		glClear(GL_COLOR_BUFFER_BIT);
+		gl->Clear(GL_COLOR_BUFFER_BIT);
 		xylo_draw(xylo, &dlist.draw);
 		gl_test_swap_buffers(test);
+		gl->Finish();
 	} while (gl_test_poll_key(test) == 0);
 	xylo_end(xylo);
 
@@ -364,7 +376,7 @@ static int transformed_(struct gl_api *gl, struct gl_test *test)
 	xylo_term_dshape(&a);
 	xylo_term_dshape(&b);
 	xylo_term_dshape(&c);
-	if (xylo_free_glshape_set(set, gl)) { return -1; }
+	if (xylo_free_glshape_set(set, api)) { return -1; }
 	free_xylo(xylo);
 	pfclock_free(clk);
 	return 0;
