@@ -9,6 +9,7 @@
 #include <glapi/test.h>
 #include <gm/matrix.h>
 #include <base/gbuf.h>
+#include <base/mem.h>
 
 #include <tempo/tempo.h>
 
@@ -24,6 +25,125 @@
 static float const red[4] = { 0.87, 0.05, 0.11, 1.0 };
 static float const black[4] = { 0.02, 0.02, 0.02, 1.0 };
 
+static struct xylo_shape test_shape[] = {
+	{
+		1,
+		(struct xylo_outline[]) {
+			{
+				21,
+				(struct xylo_leg[]) {
+					{ { 0.20f,-0.50f }, { 0.02f,-0.45f }, 0.707106781f },
+					{ { 0.02f,-0.24f }, { 0.02f,-0.24f }, 0.f },
+					{ { 0.07f,-0.24f }, { 0.07f,-0.37f }, 0.707106781f },
+
+					{ { 0.22f,-0.37f }, { 0.37f,-0.37f }, 0.707106781f },
+					{ { 0.37f,-0.22f }, { 0.37f,-0.07f }, 0.707106781f },
+					{ { 0.22f,-0.07f }, { 0.07f,-0.07f }, 0.707106781f },
+
+					{ { 0.07f,-0.20f }, { 0.07f,-0.20f }, 0.f },
+					{ { 0.02f,-0.20f }, { 0.02f,-0.20f }, 0.f },
+
+					{ { 0.02f,-0.10f }, { 0.15f,-0.10f }, 0.707106781f },
+					{ { 0.15f, 0.05f }, { 0.15f, 0.20f }, 0.707106781f },
+					{ { 0.00f, 0.20f }, {-0.15f, 0.20f }, 0.707106781f },
+					{ {-0.15f, 0.05f }, {-0.15f,-0.10f }, 0.707106781f },
+
+					{ {-0.02f,-0.10f }, {-0.02f,-0.10f }, 0.f },
+					{ {-0.02f,-0.20f }, {-0.02f,-0.20f }, 0.f },
+
+					{ {-0.07f,-0.20f }, {-0.07f,-0.07f }, 0.707106781f },
+
+
+					{ {-0.22f,-0.07f }, {-0.37f,-0.07f }, 0.707106781f },
+					{ {-0.37f,-0.22f }, {-0.37f,-0.37f }, 0.707106781f },
+					{ {-0.22f,-0.37f }, {-0.07f,-0.37f }, 0.707106781f },
+
+					{ {-0.07f,-0.24f }, {-0.07f,-0.24f }, 0.f },
+
+					{ {-0.02f,-0.24f }, {-0.02f,-0.45f }, 0.707106781f },
+					{ {-0.20f,-0.50f }, { 0.00f,-0.53f }, 0.707106781f },
+				}
+			}
+		}
+	},
+	{
+		1,
+		(struct xylo_outline[]) {
+			{
+				4,
+				(struct xylo_leg[]) {
+					{ {-0.13f, 0.02f }, { 0.00f, 0.24f }, 4.0f },
+					{ { 0.13f, 0.02f }, { 0.22f,-0.16f }, 4.0f },
+					{ { 0.13f,-0.34f }, { 0.00f,-0.56f }, 4.0f },
+					{ {-0.13f,-0.34f }, {-0.22f,-0.16f }, 4.0f }
+				}
+			}
+		}
+	},
+	{
+		1,
+		(struct xylo_outline[]) {
+			{
+				11,
+				(struct xylo_leg[]) {
+					{ { 0.20f,-0.50f }, { 0.02f,-0.45f }, 0.707106781f },
+					{ { 0.02f,-0.29f }, { 0.10f,-0.40f }, 0.707106781f },
+					{ { 0.20f,-0.40f }, { 0.40f,-0.40f }, 0.707106781f },
+					{ { 0.40f,-0.20f }, { 0.40f,-0.00f }, 1.0f },
+					{ { 0.20f, 0.15f }, { 0.00f, 0.30f }, 1.0f },
+					{ { 0.00f, 0.35f }, {-0.00f, 0.30f }, 1.0f },
+					{ {-0.20f, 0.15f }, {-0.40f,-0.00f }, 1.0f },
+					{ {-0.40f,-0.20f }, {-0.40f,-0.40f }, 0.707106781f },
+					{ {-0.20f,-0.40f }, {-0.10f,-0.40f }, 0.707106781f },
+					{ {-0.02f,-0.29f }, {-0.02f,-0.45f }, 0.707106781f },
+					{ {-0.20f,-0.50f }, { 0.00f,-0.53f }, 0.707106781f },
+				}
+			}
+		}
+	},
+	{
+		1,
+		(struct xylo_outline[]) {
+			{
+				8,
+				(struct xylo_leg[]) {
+					{ { 0.0f, 0.05f }, { 0.0f, 0.25f }, 0.707106781f },
+					{ { 0.2f, 0.25f }, { 0.4f, 0.25f }, 0.707106781f },
+					{ { 0.4f, 0.05f }, { 0.4f,-0.15f }, 1.0f },
+					{ { 0.2f,-0.30f }, { 0.0f,-0.45f }, 1.0f },
+					{ { 0.0f,-0.50f }, {-0.0f,-0.45f }, 1.0f },
+					{ {-0.2f,-0.30f }, {-0.4f,-0.15f }, 1.0f },
+					{ {-0.4f, 0.05f }, {-0.4f, 0.25f }, 0.707106781f },
+					{ {-0.2f, 0.25f }, { 0.0f, 0.25f }, 0.707106781f },
+				}
+			}
+		}
+	},
+	{
+		2,
+		(struct xylo_outline[]) {
+			{
+				4,
+				(struct xylo_leg[]) {
+					{ { 0.0f, 0.5f }, { 0.5f, 0.5f }, 0.707106781f },
+					{ { 0.5f, 0.0f }, { 0.0f, 0.0f }, 1.f },
+					{ { 0.0f, -.5f }, { -.5f, -.5f }, 0.00001f },
+					{ { -.5f, 0.0f }, { -.5f, 0.5f }, 4.0f }
+				}
+			},
+			{
+				4,
+				(struct xylo_leg[]) {
+					{ { 0.0f, 0.1f }, { 0.1f, 0.1f }, 1.f },
+					{ { 0.1f, 0.0f }, { -.0f, 0.0f }, 0.707106781f },
+					{ { 0.0f, -.1f }, { -.1f, -.1f }, 0.00001f },
+					{ { -.1f, 0.0f }, { -.1f, 0.1f }, 4.0f }
+				}
+			}
+		}
+	}
+};
+
 static int creation_(struct gl_api *gl, struct gl_test *test)
 {
 	struct xylo *xylo = make_xylo(gl);
@@ -34,30 +154,6 @@ static int creation_(struct gl_api *gl, struct gl_test *test)
 }
 static int creation(void) { return run(creation_); }
 
-static struct xylo_shape test_shape = {
-	2,
-	(struct xylo_outline[]) {
-		{
-			4,
-			(struct xylo_leg[]) {
-				{ { 0.0f, 0.5f }, { 0.5f, 0.5f }, 0.707106781f },
-				{ { 0.5f, 0.0f }, { 0.0f, 0.0f }, 1.f },
-				{ { 0.0f, -.5f }, { -.5f, -.5f }, 0.00001f },
-				{ { -.5f, 0.0f }, { -.5f, 0.5f }, 4.0f }
-			}
-		},
-		{
-			4,
-			(struct xylo_leg[]) {
-				{ { 0.0f, 0.1f }, { 0.1f, 0.1f }, 1.f },
-				{ { 0.1f, 0.0f }, { -.0f, 0.0f }, 0.707106781f },
-				{ { 0.0f, -.1f }, { -.1f, -.1f }, 0.00001f },
-				{ { -.1f, 0.0f }, { -.1f, 0.1f }, 4.0f }
-			}
-		}
-	}
-};
-
 static int draw_(struct gl_api *gl, struct gl_test *test)
 {
 	struct xylo *xylo = make_xylo(gl);
@@ -66,7 +162,7 @@ static int draw_(struct gl_api *gl, struct gl_test *test)
 	float transform[16], proj[16], to_clip[16], to_world[16], mvp[16];
 
 	if (!xylo) { return -1; }
-	set = xylo_make_glshape_set(gl, 1, &test_shape);
+	set = xylo_make_glshape_set(gl, length_of(test_shape), test_shape);
 	if (!set) { return -1; }
 	shape = xylo_get_glshape(set, 0);
 	if (!shape) { return -1; }
@@ -100,20 +196,17 @@ static int dlist_(struct gl_api *gl, struct gl_test *test)
 {
 	struct xylo *xylo = make_xylo(gl);
 	struct xylo_glshape_set *set;
-	struct xylo_glshape const *shape;
 	struct xylo_dlist dlist;
 	struct xylo_dshape a, b, c;
 
 	if (!xylo) { return -1; }
-	set = xylo_make_glshape_set(gl, 1, &test_shape);
+	set = xylo_make_glshape_set(gl, length_of(test_shape), test_shape);
 	if (!set) { return -1; }
-	shape = xylo_get_glshape(set, 0);
-	if (!shape) { return -1; }
 
 	/* create list nodes */
-	xylo_init_dshape(&a, black, shape);
-	xylo_init_dshape(&b, black, shape);
-	xylo_init_dshape(&c, red, shape);
+	xylo_init_dshape(&a, black, xylo_get_glshape(set, 0));
+	xylo_init_dshape(&b, black, xylo_get_glshape(set, 2));
+	xylo_init_dshape(&c, red, xylo_get_glshape(set, 3));
 
 	/* create draw list */
 	xylo_init_dlist(&dlist);
@@ -167,7 +260,7 @@ static int transformed_(struct gl_api *gl, struct gl_test *test)
 {
 	struct xylo *xylo;
 	struct xylo_glshape_set *set;
-	struct xylo_glshape const *shape;
+	struct xylo_glshape const *clubs, *diamonds, *spades, *hearts;
 	struct xylo_dlist dlist;
 	struct xylo_dshape a, b, c;
 	struct xylo_tgraph *tgraph;
@@ -182,15 +275,21 @@ static int transformed_(struct gl_api *gl, struct gl_test *test)
 	if (!clk) { return -1; }
 	xylo = make_xylo(gl);
 	if (!xylo) { return -1; }
-	set = xylo_make_glshape_set(gl, 1, &test_shape);
+	set = xylo_make_glshape_set(gl, length_of(test_shape), test_shape);
 	if (!set) { return -1; }
-	shape = xylo_get_glshape(set, 0);
-	if (!shape) { return -1; }
+	clubs = xylo_get_glshape(set, 0);
+	if (!clubs) { return -1; }
+	diamonds = xylo_get_glshape(set, 1);
+	if (!diamonds) { return -1; }
+	spades = xylo_get_glshape(set, 2);
+	if (!spades) { return -1; }
+	hearts = xylo_get_glshape(set, 3);
+	if (!hearts) { return -1; }
 
 	/* create list nodes */
-	xylo_init_dshape(&a, black, shape);
-	xylo_init_dshape(&b, red, shape);
-	xylo_init_dshape(&c, red, shape);
+	xylo_init_dshape(&a, black, clubs);
+	xylo_init_dshape(&b, red, hearts);
+	xylo_init_dshape(&c, red, diamonds);
 
 	/* create draw list */
 	xylo_init_dlist(&dlist);

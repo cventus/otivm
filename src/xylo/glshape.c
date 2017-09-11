@@ -17,7 +17,7 @@ static size_t xylo_count_outlines(size_t n, struct xylo_shape const *shape)
 {
 	size_t i, m;
 	for (m = i = 0; i < n; i++) {
-		m += shape->n;
+		m += shape[i].n;
 	}
 	return m;
 }
