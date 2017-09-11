@@ -124,10 +124,9 @@ static struct gl_shader_source const fragment_shader = {
 		float k = coord.x;
 		float l = coord.y;
 		float m = coord.z;
-		float c;
 
-		if (k*k - l*m >= 0.0f) { c = 0.0; } else { c = 1.0; }
-		fill_color = vec4(c, c, c, 1.0);
+		if (k*k - l*m >= 0.0f) { discard; }
+		fill_color = color;
 	}),
 };
 
@@ -196,17 +195,16 @@ void free_xylo(struct xylo *xylo)
 void xylo_begin(struct xylo *xylo)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
-
-	gl->Enable(GL_COLOR_LOGIC_OP);
-	gl->LogicOp(GL_XOR);
+	gl->Enable(GL_STENCIL_TEST);
+	gl->Disable(GL_MULTISAMPLE);
 	gl->UseProgram(xylo->program);
 }
 
 void xylo_end(struct xylo *xylo)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
-	gl->UseProgram(0);
-	gl->Disable(GL_COLOR_LOGIC_OP);
+	gl->Disable(GL_STENCIL_TEST);
+	gl_unuse_program(xylo->api, xylo->program);
 }
 
 void xylo_set_shape_set(struct xylo *xylo, struct xylo_glshape_set *set)
@@ -230,6 +228,21 @@ void xylo_set_mvp(struct xylo *xylo, float const *mvp)
 void xylo_draw_glshape(struct xylo *xylo, struct xylo_glshape const *shape)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
+
+	/* Step one - Fill in stencil buffer*/
+	gl->ColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+	gl->StencilFunc(GL_ALWAYS, 0x00, 0x01);
+	gl->StencilOp(GL_KEEP, GL_KEEP, GL_INVERT);
+	gl->MultiDrawArrays(
+		GL_LINE_LOOP,
+		shape->first,
+		shape->count,
+		shape->drawcount);
+
+	/* Step two - fill in color without overdraw and erase stencil */
+	gl->ColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	gl->StencilFunc(GL_EQUAL, 0x01, 0x01);
+	gl->StencilOp(GL_ZERO, GL_ZERO, GL_ZERO);
 	gl->MultiDrawArrays(
 		GL_LINE_LOOP,
 		shape->first,
