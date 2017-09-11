@@ -383,11 +383,139 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 }
 static int transformed(void) { return run(transformed_); }
 
+static void update_transform(size_t i, double t, struct xylo_dshape *shape)
+{
+	double c, s, scale, phase, avel, xvel, yvel;
+
+	avel = 1.0;
+	phase = i;
+
+	if (i % 50 == 0) {
+		scale = 0.5;
+	} else if (i % 10 == 0) {
+		scale = 0.13;
+	} else {
+		scale = 0.3;
+	}
+	if (i % 11 == 0) {
+		avel = -0.5;
+	} else {
+		avel = 1.0;
+	}
+	if (i % 3 == 0) {
+		xvel = 0.4444;
+	} else if (i % 7 == 0) {
+		xvel = 0.5;
+	} else {
+		xvel = 0.3333;
+	}
+	if ((i + 2) % 3 == 0) {
+		yvel = 0.5;
+	} else if ((i + 3) % 7 == 0) {
+		yvel = 0.2;
+	} else {
+		yvel = 0.3;
+	}
+
+	s = sin(phase + t*avel);
+	c = cos(phase + t*avel);
+
+	shape->pos[0] = fmod(1.2 + t*xvel + 1.2*sin(i), 2.4) - 1.2f;
+	shape->pos[1] = -fmod(i*0.02 + t*yvel + 1.2*sin(i), 2.4) + 1.2f;
+
+	shape->m22[0] = scale * c; shape->m22[2] = scale * -s;
+	shape->m22[1] = scale * s; shape->m22[3] = scale * c;
+}
+
+static int rain_(struct gl_api *api, struct gl_test *test)
+{
+	struct gl_core33 const *gl;
+	struct xylo *xylo;
+	struct xylo_glshape_set *set;
+	struct xylo_glshape const *shape;
+	struct xylo_dlist dlist;
+	struct xylo_dshape dshapes[100];
+	struct pfclock *clk;
+	struct stopwatch sw;
+	float const *color;
+	double dt, et, et_mean, et_max, et_min;
+	size_t i, n;
+	GLuint gl_ns, query;
+
+	clk = pfclock_make();
+	if (!clk) { return -1; }
+	gl = gl_get_core33(api);
+	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
+	xylo = make_xylo(api);
+	if (!xylo) { return -1; }
+	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
+	if (!set) { return -1; }
+
+	/* create draw nodes */
+	xylo_init_dlist(&dlist);
+	for (i = 0; i < length_of(dshapes); i++) {
+		shape = xylo_get_glshape(set, i % 4);
+		color = i & 1 ? red : black;
+		xylo_init_dshape(dshapes + i, color, shape);
+		xylo_dlist_append(&dlist, &dshapes[i].draw);
+	}
+
+	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
+	gl->GenQueries(1, &query);
+	n = 0;
+	et = 0.0;
+	et_mean = 0.0;
+	et_min = HUGE_VAL;
+	et_max = 0.0;
+
+	stopwatch_start(&sw, pfclock_usec(clk));
+	xylo_begin(xylo);
+	xylo_set_shape_set(xylo, set);
+	do {
+		n++;
+		dt = stopwatch_elapsed(&sw, pfclock_usec(clk)) * 1.e-6;
+		for (i = 0; i < length_of(dshapes); i++) {
+			update_transform(i, dt + 3.0, dshapes + i);
+		}
+		gl->BeginQuery(GL_TIME_ELAPSED, query);
+		gl->Clear(GL_COLOR_BUFFER_BIT);
+		xylo_draw(xylo, &dlist.draw);
+		gl->EndQuery(GL_TIME_ELAPSED);
+		gl_test_swap_buffers(test);
+		gl->Finish();
+		gl->GetQueryObjectuiv(query, GL_QUERY_RESULT, &gl_ns);
+		et = gl_ns * 1e-9;
+		et_mean += et;
+		if (et_max < et) et_max = et;
+		if (et_min > et) et_min = et;
+		if (et_mean > 1.0) {
+			printf("%g\t%g\t%g\n", et_mean / n, et_max, et_min);
+			et = 0.0;
+			et_mean = 0.0;
+			et_min = HUGE_VAL;
+			et_max = 0.0;
+			n = 0;
+		}
+	} while (gl_test_poll_key(test) == 0);
+	xylo_end(xylo);
+
+	xylo_term_dlist(&dlist);
+	for (i = 0; i < length_of(dshapes); i++) {
+		xylo_term_dshape(dshapes + i);
+	}
+	if (xylo_free_glshape_set(set, api)) { return -1; }
+	free_xylo(xylo);
+	pfclock_free(clk);
+	return 0;
+}
+static int rain(void) { return run(rain_); }
+
 struct test const tests[] = {
 	{ creation, "create xylo renderer" },
 	{ draw, "simple render" },
 	{ dlist, "render draw list" },
 	{ transformed, "render items with tgraph" },
+	{ rain, "one hundred shapes" },
 
 	{ NULL, NULL }
 };
