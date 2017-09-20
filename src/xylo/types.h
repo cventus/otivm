@@ -1,6 +1,6 @@
 struct xylo_uniforms
 {
-	GLuint mvp, color, center;
+	GLuint mvp, color;
 };
 
 struct xylo
@@ -12,13 +12,16 @@ struct xylo
 
 struct xylo_glshape
 {
-	GLint *first;
-	GLsizei *count, drawcount;
+	void const *indices;
+	GLsizei count;
+	GLenum type;
+	GLint basevertex;
 };
 
 struct xylo_glshape_set
 {
-	struct xylo_glshape *shapes;
-	GLuint vao, vbo;
 	size_t n;
+	struct xylo_glshape *shapes;
+	GLuint vao, evbo;
+	GLsizei vertex_offset;
 };
