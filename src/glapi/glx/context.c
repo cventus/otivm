@@ -33,45 +33,50 @@ static struct glx_config const default_config = {
 	.vmajor = 3,
 	.vminor = 3,
 
+	.stencil_size = 8,
+	.depth_size = 24,
+
 	.sample_buffers = 0,
 	.samples = 0
 };
 
-static int check_glxversion(Display *display)
+static int drawable_flags(struct glx_config const *config)
 {
-	int major, minor;
-	if (!glXQueryVersion(display, &major, &minor)) { return -1; }
-	return (major > 1 || (major == 1 && minor >= 3)) ? 0 : -1;
+	int flags = 0;
+	if (config->window) { flags |= GLX_WINDOW_BIT; }
+	if (config->pixmap) { flags |= GLX_PIXMAP_BIT; }
+	if (config->pbuffer) { flags |= GLX_PBUFFER_BIT; }
+	return flags;
 }
 
 static int select_fbconfig(
 	Display *dpy,
 	int screen,
-	int const *attr,
+	struct glx_config const *cfg,
 	GLXFBConfig *result)
 {
-	int i, n, best_i, sb, samples, best_samples, depth;
-	GLXFBConfig *fbconfigs, fbconfig;
+	int n;
+	GLXFBConfig *fbconfigs;
 
-	fbconfigs = glXChooseFBConfig(dpy, screen, attr, &n);
-	if (!fbconfigs) { return -1; }
+	int const attribs[] = {
+		GLX_DOUBLEBUFFER, True,
+		GLX_DRAWABLE_TYPE, drawable_flags(cfg),
+		GLX_RENDER_TYPE, GLX_RGBA_BIT,
+		GLX_SAMPLES, cfg->samples,
+		GLX_SAMPLE_BUFFERS, cfg->sample_buffers,
+		GLX_RED_SIZE, 8,
+		GLX_GREEN_SIZE, 8,
+		GLX_BLUE_SIZE, 8,
+		GLX_ALPHA_SIZE, 8,
+		GLX_STENCIL_SIZE, cfg->stencil_size,
+		GLX_DEPTH_SIZE, cfg->depth_size,
+		None
+	};
 
-	for (best_i = -1, i = 0; i < n; i++) {
-		fbconfig = fbconfigs[i];
-
-		glXGetFBConfigAttrib(dpy, fbconfig, GLX_DEPTH_SIZE, &depth);
-		if (depth == 0) { continue; }
-
-		glXGetFBConfigAttrib(dpy, fbconfig, GLX_SAMPLE_BUFFERS, &sb);
-		glXGetFBConfigAttrib(dpy, fbconfig, GLX_SAMPLES, &samples);
-		if (best_i < 0 || (sb && samples > best_samples)) {
-			best_i = i;
-			best_samples = samples;
-		}
-	}
-	if (best_i >= 0) *result = fbconfigs[best_i];
+	fbconfigs = glXChooseFBConfig(dpy, screen, attribs, &n);
+	if (!fbconfigs || n < 1) { return -1; } else { *result = fbconfigs[0]; }
 	XFree(fbconfigs);
-	return best_i >= 0 ? 0 : -1;
+	return 0;
 }
 
 static int context_flags(struct glx_config const *config)
@@ -86,13 +91,11 @@ static int context_flags(struct glx_config const *config)
 	return flags;
 }
 
-static int drawable_flags(struct glx_config const *config)
+static int check_glxversion(Display *display)
 {
-	int flags = 0;
-	if (config->window) { flags |= GLX_WINDOW_BIT; }
-	if (config->pixmap) { flags |= GLX_PIXMAP_BIT; }
-	if (config->pbuffer) { flags |= GLX_PBUFFER_BIT; }
-	return flags;
+	int major, minor;
+	if (!glXQueryVersion(display, &major, &minor)) { return -1; }
+	return (major > 1 || (major == 1 && minor >= 3)) ? 0 : -1;
 }
 
 struct glx_context *glx_init_context(
@@ -119,16 +122,6 @@ struct glx_context *glx_init_context(
 		None
 	};
 
-	int const fbconfig_attribs[] = {
-		GLX_DOUBLEBUFFER, True,
-		GLX_DRAWABLE_TYPE, drawable_flags(cfg),
-		GLX_RENDER_TYPE, GLX_RGBA_BIT,
-		GLX_RED_SIZE, 8,
-		GLX_GREEN_SIZE, 8,
-		GLX_BLUE_SIZE, 8,
-		None
-	};
-
 	create_context_fn *glXCreateContextAttribsARB;
 	const char *glxexts;
 	GLXFBConfig fbconfig;
@@ -149,7 +142,7 @@ struct glx_context *glx_init_context(
 	if (!gl_find_ext(glxexts, "GLX_ARB_create_context")) {
 		return NULL;
 	}
-	if (select_fbconfig(display, screen, fbconfig_attribs, &fbconfig)) {
+	if (select_fbconfig(display, screen, cfg, &fbconfig)) {
 		return NULL;
 	}
 

@@ -9,4 +9,5 @@ struct glx_config
 
 	int vmajor, vminor;
 	int sample_buffers, samples;
+	unsigned int stencil_size, depth_size;
 };
