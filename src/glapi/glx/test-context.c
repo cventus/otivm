@@ -34,6 +34,9 @@ struct gl_test
 	int interactive;
 };
 
+int gl_test_output_width;
+int gl_test_output_height;
+
 struct gl_api *gl_test_api(struct gl_test *test)
 {
 	assert(test);
@@ -80,6 +83,9 @@ static Window create_window(
 		CWBorderPixel | CWColormap | CWEventMask,
 		&swa);
 
+	gl_test_output_width = WIDTH;
+	gl_test_output_height = HEIGHT;
+
 	XStoreName(dpy, w, name);
 	XMapWindow(dpy, w);
 	XIfEvent(dpy, &xev, wait_for_notify, (XPointer)&w);
@@ -103,6 +109,8 @@ static Pixmap create_pixmap(Display *dpy, XVisualInfo *vi)
 
 	root = RootWindow(dpy, vi->screen);
 	pm = XCreatePixmap(dpy, root, WIDTH, HEIGHT, vi->depth);
+	gl_test_output_width = WIDTH;
+	gl_test_output_height = HEIGHT;
 	XFlush(dpy);
 	return pm;
 }
@@ -178,6 +186,14 @@ void gl_test_swap_buffers(struct gl_test *test)
 	test->swap_buffers(test);
 }
 
+static void handle_resize(XEvent const *xev)
+{
+	if (xev->type == ConfigureNotify) {
+		gl_test_output_width = xev->xconfigure.width;
+		gl_test_output_height = xev->xconfigure.height;
+	}
+}
+
 void gl_test_wait_for_key(struct gl_test *test)
 {
 	XEvent xev;
@@ -187,8 +203,10 @@ void gl_test_wait_for_key(struct gl_test *test)
 	}
 	do {
 		XNextEvent(test->display, &xev);
+		handle_resize(&xev);
 	} while (xev.type != KeyPress);
 }
+
 
 int gl_test_poll_key(struct gl_test *test)
 {
@@ -203,6 +221,8 @@ int gl_test_poll_key(struct gl_test *test)
 		XNextEvent(test->display, &xev);
 		if (xev.type == KeyPress) {
 			return 1;
+		} else {
+			handle_resize(&xev);
 		}
 	}
 	return 0;
