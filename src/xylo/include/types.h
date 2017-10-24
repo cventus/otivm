@@ -1,3 +1,8 @@
+struct xylo_view
+{
+	float width, height;
+};
+
 struct xylo_leg
 {
 	float end[2], mid[2], weight;

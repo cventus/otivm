@@ -1,13 +1,21 @@
-struct xylo_uniforms
+struct xylo_shapes
 {
+	GLuint program;
 	GLuint mvp, color;
+};
+
+struct saved_state
+{
+	_Bool stencil_test: 1;
+	_Bool multisample: 1;
 };
 
 struct xylo
 {
 	struct gl_api *api;
-	GLuint program;
-	struct xylo_uniforms uniforms;
+	struct xylo_shapes shapes;
+	unsigned begin;
+	struct saved_state save;
 };
 
 struct xylo_glshape

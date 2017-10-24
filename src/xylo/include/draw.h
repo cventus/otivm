@@ -33,8 +33,6 @@ struct xylo_dshape
 	struct xylo_glshape const *glshape;
 };
 
-void xylo_draw(struct xylo *xylo, struct xylo_draw *draw);
-
 void xylo_init_dlist(struct xylo_dlist *);
 void xylo_term_dlist(struct xylo_dlist *);
 struct xylo_dlist *xylo_dlist_cast(struct xylo_draw *);

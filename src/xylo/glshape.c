@@ -300,8 +300,8 @@ struct xylo_glshape_set *xylo_make_glshape_set(
 		GLint size;
 		ptrdiff_t offset;
 	} const attribs[] = {
-		{ SHAPE_POS_ATTRIB, 2, 0 },
-		{ QUADRATIC_POS_ATTRIB, 3, 2*sizeof(float) }
+		{ ATTRIB_SHAPE_POS, 2, 0 },
+		{ ATTRIB_QUADRATIC_POS, 3, 2*sizeof(float) }
 	};
 
 	struct gl_core33 const *restrict gl;

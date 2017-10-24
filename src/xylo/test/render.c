@@ -135,6 +135,15 @@ static struct xylo_shape test_shape[] = {
 	}
 };
 
+static void update_view(
+	struct gl_core33 const *restrict gl,
+	struct xylo_view *view)
+{
+	gl->Viewport(0, 0, gl_test_output_width, gl_test_output_height);
+	view->width = 640.f;
+	view->height = 480.f;
+}
+
 static int creation_(struct gl_api *api, struct gl_test *test)
 {
 	struct xylo *xylo = make_xylo(api);
@@ -145,48 +154,6 @@ static int creation_(struct gl_api *api, struct gl_test *test)
 }
 static int creation(void) { return run(creation_); }
 
-static int draw_(struct gl_api *api, struct gl_test *test)
-{
-	struct xylo *xylo;
-	struct xylo_glshape_set *set;
-	struct xylo_glshape const *shape;
-	struct gl_core33 const *gl;
-	float transform[16], proj[16], to_clip[16], to_world[16], mvp[16];
-
-	gl = gl_get_core33(api);
-	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
-	xylo = make_xylo(api);
-	if (!xylo) { return -1; }
-	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
-	if (!set) { return -1; }
-	shape = xylo_get_glshape(set, 0);
-	if (!shape) { return -1; }
-
-	/* setup matrices */
-	m44translatef(to_world, 0.f, 0.f, 0.f);
-	m44translatef(transform, 0.f, 0.f, -1.f);
-	m44perspectivef(proj, 1.570796327, 1.0f, 0.4f, 10.0f);
-	m44mulf(to_clip, proj, transform);
-	m44mulf(mvp, to_clip, to_world);
-
-	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
-	gl->Clear(GL_COLOR_BUFFER_BIT);
-
-	xylo_begin(xylo);
-	xylo_set_shape_set(xylo, set);
-	xylo_set_mvp(xylo, mvp);
-	xylo_draw_glshape(xylo, shape);
-	xylo_end(xylo);
-
-	if (xylo_free_glshape_set(set, api)) { return -1; }
-	gl_test_swap_buffers(test);
-
-	if (is_test_interactive()) { gl_test_wait_for_key(test); }
-	free_xylo(xylo);
-	return 0;
-}
-static int draw(void) { return run(draw_); }
-
 static int dlist_(struct gl_api *api, struct gl_test *test)
 {
 	struct xylo *xylo;
@@ -194,6 +161,7 @@ static int dlist_(struct gl_api *api, struct gl_test *test)
 	struct xylo_dlist dlist;
 	struct xylo_dshape a, b, c;
 	struct gl_core33 const *gl;
+	struct xylo_view view;
 
 	gl = gl_get_core33(api);
 	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
@@ -213,20 +181,19 @@ static int dlist_(struct gl_api *api, struct gl_test *test)
 	xylo_dlist_append(&dlist, &b.draw);
 	xylo_dlist_append(&dlist, &c.draw);
 
-	m22mulsf(a.m22, a.m22, 0.1f);
-	m22mulsf(b.m22, b.m22, 0.2f);
-	m22mulsf(c.m22, c.m22, 0.3f);
+	m22mulsf(a.m22, a.m22, 30.0f);
+	m22mulsf(b.m22, b.m22, 60.0f);
+	m22mulsf(c.m22, c.m22, 90.0f);
 
-	a.pos[0] = a.pos[1] = -0.3;
-	c.pos[0] = b.pos[1] = 0.3;
+	a.pos[0] = a.pos[1] = -90.0;
+	c.pos[0] = b.pos[1] = 90.0;
 
 	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
 	gl->Clear(GL_COLOR_BUFFER_BIT);
 
-	xylo_begin(xylo);
 	xylo_set_shape_set(xylo, set);
-	xylo_draw(xylo, &dlist.draw);
-	xylo_end(xylo);
+	update_view(gl, &view);
+	xylo_draw(xylo, &view, &dlist.draw);
 
 	xylo_term_dlist(&dlist);
 	xylo_term_dshape(&a);
@@ -270,6 +237,7 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 	float *p;
 	struct stopwatch sw;
 	double dt;
+	struct xylo_view view;
 
 	clk = pfclock_make();
 	if (!clk) { return -1; }
@@ -311,12 +279,12 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 	c_t[2] = xylo_make_tnode(tgraph, c_t[1], id);
 
 	p = xylo_tnode_local(b_t[0]);
-	p[0] = 0.22f;
-	p[4] = 0.33f;
+	p[0] = 66.f;
+	p[4] = 99.f;
 	p = xylo_tnode_local(c_t[1]);
-	p[0] = 0.3f;
-	p[4] = 0.3f;
-	p[6] = 0.3f;
+	p[0] = 90.f;
+	p[4] = 90.f;
+	p[6] = 90.f;
 
 	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
 
@@ -328,8 +296,8 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 
 		/* animate nodes a bit*/
 		p = xylo_tnode_local(root);
-		p[6] = cos(dt) * 0.4f;
-		p[7] = sin(dt) * 0.4f;
+		p[6] = cos(dt) * 120.f;
+		p[7] = sin(dt) * 120.f;
 
 		p = xylo_tnode_local(a_t[0]);
 		m33rotzf(p, dt * -0.7f + 0.1f);
@@ -337,15 +305,15 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 		/* make a orbit b */
 		p = xylo_tnode_local(a_t[1]);
 		m33rotzf(p, -2.1f * dt);
-		p[0] *= 0.1f; p[1] *= 0.1f;
-		p[3] *= 0.1f; p[4] *= 0.1f;
-		p[6] = 0.3*sin(2.1f * dt);
-		p[7] = 0.3*cos(2.1f * dt);
+		p[0] *= 30.f; p[1] *= 30.f;
+		p[3] *= 30.f; p[4] *= 30.f;
+		p[6] = 90.f*sin(2.1f * dt);
+		p[7] = 90.f*cos(2.1f * dt);
 
 		p = xylo_tnode_local(c_t[0]);
 		m33rotzf(p, -dt);
-		p[6] = 0.2f + sin(dt * 0.73) * 0.1f;
-		p[7] = 0.2f + cos(dt * 0.73) * 0.1f;
+		p[6] = 60.f + sin(dt * 0.73) * 30.f;
+		p[7] = 60.f + cos(dt * 0.73) * 30.f;
 		p = xylo_tnode_local(c_t[2]);
 		m33rotzf(p, dt);
 
@@ -357,7 +325,8 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 
 		/* draw */
 		gl->Clear(GL_COLOR_BUFFER_BIT);
-		xylo_draw(xylo, &dlist.draw);
+		update_view(gl, &view);
+		xylo_draw(xylo, &view, &dlist.draw);
 		gl_test_swap_buffers(test);
 		gl->Finish();
 	} while (gl_test_poll_key(test) == 0);
@@ -377,16 +346,17 @@ static int transformed(void) { return run(transformed_); }
 static void update_transform(size_t i, double t, struct xylo_dshape *shape)
 {
 	double c, s, scale, phase, avel, xvel, yvel;
+	double range = 360.0;
 
 	avel = 1.0;
 	phase = i;
 
 	if (i % 50 == 0) {
-		scale = 0.5;
+		scale = 42.0;
 	} else if (i % 10 == 0) {
-		scale = 0.13;
+		scale = 15.0;
 	} else {
-		scale = 0.3;
+		scale = 30.0;
 	}
 	if (i % 11 == 0) {
 		avel = -0.5;
@@ -394,29 +364,34 @@ static void update_transform(size_t i, double t, struct xylo_dshape *shape)
 		avel = 1.0;
 	}
 	if (i % 3 == 0) {
-		xvel = 0.4444;
+		xvel = 133.0;
 	} else if (i % 7 == 0) {
-		xvel = 0.5;
+		xvel = 150.0;
 	} else {
-		xvel = 0.3333;
+		xvel = 100.0;
 	}
 	if ((i + 2) % 3 == 0) {
-		yvel = 0.5;
+		yvel = 150.0;
 	} else if ((i + 3) % 7 == 0) {
-		yvel = 0.2;
+		yvel = 60.0;
 	} else {
-		yvel = 0.3;
+		yvel = 90.0;
 	}
 
 	s = sin(phase + t*avel);
 	c = cos(phase + t*avel);
 
-	shape->pos[0] = fmod(1.2 + t*xvel + 1.2*sin(i), 2.4) - 1.2f;
-	shape->pos[1] = -fmod(i*0.02 + t*yvel + 1.2*sin(i), 2.4) + 1.2f;
+	shape->pos[0] = fmod(range + t*xvel + range*sin(i), 2*range) - range;
+	shape->pos[1] = -fmod(i*6.0 + t*yvel + range*sin(i), 2*range) + range;
 
 	shape->m22[0] = scale * c; shape->m22[2] = scale * -s;
 	shape->m22[1] = scale * s; shape->m22[3] = scale * c;
 }
+
+#define ALL_BUFFERS ( \
+	GL_COLOR_BUFFER_BIT | \
+	GL_DEPTH_BUFFER_BIT | \
+	GL_STENCIL_BUFFER_BIT )
 
 static int rain_(struct gl_api *api, struct gl_test *test)
 {
@@ -425,13 +400,14 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 	struct xylo_glshape_set *set;
 	struct xylo_glshape const *shape;
 	struct xylo_dlist dlist;
-	struct xylo_dshape dshapes[100];
+	struct xylo_dshape dshapes[200];
 	struct pfclock *clk;
 	struct stopwatch sw;
 	float const *color;
 	double dt, et, et_mean, et_max, et_min;
 	size_t i, n;
 	GLuint gl_ns, query;
+	struct xylo_view view;
 
 	clk = pfclock_make();
 	if (!clk) { return -1; }
@@ -469,16 +445,18 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 			update_transform(i, dt + 3.0, dshapes + i);
 		}
 		gl->BeginQuery(GL_TIME_ELAPSED, query);
-		gl->Clear(GL_COLOR_BUFFER_BIT);
-		xylo_draw(xylo, &dlist.draw);
+		gl->Viewport(0, 0, gl_test_output_width, gl_test_output_height);
+		gl->Clear(ALL_BUFFERS);
+		update_view(gl, &view);
+		xylo_draw(xylo, &view, &dlist.draw);
 		gl->EndQuery(GL_TIME_ELAPSED);
 		gl_test_swap_buffers(test);
 		gl->Finish();
 		gl->GetQueryObjectuiv(query, GL_QUERY_RESULT, &gl_ns);
 		et = gl_ns * 1e-9;
 		et_mean += et;
-		if (et_max < et) et_max = et;
-		if (et_min > et) et_min = et;
+		if (et_max < et) { et_max = et; }
+		if (et_min > et) { et_min = et; }
 		if (et_mean > 1.0) {
 			printf("%g\t%g\t%g\n", et_mean / n, et_max, et_min);
 			et = 0.0;
@@ -503,7 +481,6 @@ static int rain(void) { return run(rain_); }
 
 struct test const tests[] = {
 	{ creation, "create xylo renderer" },
-	{ draw, "simple render" },
 	{ dlist, "render draw list" },
 	{ transformed, "render items with tgraph" },
 	{ rain, "one hundred shapes" },

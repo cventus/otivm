@@ -12,7 +12,6 @@
 #include <adt/itree.h>
 
 #include "include/tgraph.h"
-#include "include/types.h"
 
 #define NODE_BLOCK_SIZE 100
 #define TRANSFORM_SPACE_SIZE 200
