@@ -267,7 +267,7 @@ int fork_test(int id, int fd, const char *prefix)
 		exec_test(t->fn, &result);
 
 		/* Write result to pipe (if we haven't already crashed) */
-		write(pipefd[1], &result, sizeof result);
+		CHECK(write(pipefd[1], &result, sizeof result) == sizeof result);
 
 		/* Test is done */
 		exit(result.success == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
