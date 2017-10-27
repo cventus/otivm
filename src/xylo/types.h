@@ -10,6 +10,12 @@ struct saved_state
 	_Bool multisample: 1;
 };
 
+struct xylo_fb
+{
+	GLuint fbo, tex, ds;
+	GLsizei width, height;
+};
+
 struct xylo
 {
 	struct gl_api *api;
