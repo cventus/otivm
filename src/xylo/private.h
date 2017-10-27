@@ -1,6 +1,7 @@
 struct gl_api;
 struct xylo;
 struct xylo_shapes;
+struct xylo_quincunx;
 struct xylo_glshape;
 struct xylo_glshape_set;
 
@@ -37,3 +38,33 @@ void xylo_shapes_set_mvp(
 	struct xylo_shapes *shapes,
 	struct gl_core33 const *restrict gl,
 	float const *mvp);
+
+int xylo_init_quincunx(struct xylo_quincunx *quincunx, struct gl_api *api);
+
+void xylo_term_quincunx(
+	struct xylo_quincunx *quincunx,
+	struct gl_core33 const *restrict gl);
+
+void xylo_quincunx_draw(
+	struct xylo_quincunx *quincunx,
+	struct gl_core33 const *restrict gl);
+
+void xylo_quincunx_set_pixel_size(
+	struct xylo_quincunx *quincunx,
+	struct gl_core33 const *restrict gl,
+	float x_size, float y_size);
+
+void xylo_quincunx_set_pixel_size2fv(
+	struct xylo_quincunx *quincunx,
+	struct gl_core33 const *restrict gl,
+	float const *pixel_size);
+
+void xylo_quincunx_set_center_unit(
+	struct xylo_quincunx *quincunx,
+	struct gl_core33 const *restrict gl,
+	GLuint unit);
+
+void xylo_quincunx_set_corner_unit(
+	struct xylo_quincunx *quincunx,
+	struct gl_core33 const *restrict gl,
+	GLuint unit);

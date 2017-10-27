@@ -13,6 +13,7 @@
 #include "include/types.h"
 #include "include/xylo.h"
 #include "private.h"
+#include "fb.h"
 #include "types.h"
 
 struct xylo *make_xylo(struct gl_api *api)
@@ -27,6 +28,13 @@ struct xylo *make_xylo(struct gl_api *api)
 		free(xylo);
 		return NULL;
 	}
+	if (xylo_init_quincunx(&xylo->quincunx, api)) {
+		gl->DeleteProgram(xylo->shapes.program);
+		free(xylo);
+		return NULL;
+	}
+	xylo_init_fb(gl, &xylo->center_samples, 0, 0);
+	xylo_init_fb(gl, &xylo->corner_samples, 0, 0);
 	xylo->begin = 0;
 	xylo->api = api;
 	return xylo;
@@ -36,7 +44,9 @@ void free_xylo(struct xylo *xylo)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
 	gl_unuse_program(xylo->api, xylo->shapes.program);
+	gl_unuse_program(xylo->api, xylo->quincunx.program);
 	gl->DeleteProgram(xylo->shapes.program);
+	xylo_term_quincunx(&xylo->quincunx, gl);
 	free(xylo);
 }
 

@@ -1,6 +1,6 @@
 struct xylo_view
 {
-	float width, height;
+	float projection[16];
 };
 
 struct xylo_leg

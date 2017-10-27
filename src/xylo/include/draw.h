@@ -11,7 +11,8 @@ enum xylo_dtype
 	xylo_dmax
 };
 
-struct xylo_draw {
+struct xylo_draw
+{
 	enum xylo_dtype type;
 };
 

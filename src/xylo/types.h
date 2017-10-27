@@ -4,6 +4,12 @@ struct xylo_shapes
 	GLuint mvp, color;
 };
 
+struct xylo_quincunx
+{
+	GLuint program, vao, vbo;
+	GLuint pixel_size, center_tex, corner_tex;
+};
+
 struct saved_state
 {
 	_Bool stencil_test: 1;
@@ -20,6 +26,8 @@ struct xylo
 {
 	struct gl_api *api;
 	struct xylo_shapes shapes;
+	struct xylo_quincunx quincunx;
+	struct xylo_fb center_samples, corner_samples;
 	unsigned begin;
 	struct saved_state save;
 };

@@ -135,13 +135,44 @@ static struct xylo_shape test_shape[] = {
 	}
 };
 
+static float const view_width = 640.f;
+static float const view_height = 480.f;
+
+static void ortho(float *dest, GLint const size[2])
+{
+	float left, right, bottom, top;
+	float aspect, v_aspect, width, height;
+
+	v_aspect = view_width / view_height;
+	if (size[0] <= 0 || size[1] <= 0) {
+		aspect = 1.0;
+	} else {
+		aspect = (float)size[0] / (float)size[1];
+	}
+	if (aspect > v_aspect) {
+		/* more portrait like */
+		height = view_height;
+		width = view_width * aspect / v_aspect;
+	} else {
+		/* more landscape like, or square */
+		height = view_height * v_aspect / aspect;
+		width = view_width;
+	}
+	left = -width * 0.5f;
+	right = width * 0.5f;
+	bottom = -height * 0.5f;
+	top = height * 0.5f;
+	(void)m44orthographicf(dest, left, right, bottom, top, 0.f, 100.f);
+}
+
 static void update_view(
 	struct gl_core33 const *restrict gl,
 	struct xylo_view *view)
 {
-	gl->Viewport(0, 0, gl_test_output_width, gl_test_output_height);
-	view->width = 640.f;
-	view->height = 480.f;
+	GLint size[] = { gl_test_output_width, gl_test_output_height };
+
+	gl->Viewport(0, 0, size[0], size[1]);
+	ortho(view->projection, size);
 }
 
 static int creation_(struct gl_api *api, struct gl_test *test)
@@ -191,8 +222,8 @@ static int dlist_(struct gl_api *api, struct gl_test *test)
 	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
 	gl->Clear(GL_COLOR_BUFFER_BIT);
 
-	xylo_set_shape_set(xylo, set);
 	update_view(gl, &view);
+	xylo_set_shape_set(xylo, set);
 	xylo_draw(xylo, &view, &dlist.draw);
 
 	xylo_term_dlist(&dlist);
@@ -353,6 +384,8 @@ static void update_transform(size_t i, double t, struct xylo_dshape *shape)
 
 	if (i % 50 == 0) {
 		scale = 42.0;
+	} else if (i % 13 == 0) {
+		scale = 85.0;
 	} else if (i % 10 == 0) {
 		scale = 15.0;
 	} else {

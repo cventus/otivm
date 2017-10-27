@@ -11,37 +11,24 @@
 
 #include "private.h"
 #include "types.h"
+#include "fb.h"
 #include "include/xylo.h"
 #include "include/draw.h"
 #include "include/types.h"
 
+#define ALL_BUFFERS \
+	(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
 static void xylo_draw_rec(struct xylo *, float const *, struct xylo_draw *);
 
-static void ortho(float *dest, struct xylo_view const *v, GLint const size[2])
+static void resize_fb(
+	struct gl_core33 const *restrict gl,
+	struct xylo_fb *fb,
+	GLint size[2])
 {
-	float left, right, bottom, top;
-	float aspect, v_aspect, width, height;
-
-	v_aspect = v->width / v->height;
-	if (size[0] <= 0 || size[1] <= 0) {
-		aspect = 1.0;
-	} else {
-		aspect = (float)size[0] / (float)size[1];
+	if (fb->width < size[0] || fb->height < size[1]) {
+		xylo_fb_resize(gl, fb, size[0], size[1]);
 	}
-	if (aspect > v_aspect) {
-		/* more portrait like */
-		height = v->height;
-		width = v->width * aspect / v_aspect;
-	} else {
-		/* more landscape like, or square */
-		height = v->height * v_aspect / aspect;
-		width = v->width;
-	}
-	left = -width * 0.5f;
-	right = width * 0.5f;
-	bottom = -height * 0.5f;
-	top = height * 0.5f;
-	(void)m44orthographicf(dest, left, right, bottom, top, 0.f, 100.f);
 }
 
 void xylo_draw(
@@ -50,17 +37,70 @@ void xylo_draw(
 	struct xylo_draw const *draw)
 {
 	struct gl_core33 const *restrict gl;
-	float proj[16];
+	float corner_projection[16], transform[16],  translate[16], scale[16];
 	GLint viewport[4];
+	GLint size[2], corner_size[2];
 
 	gl = gl_get_core33(xylo->api);
 	gl->GetIntegerv(GL_VIEWPORT, viewport);
 	xylo_begin(xylo);
 
-	ortho(proj, view, viewport + 2);
+	size[0] = viewport[2];
+	size[1] = viewport[3];
+	corner_size[0] = size[0] + 1;
+	corner_size[1] = size[1] + 1;
 
 	gl->UseProgram(xylo->shapes.program);
-	xylo_draw_rec(xylo, proj, (struct xylo_draw *)draw);
+
+	/* draw center samples */
+	resize_fb(gl, &xylo->center_samples, size);
+	gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, xylo->center_samples.fbo);
+	gl->Viewport(0, 0, size[0], size[1]);
+	gl->Clear(ALL_BUFFERS);
+	xylo_draw_rec(xylo, view->projection, (struct xylo_draw *)draw);
+
+	/* draw corner samples */
+	resize_fb(gl, &xylo->corner_samples, corner_size);
+	gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, xylo->corner_samples.fbo);
+	gl->Viewport(0, 0, corner_size[0], corner_size[1]);
+	gl->Clear(ALL_BUFFERS);
+	/* move one pixel up+left in clip space */
+	(void)m44scalef(
+		scale,
+		size[0]/(float)corner_size[0],
+		size[1]/(float)corner_size[1],
+		1.f);
+	(void)m44translatef(
+		translate,
+		0.5f/corner_size[0],
+		0.5f/corner_size[1],
+		0.f);
+	(void)m44mulf(transform, translate, scale);
+	(void)m44mulf(corner_projection, transform, view->projection);
+	xylo_draw_rec(xylo, corner_projection, (struct xylo_draw *)draw);
+
+	/* draw samples to target */
+	gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	gl->Viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+	gl->UseProgram(xylo->quincunx.program);
+
+	/* one pixel in texture space */
+	xylo_quincunx_set_pixel_size(
+		&xylo->quincunx,
+		gl,
+		1.0f/corner_size[0],
+		1.0f/corner_size[1]);
+
+	gl->ActiveTexture(GL_TEXTURE0);
+	gl->BindTexture(GL_TEXTURE_2D, xylo->center_samples.tex);
+	xylo_quincunx_set_center_unit(&xylo->quincunx, gl, 0);
+
+	gl->ActiveTexture(GL_TEXTURE1);
+	gl->BindTexture(GL_TEXTURE_2D, xylo->corner_samples.tex);
+	xylo_quincunx_set_corner_unit(&xylo->quincunx, gl, 1);
+
+	/* compose center and corner samples */
+	xylo_quincunx_draw(&xylo->quincunx, gl);
 
 	xylo_end(xylo);
 }
