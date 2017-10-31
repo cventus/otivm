@@ -92,11 +92,11 @@ void xylo_draw(
 		1.0f/corner_size[1]);
 
 	gl->ActiveTexture(GL_TEXTURE0);
-	gl->BindTexture(GL_TEXTURE_2D, xylo->center_samples.tex);
+	gl->BindTexture(GL_TEXTURE_2D, xylo->center_samples.color);
 	xylo_quincunx_set_center_unit(&xylo->quincunx, gl, 0);
 
 	gl->ActiveTexture(GL_TEXTURE1);
-	gl->BindTexture(GL_TEXTURE_2D, xylo->corner_samples.tex);
+	gl->BindTexture(GL_TEXTURE_2D, xylo->corner_samples.color);
 	xylo_quincunx_set_corner_unit(&xylo->quincunx, gl, 1);
 
 	/* compose center and corner samples */
@@ -167,6 +167,7 @@ static void xylo_draw_rec(
 		shape = xylo_dshape_cast(draw);
 		transform_to_modelview(mv, shape);
 		gl = gl_get_core33(xylo->api);
+		xylo_shapes_set_object_id(&xylo->shapes, gl, shape->id);
 		xylo_shapes_set_mvp(&xylo->shapes, gl, m44mulf(mvp, proj, mv));
 		xylo_shapes_set_color4fv(&xylo->shapes, gl, shape->color);
 		xylo_draw_glshape(xylo, shape->glshape);
@@ -272,11 +273,27 @@ void xylo_init_dshape(
 	struct xylo_glshape const *glshape)
 {
 	shape->draw.type = xylo_dshape;
+	shape->id = 0;
 	shape->pos[0] = shape->pos[1] = 0.f;
 	shape->m22[0] = shape->m22[3] = 1.f;
 	shape->m22[1] = shape->m22[2] = 0.f;
 	shape->glshape = glshape;
-	memcpy(shape->color, color, sizeof shape->color);
+	(void)memcpy(shape->color, color, sizeof shape->color);
+}
+
+void xylo_init_dshape_id(
+	struct xylo_dshape *shape,
+	unsigned id,
+	float const color[4],
+	struct xylo_glshape const *glshape)
+{
+	shape->draw.type = xylo_dshape;
+	shape->id = id;
+	shape->pos[0] = shape->pos[1] = 0.f;
+	shape->m22[0] = shape->m22[3] = 1.f;
+	shape->m22[1] = shape->m22[2] = 0.f;
+	shape->glshape = glshape;
+	(void)memcpy(shape->color, color, sizeof shape->color);
 }
 
 void xylo_term_dshape(struct xylo_dshape *shape)

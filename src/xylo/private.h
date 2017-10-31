@@ -1,15 +1,17 @@
 struct gl_api;
+
 struct xylo;
 struct xylo_shapes;
 struct xylo_quincunx;
 struct xylo_glshape;
 struct xylo_glshape_set;
 
-#define GLSL(version,src) ("#version " #version " core\n" #src)
+#define GLSL(version, src) ("#version " #version " core\n" #src)
 
 enum
 {
-	FILL_COLOR_LOC = 0
+	FILL_COLOR_LOC = 0,
+	FRAGMENT_ID_LOC = 1
 };
 
 enum
@@ -38,6 +40,11 @@ void xylo_shapes_set_mvp(
 	struct xylo_shapes *shapes,
 	struct gl_core33 const *restrict gl,
 	float const *mvp);
+
+void xylo_shapes_set_object_id(
+	struct xylo_shapes *shapes,
+	struct gl_core33 const *restrict gl,
+	unsigned object_id);
 
 int xylo_init_quincunx(struct xylo_quincunx *quincunx, struct gl_api *api);
 

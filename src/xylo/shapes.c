@@ -18,19 +18,16 @@
 static struct gl_shader_source const shapes_vert = {
 	GL_VERTEX_SHADER,
 	GLSL(330,
+	uniform mat4 mvp;
+
 	in vec2 shape_pos;
 	in vec3 quadratic_pos;
 
-	uniform mat4 mvp;
-
-	out vertex_data
-	{
-		vec3 quadratic;
-	} vertex;
+	out vec3 quadratic;
 
 	void main()
 	{
-		vertex.quadratic = quadratic_pos;
+		quadratic = quadratic_pos;
 		gl_Position = mvp * vec4(shape_pos, 0.0, 1.0);
 	})
 };
@@ -40,13 +37,12 @@ static struct gl_shader_source const shapes_frag = {
 	GLSL(330,
 
 	uniform vec4 color;
+	uniform uint object_id;
 
-	in vertex_data
-	{
-		vec3 quadratic;
-	};
+	in vec3 quadratic;
 
 	out vec4 fill_color;
+	out uint fragment_id;
 
 	void main()
 	{
@@ -56,11 +52,13 @@ static struct gl_shader_source const shapes_frag = {
 
 		if (k*k - l*m >= 0.0f) { discard; }
 		fill_color = color;
+		fragment_id = object_id;
 	})
 };
 
 static struct gl_location const fragment_locs[] = {
 	{ FILL_COLOR_LOC, "fill_color" },
+	{ FRAGMENT_ID_LOC, "fragment_id" },
 	{ 0, 0 }
 };
 
@@ -74,6 +72,7 @@ static struct gl_location const shapes_attrib[] = {
 static struct gl_uniform_layout const uniforms[] = {
 	UNIFORM(mvp),
 	UNIFORM(color),
+	UNIFORM(object_id),
 	{ 0, 0 }
 };
 #undef UNIFORM
@@ -111,4 +110,13 @@ void xylo_shapes_set_mvp(
 {
 	assert(xylo_get_uint(gl, GL_CURRENT_PROGRAM) == shapes->program);
 	gl->UniformMatrix4fv(shapes->mvp, 1, GL_FALSE, mvp);
+}
+
+void xylo_shapes_set_object_id(
+	struct xylo_shapes *shapes,
+	struct gl_core33 const *restrict gl,
+	unsigned object_id)
+{
+	assert(xylo_get_uint(gl, GL_CURRENT_PROGRAM) == shapes->program);
+	gl->Uniform1ui(shapes->object_id, object_id);
 }

@@ -512,11 +512,89 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 }
 static int rain(void) { return run(rain_); }
 
+static int object_id_(struct gl_api *api, struct gl_test *test)
+{
+	struct xylo *xylo;
+	struct xylo_glshape_set *set;
+	struct xylo_dlist dlist;
+	struct xylo_dshape a, b, c;
+	struct gl_core33 const *gl;
+	struct xylo_view view;
+	unsigned id0, id1, id2, id3;
+
+	(void)test;
+
+	gl = gl_get_core33(api);
+	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
+	xylo = make_xylo(api);
+	if (!xylo) { return -1; }
+	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
+	if (!set) { return -1; }
+
+	/* create list nodes */
+	xylo_init_dshape_id(&a, 1, black, xylo_get_glshape(set, 0));
+	xylo_init_dshape_id(&b, 2, black, xylo_get_glshape(set, 2));
+	xylo_init_dshape_id(&c, 3, red, xylo_get_glshape(set, 3));
+
+	/* create draw list */
+	xylo_init_dlist(&dlist);
+	xylo_dlist_append(&dlist, &a.draw);
+	xylo_dlist_append(&dlist, &b.draw);
+	xylo_dlist_append(&dlist, &c.draw);
+
+	m22mulsf(a.m22, a.m22, 30.0f);
+	m22mulsf(b.m22, b.m22, 60.0f);
+	m22mulsf(c.m22, c.m22, 90.0f);
+
+	a.pos[0] = a.pos[1] = -90.0;
+	c.pos[0] = b.pos[1] = 90.0;
+
+	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
+	gl->Clear(GL_COLOR_BUFFER_BIT);
+
+	update_view(gl, &view);
+	xylo_set_shape_set(xylo, set);
+	xylo_draw(xylo, &view, &dlist.draw);
+	gl->Finish();
+
+	id0 = xylo_get_object_id(xylo, 1, 1);
+	if (id0 != (1 << 16) - 1) {
+		ok = -1;
+		printf("Expected id == 0, got %d\n", (int)id0);
+	}
+	id1 = xylo_get_object_id(xylo, 215, 220);
+	if (id1 != 1) {
+		ok = -1;
+		printf("Expected id == 1, got %d\n", (int)id1);
+	}
+	id2 = xylo_get_object_id(xylo, 300, 388);
+	if (id2 != 2) {
+		ok = -1;
+		printf("Expected id == 2, got %d\n", (int)id2);
+	}
+	id3 = xylo_get_object_id(xylo, 375, 300);
+	if (id3 != 3) {
+		ok = -1;
+		printf("Expected id == 3, got %d\n", (int)id3);
+	}
+
+	xylo_term_dlist(&dlist);
+	xylo_term_dshape(&a);
+	xylo_term_dshape(&b);
+	xylo_term_dshape(&c);
+	if (xylo_free_glshape_set(set, api)) { return -1; }
+
+	free_xylo(xylo);
+	return 0;
+}
+static int object_id(void) { return run(object_id_); }
+
 struct test const tests[] = {
 	{ creation, "create xylo renderer" },
 	{ dlist, "render draw list" },
 	{ transformed, "render items with tgraph" },
 	{ rain, "one hundred shapes" },
+	{ object_id, "read object ID at pixel" },
 
 	{ NULL, NULL }
 };

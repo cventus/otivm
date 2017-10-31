@@ -1,7 +1,7 @@
 struct xylo_shapes
 {
 	GLuint program;
-	GLuint mvp, color;
+	GLuint mvp, color, object_id;
 };
 
 struct xylo_quincunx
@@ -18,7 +18,7 @@ struct saved_state
 
 struct xylo_fb
 {
-	GLuint fbo, tex, ds;
+	GLuint fbo, color, object_id, ds;
 	GLsizei width, height;
 };
 

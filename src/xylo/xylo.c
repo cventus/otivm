@@ -33,8 +33,8 @@ struct xylo *make_xylo(struct gl_api *api)
 		free(xylo);
 		return NULL;
 	}
-	xylo_init_fb(gl, &xylo->center_samples, 0, 0);
-	xylo_init_fb(gl, &xylo->corner_samples, 0, 0);
+	xylo_init_fb(gl, &xylo->center_samples, 1);
+	xylo_init_fb(gl, &xylo->corner_samples, 0);
 	xylo->begin = 0;
 	xylo->api = api;
 	return xylo;
@@ -86,4 +86,13 @@ GLuint xylo_get_uint(struct gl_core33 const *restrict gl, GLenum t)
 	GLint v;
 	gl->GetIntegerv(t, &v);
 	return (GLuint)v;
+}
+
+unsigned xylo_get_object_id(
+	struct xylo *xylo,
+	GLsizei x,
+	GLsizei y)
+{
+	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
+	return xylo_fb_object_id(gl, &xylo->center_samples, x, y);
 }

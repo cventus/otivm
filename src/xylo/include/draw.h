@@ -30,6 +30,7 @@ struct xylo_dshape
 	float m22[4], pos[2];
 
 	/* shape to draw */
+	unsigned id;
 	float color[4];
 	struct xylo_glshape const *glshape;
 };
@@ -50,6 +51,11 @@ ptrdiff_t xylo_dlist_indexof(struct xylo_dlist *, struct xylo_draw *d);
 
 void xylo_init_dshape(
 	struct xylo_dshape *,
+	float const color[4],
+	struct xylo_glshape const *);
+void xylo_init_dshape_id(
+	struct xylo_dshape *,
+	unsigned id,
 	float const color[4],
 	struct xylo_glshape const *);
 void xylo_term_dshape(struct xylo_dshape *);
