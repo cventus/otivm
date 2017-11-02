@@ -11,7 +11,8 @@
 #include <gm/matrix.h>
 
 #include "include/types.h"
-#include "include/xylo.h"
+#include "xylo.h"
+#include "shapes.h"
 #include "private.h"
 #include "types.h"
 
@@ -92,6 +93,12 @@ int xylo_init_shapes(struct xylo_shapes *shapes, struct gl_api *api)
 	if (!shapes->program) { return -1; }
 	gl_get_uniforms(api, shapes, shapes->program, uniforms);
 	return 0;
+}
+
+void xylo_term_shapes(struct xylo_shapes *shapes, struct gl_api *api)
+{
+	gl_get_core30(api)->DeleteProgram(shapes->program);
+	gl_unuse_program(api, shapes->program);
 }
 
 void xylo_shapes_set_color4fv(

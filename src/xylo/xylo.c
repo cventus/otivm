@@ -16,37 +16,52 @@
 #include "fb.h"
 #include "types.h"
 
+#include "xylo.h"
+#include "include/xylo.h"
+#include "shapes.h"
+#include "quincunx.h"
+
 struct xylo *make_xylo(struct gl_api *api)
 {
-	struct xylo *xylo;
+	struct xylo *xylo = malloc(sizeof *xylo);
+	if (xylo && init_xylo(xylo, api) != 0) {
+		free(xylo);
+		xylo = NULL;
+	}
+	return xylo;
+}
+
+int init_xylo(struct xylo *xylo, struct gl_api *api)
+{
 	struct gl_core33 const *restrict gl;
 
-	gl = gl_get_core33(api);
-	if (!gl) { return NULL; }
-	xylo = malloc(sizeof *xylo);
-	if (xylo_init_shapes(&xylo->shapes, api)) {
-		free(xylo);
-		return NULL;
-	}
+	assert(api != NULL);
+	assert(xylo != NULL);
+
+	/* enforce minimum OpenGL version */
+	if (gl = gl_get_core33(api), !gl) { return -1; }
+	if (xylo_init_shapes(&xylo->shapes, api)) { return -2; }
 	if (xylo_init_quincunx(&xylo->quincunx, api)) {
 		gl->DeleteProgram(xylo->shapes.program);
-		free(xylo);
-		return NULL;
+		return -2;
 	}
 	xylo_init_fb(gl, &xylo->center_samples, 1);
 	xylo_init_fb(gl, &xylo->corner_samples, 0);
 	xylo->begin = 0;
 	xylo->api = api;
-	return xylo;
+	return 0;
+}
+
+void term_xylo(struct xylo *xylo)
+{
+	assert(xylo != NULL);
+	xylo_term_shapes(&xylo->shapes, xylo->api);
+	xylo_term_quincunx(&xylo->quincunx, xylo->api);
 }
 
 void free_xylo(struct xylo *xylo)
 {
-	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
-	gl_unuse_program(xylo->api, xylo->shapes.program);
-	gl_unuse_program(xylo->api, xylo->quincunx.program);
-	gl->DeleteProgram(xylo->shapes.program);
-	xylo_term_quincunx(&xylo->quincunx, gl);
+	term_xylo(xylo);
 	free(xylo);
 }
 
@@ -60,8 +75,8 @@ void xylo_begin(struct xylo *xylo)
 	/* save GL state */
 	xylo->save.stencil_test = gl->IsEnabled(GL_STENCIL_TEST);
 	xylo->save.multisample = gl->IsEnabled(GL_MULTISAMPLE);
-	gl->Enable(GL_STENCIL_TEST);
-	gl->Disable(GL_MULTISAMPLE);
+	if (!xylo->save.stencil_test) { gl->Enable(GL_STENCIL_TEST); }
+	if (xylo->save.multisample) { gl->Disable(GL_MULTISAMPLE); }
 }
 
 void xylo_end(struct xylo *xylo)
@@ -88,10 +103,7 @@ GLuint xylo_get_uint(struct gl_core33 const *restrict gl, GLenum t)
 	return (GLuint)v;
 }
 
-unsigned xylo_get_object_id(
-	struct xylo *xylo,
-	GLsizei x,
-	GLsizei y)
+unsigned xylo_get_object_id(struct xylo *xylo, GLsizei x, GLsizei y)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
 	return xylo_fb_object_id(gl, &xylo->center_samples, x, y);

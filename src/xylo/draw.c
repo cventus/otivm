@@ -12,9 +12,15 @@
 #include "private.h"
 #include "types.h"
 #include "fb.h"
+#include "xylo.h"
+#include "glshape.h"
+#include "shapes.h"
+#include "quincunx.h"
+
 #include "include/xylo.h"
 #include "include/draw.h"
 #include "include/types.h"
+
 
 #define ALL_BUFFERS \
 	(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -105,19 +111,7 @@ void xylo_draw(
 	xylo_end(xylo);
 }
 
-static void draw_glshape(
-       struct gl_core33 const *gl,
-       struct xylo_glshape const *shape)
-{
-       gl->DrawElementsBaseVertex(
-               GL_TRIANGLES,
-               shape->count,
-               shape->type,
-               shape->indices,
-               shape->basevertex);
-}
-
-void xylo_draw_glshape(struct xylo *xylo, struct xylo_glshape const *shape)
+static void draw_glshape(struct xylo *xylo, struct xylo_glshape const *shape)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
 
@@ -126,14 +120,14 @@ void xylo_draw_glshape(struct xylo *xylo, struct xylo_glshape const *shape)
 	gl->StencilFunc(GL_ALWAYS, 0x00, 0x01);
 	gl->StencilOp(GL_KEEP, GL_KEEP, GL_INVERT);
 
-	draw_glshape(gl, shape);
+	xylo_glshape_draw(gl, shape);
 
 	/* Step two - fill in color without overdraw and erase stencil */
 	gl->ColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	gl->StencilFunc(GL_EQUAL, 0x01, 0x01);
 	gl->StencilOp(GL_ZERO, GL_ZERO, GL_ZERO);
 
-	draw_glshape(gl, shape);
+	xylo_glshape_draw(gl, shape);
 }
 
 static void transform_to_modelview(float *dest, struct xylo_dshape *shape)
@@ -170,7 +164,7 @@ static void xylo_draw_rec(
 		xylo_shapes_set_object_id(&xylo->shapes, gl, shape->id);
 		xylo_shapes_set_mvp(&xylo->shapes, gl, m44mulf(mvp, proj, mv));
 		xylo_shapes_set_color4fv(&xylo->shapes, gl, shape->color);
-		xylo_draw_glshape(xylo, shape->glshape);
+		draw_glshape(xylo, shape->glshape);
 		break;
 
 	case xylo_dlist:

@@ -352,6 +352,18 @@ struct xylo_glshape const *xylo_get_glshape(
 	return set->shapes + i;
 }
 
+void xylo_glshape_draw(
+       struct gl_core33 const *restrict gl,
+       struct xylo_glshape const *shape)
+{
+       gl->DrawElementsBaseVertex(
+               GL_TRIANGLES,
+               shape->count,
+               shape->type,
+               shape->indices,
+               shape->basevertex);
+}
+
 int xylo_free_glshape_set(struct xylo_glshape_set *set, struct gl_api *api)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(api);

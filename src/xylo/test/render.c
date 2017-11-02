@@ -13,7 +13,8 @@
 
 #include <tempo/tempo.h>
 
-#include "../include/xylo.h"
+#include "../xylo.h"
+#include "../draw.h"
 #include "../include/types.h"
 #include "../include/draw.h"
 #include "../include/tgraph.h"

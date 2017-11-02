@@ -9,6 +9,8 @@
 #include "include/xylo.h"
 #include "private.h"
 #include "types.h"
+#include "xylo.h"
+#include "quincunx.h"
 
 static struct gl_shader_source const quincunx_vert = {
 	GL_VERTEX_SHADER,
@@ -128,12 +130,11 @@ int xylo_init_quincunx(struct xylo_quincunx *quincunx, struct gl_api *api)
 	return 0;
 }
 
-void xylo_term_quincunx(
-	struct xylo_quincunx *quincunx,
-	struct gl_core33 const *restrict gl)
+void xylo_term_quincunx(struct xylo_quincunx *quincunx, struct gl_api *api)
 {
-	gl->DeleteVertexArrays(1, &quincunx->vao);
-	gl->DeleteProgram(quincunx->program);
+	gl_unuse_program(api, quincunx->program);
+	gl_get_core30(api)->DeleteVertexArrays(1, &quincunx->vao);
+	gl_get_core30(api)->DeleteProgram(quincunx->program);
 }
 
 void xylo_quincunx_draw(
