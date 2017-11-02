@@ -368,6 +368,8 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 	xylo_term_dshape(&a);
 	xylo_term_dshape(&b);
 	xylo_term_dshape(&c);
+	xylo_free_tgraph(tgraph);
+
 	if (xylo_free_glshape_set(set, api)) { return -1; }
 	free_xylo(xylo);
 	pfclock_free(clk);
