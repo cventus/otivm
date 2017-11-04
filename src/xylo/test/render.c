@@ -231,7 +231,7 @@ static int dlist_(struct gl_api *api, struct gl_test *test)
 	xylo_term_dshape(&a);
 	xylo_term_dshape(&b);
 	xylo_term_dshape(&c);
-	if (xylo_free_glshape_set(set, api)) { return -1; }
+	xylo_free_glshape_set(set, api);
 	gl_test_swap_buffers(test);
 
 	if (is_test_interactive()) { gl_test_wait_for_key(test); }
@@ -370,7 +370,7 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 	xylo_term_dshape(&c);
 	xylo_free_tgraph(tgraph);
 
-	if (xylo_free_glshape_set(set, api)) { return -1; }
+	xylo_free_glshape_set(set, api);
 	free_xylo(xylo);
 	pfclock_free(clk);
 	return 0;
@@ -508,7 +508,7 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 	for (i = 0; i < length_of(dshapes); i++) {
 		xylo_term_dshape(dshapes + i);
 	}
-	if (xylo_free_glshape_set(set, api)) { return -1; }
+	xylo_free_glshape_set(set, api);
 	free_xylo(xylo);
 	pfclock_free(clk);
 	return 0;
@@ -585,7 +585,7 @@ static int object_id_(struct gl_api *api, struct gl_test *test)
 	xylo_term_dshape(&a);
 	xylo_term_dshape(&b);
 	xylo_term_dshape(&c);
-	if (xylo_free_glshape_set(set, api)) { return -1; }
+	xylo_free_glshape_set(set, api);
 
 	free_xylo(xylo);
 	return 0;

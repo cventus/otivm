@@ -11,6 +11,8 @@ struct xylo_glshape_set *xylo_make_glshape_set(
 	size_t n,
 	struct xylo_shape const *shapes);
 
+void xylo_free_glshape_set(struct xylo_glshape_set *set, struct gl_api *api);
+
 struct xylo_glshape const *xylo_get_glshape(
 	struct xylo_glshape_set *set,
 	size_t i);
@@ -18,5 +20,3 @@ struct xylo_glshape const *xylo_get_glshape(
 void xylo_glshape_draw(
        struct gl_core33 const *restrict gl,
        struct xylo_glshape const *shape);
-
-int xylo_free_glshape_set(struct xylo_glshape_set *set, struct gl_api *api);

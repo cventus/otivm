@@ -21,16 +21,6 @@
 #include "shapes.h"
 #include "quincunx.h"
 
-struct xylo *make_xylo(struct gl_api *api)
-{
-	struct xylo *xylo = malloc(sizeof *xylo);
-	if (xylo && init_xylo(xylo, api) != 0) {
-		free(xylo);
-		xylo = NULL;
-	}
-	return xylo;
-}
-
 int init_xylo(struct xylo *xylo, struct gl_api *api)
 {
 	struct gl_core33 const *restrict gl;
@@ -42,8 +32,8 @@ int init_xylo(struct xylo *xylo, struct gl_api *api)
 	if (gl = gl_get_core33(api), !gl) { return -1; }
 	if (xylo_init_shapes(&xylo->shapes, api)) { return -2; }
 	if (xylo_init_quincunx(&xylo->quincunx, api)) {
-		gl->DeleteProgram(xylo->shapes.program);
-		return -2;
+		xylo_term_shapes(&xylo->shapes, api);
+		return -3;
 	}
 	xylo_init_fb(gl, &xylo->center_samples, 1);
 	xylo_init_fb(gl, &xylo->corner_samples, 0);
@@ -52,9 +42,24 @@ int init_xylo(struct xylo *xylo, struct gl_api *api)
 	return 0;
 }
 
+struct xylo *make_xylo(struct gl_api *api)
+{
+	struct xylo *xylo = malloc(sizeof *xylo);
+	if (xylo && init_xylo(xylo, api) != 0) {
+		free(xylo);
+		xylo = NULL;
+	}
+	return xylo;
+}
+
 void term_xylo(struct xylo *xylo)
 {
+	struct gl_core33 const *restrict gl;
+
 	assert(xylo != NULL);
+	gl = gl_get_core33(xylo->api);
+	xylo_term_fb(gl, &xylo->center_samples);
+	xylo_term_fb(gl, &xylo->corner_samples);
 	xylo_term_shapes(&xylo->shapes, xylo->api);
 	xylo_term_quincunx(&xylo->quincunx, xylo->api);
 }

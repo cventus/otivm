@@ -24,6 +24,21 @@ void xylo_init_fb(
 	fb->height = fb->width = -1;
 }
 
+void xylo_term_fb(struct gl_core33 const *restrict gl, struct xylo_fb *fb)
+{
+	GLuint tex[2];
+
+	assert(gl != NULL);
+	assert(fb != NULL);
+
+	tex[0] = fb->color;
+	tex[1] = fb->object_id;
+
+	gl->DeleteFramebuffers(1, &fb->fbo);
+	gl->DeleteRenderbuffers(1, &fb->ds);
+	gl->DeleteTextures(fb->object_id ? 2 : 1, tex);
+}
+
 static GLenum const drawbuffers[] = {
 	[0] = GL_COLOR_ATTACHMENT0,
 	[1] = GL_COLOR_ATTACHMENT1,
@@ -114,16 +129,4 @@ unsigned xylo_fb_object_id(
 		&value);
 
 	return value;
-}
-
-void xylo_term_fb(struct gl_core33 const *restrict gl, struct xylo_fb *fb)
-{
-	assert(gl != NULL);
-	assert(fb != NULL);
-	if (fb->width > 0 && fb->height > 0) {
-		GLuint tex[2] = { fb->color, fb->object_id };
-		gl->DeleteFramebuffers(1, &fb->fbo);
-		gl->DeleteRenderbuffers(1, &fb->ds);
-		gl->DeleteTextures(fb->object_id ? 2 : 1, tex);
-	}
 }

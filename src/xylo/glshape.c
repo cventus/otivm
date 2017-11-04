@@ -345,6 +345,15 @@ struct xylo_glshape_set *xylo_make_glshape_set(
 	return set;
 }
 
+void xylo_free_glshape_set(struct xylo_glshape_set *set, struct gl_api *api)
+{
+	struct gl_core33 const *restrict gl;
+	gl = gl_get_core33(api);
+	gl->DeleteBuffers(1, &set->evbo);
+	gl->DeleteVertexArrays(1, &set->vao);
+	free(set);
+}
+
 struct xylo_glshape const *xylo_get_glshape(
 	struct xylo_glshape_set *set,
 	size_t i)
@@ -362,14 +371,4 @@ void xylo_glshape_draw(
                shape->type,
                shape->indices,
                shape->basevertex);
-}
-
-int xylo_free_glshape_set(struct xylo_glshape_set *set, struct gl_api *api)
-{
-	struct gl_core33 const *restrict gl = gl_get_core33(api);
-
-	gl->DeleteBuffers(1, &set->evbo);
-	gl->DeleteVertexArrays(1, &set->vao);
-	free(set);
-	return 0;
 }
