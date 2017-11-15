@@ -363,12 +363,14 @@ struct xylo_glshape const *xylo_get_glshape(
 
 void xylo_glshape_draw(
        struct gl_core33 const *restrict gl,
-       struct xylo_glshape const *shape)
+       struct xylo_glshape const *shape,
+       GLsizei samples)
 {
-       gl->DrawElementsBaseVertex(
-               GL_TRIANGLES,
-               shape->count,
-               shape->type,
-               shape->indices,
-               shape->basevertex);
+	gl->DrawElementsInstancedBaseVertex(
+		GL_TRIANGLES,
+		shape->count,
+		shape->type,
+		shape->indices,
+		samples,
+		shape->basevertex);
 }

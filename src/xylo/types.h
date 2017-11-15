@@ -1,13 +1,13 @@
 struct xylo_shapes
 {
 	GLuint program;
-	GLuint mvp, color, object_id;
+	GLuint mvp, sample_clip, sample_offset, color, object_id;
 };
 
 struct xylo_quincunx
 {
 	GLuint program, vao, vbo;
-	GLuint pixel_size, center_tex, corner_tex;
+	GLuint pixel_size, tex;
 };
 
 struct saved_state

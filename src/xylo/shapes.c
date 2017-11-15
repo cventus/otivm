@@ -21,15 +21,30 @@ static struct gl_shader_source const shapes_vert = {
 	GLSL(330,
 	uniform mat4 mvp;
 
+	/* custom multisampling support for 2 or 4 samples */
+	uniform vec2 sample_clip[4];
+	uniform vec4 sample_offset[4];
+
 	in vec2 shape_pos;
 	in vec3 quadratic_pos;
 
 	out vec3 quadratic;
+	out gl_PerVertex
+	{
+		vec4 gl_Position;
+		float gl_ClipDistance[2];
+	};
 
 	void main()
 	{
 		quadratic = quadratic_pos;
-		gl_Position = mvp * vec4(shape_pos, 0.0, 1.0);
+		gl_Position = mvp * vec4(shape_pos, 0.0, 1.0) +
+			sample_offset[gl_InstanceID];
+
+		/* clip-space clip-planes through center defined by axis
+		   aligned normal directions */
+		gl_ClipDistance[0] = sample_clip[gl_InstanceID].x * gl_Position.x;
+		gl_ClipDistance[1] = sample_clip[gl_InstanceID].y * gl_Position.y;
 	})
 };
 
@@ -72,6 +87,8 @@ static struct gl_location const shapes_attrib[] = {
 #define UNIFORM(name) { offsetof(struct xylo_shapes, name), #name }
 static struct gl_uniform_layout const uniforms[] = {
 	UNIFORM(mvp),
+	UNIFORM(sample_clip),
+	UNIFORM(sample_offset),
 	UNIFORM(color),
 	UNIFORM(object_id),
 	{ 0, 0 }
@@ -119,7 +136,36 @@ void xylo_shapes_set_mvp(
 	gl->UniformMatrix4fv(shapes->mvp, 1, GL_FALSE, mvp);
 }
 
+void xylo_shapes_set_sample_clip(
+	struct xylo_shapes *shapes,
+	struct gl_core33 const *restrict gl,
+	GLsizei n,
+	float const *sample_clip)
+{
+	assert(xylo_get_uint(gl, GL_CURRENT_PROGRAM) == shapes->program);
+	gl->Uniform2fv(shapes->sample_clip, n, sample_clip);
+}
+
+void xylo_shapes_set_sample_offset(
+	struct xylo_shapes *shapes,
+	struct gl_core33 const *restrict gl,
+	GLsizei n,
+	float const *sample_offset)
+{
+	assert(xylo_get_uint(gl, GL_CURRENT_PROGRAM) == shapes->program);
+	gl->Uniform4fv(shapes->sample_offset, n, sample_offset);
+}
+
 void xylo_shapes_set_object_id(
+	struct xylo_shapes *shapes,
+	struct gl_core33 const *restrict gl,
+	unsigned object_id)
+{
+	assert(xylo_get_uint(gl, GL_CURRENT_PROGRAM) == shapes->program);
+	gl->Uniform1ui(shapes->object_id, object_id);
+}
+
+void xylo_shapes_set_sample_offsets(
 	struct xylo_shapes *shapes,
 	struct gl_core33 const *restrict gl,
 	unsigned object_id)

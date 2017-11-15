@@ -22,31 +22,33 @@ static struct gl_shader_source const quincunx_vert = {
 
 	void main()
 	{
+		float pw = pixel_size.x;
+		float ph = pixel_size.y;
 		float phw = pixel_size.x * 0.5;
 		float phh = pixel_size.y * 0.5;
 
 		switch (gl_VertexID) {
 		/* top left */
-		case 0:	center_coord = vec2(0.0, 1.0);
-			corner_coord = vec2(0.0 + phw, 1.0 - phh);
+		case 0:	center_coord = vec2(0.0, 1.0 - ph);
+			corner_coord = vec2(0.5 + phw, 1.0 - phh);
 			gl_Position = vec4(-1.0, 1.0, 0.0, 1.0);
 			break;
 
 		/* bottom left */
 		case 1:	center_coord = vec2(0.0, 0.0);
-			corner_coord = vec2(0.0 + phw, 0.0 + phh);
+			corner_coord = vec2(0.5 + phw, 0.0 + phh);
 			gl_Position = vec4(-1.0, -1.0, 0.0, 1.0);
 			break;
 
 		/* top right */
-		case 2:	center_coord = vec2(1.0, 1.0);
+		case 2:	center_coord = vec2(0.5 - pw, 1.0 - ph);
 			corner_coord = vec2(1.0 - phw, 1.0 - phh);
 			gl_Position = vec4(1.0, 1.0, 0.0, 1.0);
 			break;
 
 		/* bottom right */
 		default:
-		case 3:	center_coord = vec2(1.0, 0.0);
+		case 3:	center_coord = vec2(0.5 - pw, 0.0);
 			corner_coord = vec2(1.0 - phw, 0.0 + phh);
 			gl_Position = vec4(1.0, -1.0, 0.0, 1.0);
 			break;
@@ -58,12 +60,10 @@ static struct gl_shader_source const quincunx_frag = {
 	GL_FRAGMENT_SHADER,
 	GLSL(330,
 
-	uniform sampler2D center_tex;
-	uniform sampler2D corner_tex;
+	uniform sampler2D tex;
 
 	in vec2 center_coord;
 	in vec2 corner_coord;
-	in vec3 color;
 
 	out vec4 fill_color;
 
@@ -77,17 +77,16 @@ static struct gl_shader_source const quincunx_frag = {
 	void main()
 	{
 		/* single center sample */
-		vec4 center_sample = texture2D(center_tex, center_coord);
+		vec4 center_sample = texture2D(tex, center_coord);
 
 		/* arithmetic mean of four corner samples */
-		vec4 corner_mean = texture2D(corner_tex, corner_coord);
+		vec4 corner_mean = texture2D(tex, corner_coord);
 
 		/* five samples in total, but give more weight to center,
 		   effectively treating it as four samples on the same
 		   place */
 		fill_color = mix(center_sample, corner_mean, factor);
-	}
-	)
+	})
 };
 
 static struct gl_location const fragment_locs[] = {
@@ -102,8 +101,7 @@ static struct gl_location const quincunx_attributes[] = {
 #define UNIFORM(name) { offsetof(struct xylo_quincunx, name), #name }
 static struct gl_uniform_layout const uniforms[] = {
 	UNIFORM(pixel_size),
-	UNIFORM(center_tex),
-	UNIFORM(corner_tex),
+	UNIFORM(tex),
 	{ 0, 0 }
 };
 #undef UNIFORM
@@ -180,20 +178,11 @@ void xylo_quincunx_set_pixel_size2fv(
 	gl->Uniform2fv(quincunx->pixel_size, 1, pixel_size);
 }
 
-void xylo_quincunx_set_center_unit(
+void xylo_quincunx_set_tex_unit(
 	struct xylo_quincunx *quincunx,
 	struct gl_core33 const *restrict gl,
 	GLuint unit)
 {
 	assert(xylo_get_uint(gl, GL_CURRENT_PROGRAM) == quincunx->program);
-	gl->Uniform1i(quincunx->center_tex, unit);
-}
-
-void xylo_quincunx_set_corner_unit(
-	struct xylo_quincunx *quincunx,
-	struct gl_core33 const *restrict gl,
-	GLuint unit)
-{
-	assert(xylo_get_uint(gl, GL_CURRENT_PROGRAM) == quincunx->program);
-	gl->Uniform1i(quincunx->corner_tex, unit);
+	gl->Uniform1i(quincunx->tex, unit);
 }

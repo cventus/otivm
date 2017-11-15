@@ -19,4 +19,5 @@ struct xylo_glshape const *xylo_get_glshape(
 
 void xylo_glshape_draw(
        struct gl_core33 const *restrict gl,
-       struct xylo_glshape const *shape);
+       struct xylo_glshape const *shape,
+       GLsizei samples);

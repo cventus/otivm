@@ -19,6 +19,7 @@
 #include "../include/draw.h"
 #include "../include/tgraph.h"
 #include "../include/shape.h"
+#include "../include/aa.h"
 #include "../private.h"
 
 #define run(fn) gl_run_test(is_test_interactive() ? __func__ : NULL, fn)
@@ -239,6 +240,67 @@ static int dlist_(struct gl_api *api, struct gl_test *test)
 	return 0;
 }
 static int dlist(void) { return run(dlist_); }
+
+static int aa_(struct gl_api *api, struct gl_test *test)
+{
+	struct xylo *xylo;
+	struct xylo_glshape_set *set;
+	struct xylo_dlist dlist;
+	struct xylo_dshape a, b, c;
+	struct gl_core33 const *gl;
+	struct xylo_view view;
+
+	gl = gl_get_core33(api);
+	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
+	xylo = make_xylo(api);
+	if (!xylo) { return -1; }
+	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
+	if (!set) { return -1; }
+
+	/* create list nodes */
+	xylo_init_dshape(&a, black, xylo_get_glshape(set, 0));
+	xylo_init_dshape(&b, black, xylo_get_glshape(set, 2));
+	xylo_init_dshape(&c, red, xylo_get_glshape(set, 3));
+
+	/* create draw list */
+	xylo_init_dlist(&dlist);
+	xylo_dlist_append(&dlist, &a.draw);
+	xylo_dlist_append(&dlist, &b.draw);
+	xylo_dlist_append(&dlist, &c.draw);
+
+	m22mulsf(a.m22, a.m22, 30.0f);
+	m22mulsf(b.m22, b.m22, 60.0f);
+	m22mulsf(c.m22, c.m22, 90.0f);
+
+	a.pos[0] = a.pos[1] = -90.0;
+	c.pos[0] = b.pos[1] = 90.0;
+
+	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
+	gl->Clear(GL_COLOR_BUFFER_BIT);
+
+	update_view(gl, &view);
+	xylo_set_shape_set(xylo, set);
+
+	xylo_set_aa(xylo, XYLO_AA_NONE);
+	xylo_draw(xylo, &view, &dlist.draw);
+	gl_test_swap_buffers(test);
+	gl_test_wait_for_key(test);
+
+	xylo_set_aa(xylo, XYLO_AA_QUINCUNX);
+	xylo_draw(xylo, &view, &dlist.draw);
+	gl_test_swap_buffers(test);
+	gl_test_wait_for_key(test);
+
+	xylo_term_dlist(&dlist);
+	xylo_term_dshape(&a);
+	xylo_term_dshape(&b);
+	xylo_term_dshape(&c);
+	xylo_free_glshape_set(set, api);
+
+	free_xylo(xylo);
+	return 0;
+}
+static int aa(void) { return run(aa_); }
 
 static void copy_transform(struct xylo_tnode *tnode, struct xylo_dshape *shape)
 {
@@ -534,6 +596,8 @@ static int object_id_(struct gl_api *api, struct gl_test *test)
 	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
 	if (!set) { return -1; }
 
+	xylo_set_aa(xylo, XYLO_AA_QUINCUNX);
+
 	/* create list nodes */
 	xylo_init_dshape_id(&a, 1, black, xylo_get_glshape(set, 0));
 	xylo_init_dshape_id(&b, 2, black, xylo_get_glshape(set, 2));
@@ -598,6 +662,7 @@ struct test const tests[] = {
 	{ transformed, "render items with tgraph" },
 	{ rain, "one hundred shapes" },
 	{ object_id, "read object ID at pixel" },
+	{ aa, "render using anti-aliasing" },
 
 	{ NULL, NULL }
 };

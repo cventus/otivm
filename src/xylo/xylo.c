@@ -38,6 +38,7 @@ int init_xylo(struct xylo *xylo, struct gl_api *api)
 	xylo_init_fb(gl, &xylo->center_samples, 1);
 	xylo_init_fb(gl, &xylo->corner_samples, 0);
 	xylo->begin = 0;
+	xylo->aa = 0;
 	xylo->api = api;
 	return 0;
 }

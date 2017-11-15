@@ -23,13 +23,7 @@ void xylo_quincunx_set_pixel_size2fv(
 	float const *pixel_size);
 
 /* specify texture unit holding the pixel center samples */
-void xylo_quincunx_set_center_unit(
-	struct xylo_quincunx *quincunx,
-	struct gl_core33 const *restrict gl,
-	GLuint unit);
-
-/* specify texture unit holding the pixel corner samples */
-void xylo_quincunx_set_corner_unit(
+void xylo_quincunx_set_tex_unit(
 	struct xylo_quincunx *quincunx,
 	struct gl_core33 const *restrict gl,
 	GLuint unit);

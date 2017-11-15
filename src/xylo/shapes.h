@@ -16,6 +16,18 @@ void xylo_shapes_set_mvp(
 	struct gl_core33 const *restrict gl,
 	float const *mvp);
 
+void xylo_shapes_set_sample_clip(
+	struct xylo_shapes *shapes,
+	struct gl_core33 const *restrict gl,
+	GLsizei n,
+	float const *sample_clip);
+
+void xylo_shapes_set_sample_offset(
+	struct xylo_shapes *shapes,
+	struct gl_core33 const *restrict gl,
+	GLsizei n,
+	float const *sample_offset);
+
 /* set object ID */
 void xylo_shapes_set_object_id(
 	struct xylo_shapes *shapes,

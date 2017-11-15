@@ -20,12 +20,16 @@
 #include "include/xylo.h"
 #include "include/draw.h"
 #include "include/types.h"
-
+#include "include/aa.h"
 
 #define ALL_BUFFERS \
 	(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-static void xylo_draw_rec(struct xylo *, float const *, struct xylo_draw *);
+static void xylo_draw_rec(
+	struct xylo *xylo,
+	size_t samples,
+	float const *proj,
+	struct xylo_draw *draw);
 
 static void resize_fb(
 	struct gl_core33 const *restrict gl,
@@ -37,81 +41,124 @@ static void resize_fb(
 	}
 }
 
-void xylo_draw(
+static void draw_aliased(
 	struct xylo *xylo,
 	struct xylo_view const *view,
 	struct xylo_draw const *draw)
 {
+	static size_t const samples = 1;
+	static float const offsets[] = { 0.f, 0.f, 0.f, 0.f };
+	static const float clip[] = { -1.0f,  1.0f };
+
 	struct gl_core33 const *restrict gl;
-	float corner_projection[16], transform[16],  translate[16], scale[16];
-	GLint viewport[4];
-	GLint size[2], corner_size[2];
+
+	gl = gl_get_core33(xylo->api);
+	xylo_begin(xylo);
+
+	gl->UseProgram(xylo->shapes.program);
+
+	xylo_shapes_set_sample_offset(&xylo->shapes, gl, samples, offsets);
+	xylo_shapes_set_sample_clip(&xylo->shapes, gl, samples, clip);
+
+	xylo_draw_rec(xylo, 1, view->projection, (struct xylo_draw *)draw);
+
+	xylo_end(xylo);
+}
+
+/* draw with qunicunx multisample anti-aliasing */
+static void draw_quincunx(
+	struct xylo *xylo,
+	struct xylo_view const *view,
+	struct xylo_draw const *draw)
+{
+	static size_t const samples = 2;
+	static float const clip[] = {
+		-1.0f,  1.0f,
+	 	1.0f,  1.0f
+	};
+
+	struct gl_core33 const *restrict gl;
+	GLint viewport[4], size[2];
+	float scaled_proj[16], scale[16];
+	float offsets[2 * 4];
+	float pw, ph;
 
 	gl = gl_get_core33(xylo->api);
 	gl->GetIntegerv(GL_VIEWPORT, viewport);
 	xylo_begin(xylo);
 
-	size[0] = viewport[2];
-	size[1] = viewport[3];
-	corner_size[0] = size[0] + 1;
-	corner_size[1] = size[1] + 1;
+	/* render to a one-pixel larger viewport so that we can move the view
+	   half a pixel up and right in clip space */
+	size[0] = (viewport[2] + 1) * 2;
+	size[1] = viewport[3] + 1;
 
+	/* Pixel size in clip space */
+	pw = 1.f / size[0];
+	ph = 1.f / size[1];
+
+	(void)m44scalef(scale, viewport[2] * pw, viewport[3] * ph, 1.f);
+	(void)m44mulf(scaled_proj, scale, view->projection);
+
+	/* center sample */
+	offsets[4*0 + 0] = -0.5f - 1.0f*pw;
+	offsets[4*0 + 1] =  0.0f - 1.0f*ph;
+	offsets[4*0 + 2] =  0.0f;
+	offsets[4*0 + 3] =  0.0f;
+
+	/* corner sample */
+	offsets[4*1 + 0] =  0.5f + 0.5f*pw;;
+	offsets[4*1 + 1] =  0.0f + 0.5f*ph;
+	offsets[4*1 + 2] =  0.0f;
+	offsets[4*1 + 3] =  0.0f;
+
+	/* render center and corner samples to off-screen buffer */
 	gl->UseProgram(xylo->shapes.program);
-
-	/* draw center samples */
+	gl->Enable(GL_CLIP_DISTANCE0);
+	xylo_shapes_set_sample_offset(&xylo->shapes, gl, samples, offsets);
+	xylo_shapes_set_sample_clip(&xylo->shapes, gl, samples, clip);
 	resize_fb(gl, &xylo->center_samples, size);
 	gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, xylo->center_samples.fbo);
 	gl->Viewport(0, 0, size[0], size[1]);
 	gl->Clear(ALL_BUFFERS);
-	xylo_draw_rec(xylo, view->projection, (struct xylo_draw *)draw);
+	xylo_draw_rec(xylo, samples, scaled_proj, (struct xylo_draw *)draw);
+	gl->Disable(GL_CLIP_DISTANCE0);
 
-	/* draw corner samples */
-	resize_fb(gl, &xylo->corner_samples, corner_size);
-	gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, xylo->corner_samples.fbo);
-	gl->Viewport(0, 0, corner_size[0], corner_size[1]);
-	gl->Clear(ALL_BUFFERS);
-	/* move one pixel up+left in clip space */
-	(void)m44scalef(
-		scale,
-		size[0]/(float)corner_size[0],
-		size[1]/(float)corner_size[1],
-		1.f);
-	(void)m44translatef(
-		translate,
-		0.5f/corner_size[0],
-		0.5f/corner_size[1],
-		0.f);
-	(void)m44mulf(transform, translate, scale);
-	(void)m44mulf(corner_projection, transform, view->projection);
-	xylo_draw_rec(xylo, corner_projection, (struct xylo_draw *)draw);
-
-	/* draw samples to target */
+	/* compose center and corner samples */
 	gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	gl->Viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 	gl->UseProgram(xylo->quincunx.program);
-
-	/* one pixel in texture space */
-	xylo_quincunx_set_pixel_size(
-		&xylo->quincunx,
-		gl,
-		1.0f/corner_size[0],
-		1.0f/corner_size[1]);
-
 	gl->ActiveTexture(GL_TEXTURE0);
 	gl->BindTexture(GL_TEXTURE_2D, xylo->center_samples.color);
-	xylo_quincunx_set_center_unit(&xylo->quincunx, gl, 0);
-
-	gl->ActiveTexture(GL_TEXTURE1);
-	gl->BindTexture(GL_TEXTURE_2D, xylo->corner_samples.color);
-	xylo_quincunx_set_corner_unit(&xylo->quincunx, gl, 1);
-
-	/* compose center and corner samples */
+	xylo_quincunx_set_tex_unit(&xylo->quincunx, gl, 0);
+	xylo_quincunx_set_pixel_size(&xylo->quincunx, gl, pw, ph);
 	xylo_quincunx_draw(&xylo->quincunx, gl);
 
 	xylo_end(xylo);
 }
 
-static void draw_glshape(struct xylo *xylo, struct xylo_glshape const *shape)
+void xylo_draw(
+	struct xylo *xylo,
+	struct xylo_view const *view,
+	struct xylo_draw const *draw)
+{
+	switch (xylo->aa) {
+	case XYLO_AA_NONE:
+		draw_aliased(xylo, view, draw);
+		break;
+
+	case XYLO_AA_QUINCUNX:
+		draw_quincunx(xylo, view, draw);
+		break;
+
+	default:
+		assert(0 && "invalid anti-aliasing mode");
+	}
+}
+
+static void draw_glshape(
+	struct xylo *xylo,
+	struct xylo_glshape const *shape,
+	size_t samples)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
 
@@ -120,14 +167,14 @@ static void draw_glshape(struct xylo *xylo, struct xylo_glshape const *shape)
 	gl->StencilFunc(GL_ALWAYS, 0x00, 0x01);
 	gl->StencilOp(GL_KEEP, GL_KEEP, GL_INVERT);
 
-	xylo_glshape_draw(gl, shape);
+	xylo_glshape_draw(gl, shape, samples);
 
 	/* Step two - fill in color without overdraw and erase stencil */
 	gl->ColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	gl->StencilFunc(GL_EQUAL, 0x01, 0x01);
 	gl->StencilOp(GL_ZERO, GL_ZERO, GL_ZERO);
 
-	xylo_glshape_draw(gl, shape);
+	xylo_glshape_draw(gl, shape, samples);
 }
 
 static void transform_to_modelview(float *dest, struct xylo_dshape *shape)
@@ -143,6 +190,7 @@ static void transform_to_modelview(float *dest, struct xylo_dshape *shape)
 
 static void xylo_draw_rec(
 	struct xylo *xylo,
+	size_t samples,
 	float const *proj,
 	struct xylo_draw *draw)
 {
@@ -164,7 +212,7 @@ static void xylo_draw_rec(
 		xylo_shapes_set_object_id(&xylo->shapes, gl, shape->id);
 		xylo_shapes_set_mvp(&xylo->shapes, gl, m44mulf(mvp, proj, mv));
 		xylo_shapes_set_color4fv(&xylo->shapes, gl, shape->color);
-		draw_glshape(xylo, shape->glshape);
+		draw_glshape(xylo, shape->glshape, samples);
 		break;
 
 	case xylo_dlist:
@@ -173,7 +221,7 @@ static void xylo_draw_rec(
 			p = list->elements.begin[i];
 			q = list->elements.end[i];
 			for (; p < q; p++) {
-				xylo_draw_rec(xylo, proj, *p);
+				xylo_draw_rec(xylo, samples, proj, *p);
 			}
 		}
 		break;
