@@ -30,6 +30,7 @@ struct xylo
 	struct xylo_fb center_samples, corner_samples;
 	unsigned begin;
 	struct saved_state save;
+	int aa;
 };
 
 struct xylo_glshape
