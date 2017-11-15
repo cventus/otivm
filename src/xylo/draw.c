@@ -117,8 +117,8 @@ static void draw_quincunx(
 	gl->Enable(GL_CLIP_DISTANCE0);
 	xylo_shapes_set_sample_offset(&xylo->shapes, gl, samples, offsets);
 	xylo_shapes_set_sample_clip(&xylo->shapes, gl, samples, clip);
-	resize_fb(gl, &xylo->center_samples, size);
-	gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, xylo->center_samples.fbo);
+	resize_fb(gl, &xylo->samples, size);
+	gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, xylo->samples.fbo);
 	gl->Viewport(0, 0, size[0], size[1]);
 	gl->Clear(ALL_BUFFERS);
 	xylo_draw_rec(xylo, samples, scaled_proj, (struct xylo_draw *)draw);
@@ -129,7 +129,7 @@ static void draw_quincunx(
 	gl->Viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 	gl->UseProgram(xylo->quincunx.program);
 	gl->ActiveTexture(GL_TEXTURE0);
-	gl->BindTexture(GL_TEXTURE_2D, xylo->center_samples.color);
+	gl->BindTexture(GL_TEXTURE_2D, xylo->samples.color);
 	xylo_quincunx_set_tex_unit(&xylo->quincunx, gl, 0);
 	xylo_quincunx_set_pixel_size(&xylo->quincunx, gl, pw, ph);
 	xylo_quincunx_draw(&xylo->quincunx, gl);
@@ -201,8 +201,8 @@ static void draw_rgss(
 	gl->Enable(GL_CLIP_DISTANCE1);
 	xylo_shapes_set_sample_offset(&xylo->shapes, gl, samples, offsets);
 	xylo_shapes_set_sample_clip(&xylo->shapes, gl, samples, clip);
-	resize_fb(gl, &xylo->center_samples, size);
-	gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, xylo->center_samples.fbo);
+	resize_fb(gl, &xylo->samples, size);
+	gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, xylo->samples.fbo);
 	gl->Viewport(0, 0, size[0], size[1]);
 	gl->Clear(ALL_BUFFERS);
 	xylo_draw_rec(xylo, samples, scaled_proj, (struct xylo_draw *)draw);
@@ -214,7 +214,7 @@ static void draw_rgss(
 	gl->Viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 	gl->UseProgram(xylo->rgss.program);
 	gl->ActiveTexture(GL_TEXTURE0);
-	gl->BindTexture(GL_TEXTURE_2D, xylo->center_samples.color);
+	gl->BindTexture(GL_TEXTURE_2D, xylo->samples.color);
 	xylo_rgss_set_tex_unit(&xylo->rgss, gl, 0);
 	xylo_rgss_draw(&xylo->rgss, gl);
 

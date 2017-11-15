@@ -36,8 +36,7 @@ int init_xylo(struct xylo *xylo, struct gl_api *api)
 	if (xylo_init_shapes(&xylo->shapes, api)) { goto fail_shapes; }
 	if (xylo_init_quincunx(&xylo->quincunx, api)) { goto fail_quincunx; }
 	if (xylo_init_rgss(&xylo->rgss, api)) { goto fail_rgss; }
-	xylo_init_fb(gl, &xylo->center_samples, 1);
-	xylo_init_fb(gl, &xylo->corner_samples, 0);
+	xylo_init_fb(gl, &xylo->samples, 1);
 	xylo->begin = 0;
 	xylo->aa = 0;
 	xylo->api = api;
@@ -68,8 +67,7 @@ void term_xylo(struct xylo *xylo)
 
 	assert(xylo != NULL);
 	gl = gl_get_core33(xylo->api);
-	xylo_term_fb(gl, &xylo->center_samples);
-	xylo_term_fb(gl, &xylo->corner_samples);
+	xylo_term_fb(gl, &xylo->samples);
 	xylo_term_shapes(&xylo->shapes, xylo->api);
 	xylo_term_quincunx(&xylo->quincunx, xylo->api);
 	xylo_term_rgss(&xylo->rgss, xylo->api);
@@ -122,5 +120,5 @@ GLuint xylo_get_uint(struct gl_core33 const *restrict gl, GLenum t)
 unsigned xylo_get_object_id(struct xylo *xylo, GLsizei x, GLsizei y)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
-	return xylo_fb_object_id(gl, &xylo->center_samples, x, y);
+	return xylo_fb_object_id(gl, &xylo->samples, x, y);
 }

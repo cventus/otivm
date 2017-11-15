@@ -34,7 +34,7 @@ struct xylo
 	struct xylo_shapes shapes;
 	struct xylo_quincunx quincunx;
 	struct xylo_rgss rgss;
-	struct xylo_fb center_samples, corner_samples;
+	struct xylo_fb samples;
 	unsigned begin;
 	struct saved_state save;
 	int aa;
