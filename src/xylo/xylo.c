@@ -20,27 +20,36 @@
 #include "include/xylo.h"
 #include "shapes.h"
 #include "quincunx.h"
+#include "rgss.h"
 
 int init_xylo(struct xylo *xylo, struct gl_api *api)
 {
 	struct gl_core33 const *restrict gl;
+	int err;
 
 	assert(api != NULL);
 	assert(xylo != NULL);
 
+	err = 0;
 	/* enforce minimum OpenGL version */
-	if (gl = gl_get_core33(api), !gl) { return -1; }
-	if (xylo_init_shapes(&xylo->shapes, api)) { return -2; }
-	if (xylo_init_quincunx(&xylo->quincunx, api)) {
-		xylo_term_shapes(&xylo->shapes, api);
-		return -3;
-	}
+	if (gl = gl_get_core33(api), !gl) { goto fail_gl; }
+	if (xylo_init_shapes(&xylo->shapes, api)) { goto fail_shapes; }
+	if (xylo_init_quincunx(&xylo->quincunx, api)) { goto fail_quincunx; }
+	if (xylo_init_rgss(&xylo->rgss, api)) { goto fail_rgss; }
 	xylo_init_fb(gl, &xylo->center_samples, 1);
 	xylo_init_fb(gl, &xylo->corner_samples, 0);
 	xylo->begin = 0;
 	xylo->aa = 0;
 	xylo->api = api;
-	return 0;
+	return err;
+
+fail_rgss: err--;
+	xylo_term_rgss(&xylo->rgss, api);
+fail_quincunx: err--;
+	xylo_term_shapes(&xylo->shapes, api);
+fail_shapes: err--;
+fail_gl:
+	return err - 1;
 }
 
 struct xylo *make_xylo(struct gl_api *api)
@@ -63,6 +72,7 @@ void term_xylo(struct xylo *xylo)
 	xylo_term_fb(gl, &xylo->corner_samples);
 	xylo_term_shapes(&xylo->shapes, xylo->api);
 	xylo_term_quincunx(&xylo->quincunx, xylo->api);
+	xylo_term_rgss(&xylo->rgss, xylo->api);
 }
 
 void free_xylo(struct xylo *xylo)

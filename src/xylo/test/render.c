@@ -291,6 +291,11 @@ static int aa_(struct gl_api *api, struct gl_test *test)
 	gl_test_swap_buffers(test);
 	gl_test_wait_for_key(test);
 
+	xylo_set_aa(xylo, XYLO_AA_RGSS);
+	xylo_draw(xylo, &view, &dlist.draw);
+	gl_test_swap_buffers(test);
+	gl_test_wait_for_key(test);
+
 	xylo_term_dlist(&dlist);
 	xylo_term_dshape(&a);
 	xylo_term_dshape(&b);

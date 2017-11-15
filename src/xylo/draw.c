@@ -16,6 +16,7 @@
 #include "glshape.h"
 #include "shapes.h"
 #include "quincunx.h"
+#include "rgss.h"
 
 #include "include/xylo.h"
 #include "include/draw.h"
@@ -136,6 +137,90 @@ static void draw_quincunx(
 	xylo_end(xylo);
 }
 
+static void draw_rgss(
+	struct xylo *xylo,
+	struct xylo_view const *view,
+	struct xylo_draw const *draw)
+{
+	static size_t const samples = 4;
+	static float const clip[] = {
+		-1.0f,  1.0f,
+		 1.0f,  1.0f,
+		-1.0f, -1.0f,
+		 1.0f, -1.0f
+	};
+
+	struct gl_core33 const *restrict gl;
+	GLint viewport[4], size[2];
+	float scaled_proj[16], scale[16];
+	float offsets[4 * 4];
+	float pw, ph;
+
+	gl = gl_get_core33(xylo->api);
+	gl->GetIntegerv(GL_VIEWPORT, viewport);
+	xylo_begin(xylo);
+
+	size[0] = viewport[2] * 2;
+	size[1] = viewport[3] * 2;
+
+	/* Pixel size in clip space */
+	pw = 2.f / size[0];
+	ph = 2.f / size[1];
+
+	/* sample 1 */
+	offsets[4*0 + 0] = -0.5f - 0.125f*pw;
+	offsets[4*0 + 1] =  0.5f + 0.375f*ph;
+	offsets[4*0 + 2] =  0.0f;
+	offsets[4*0 + 3] =  0.0f;
+
+	/* sample 2 */
+	offsets[4*1 + 0] =  0.5f + 0.375f*pw;
+	offsets[4*1 + 1] =  0.5f + 0.125f*ph;
+	offsets[4*1 + 2] =  0.0f;
+	offsets[4*1 + 3] =  0.0f;
+
+	/* sample 3 */
+	offsets[4*2 + 0] = -0.5f - 0.375f*pw;
+	offsets[4*2 + 1] = -0.5f - 0.125f*ph;
+	offsets[4*2 + 2] =  0.0f;
+	offsets[4*2 + 3] =  0.0f;
+
+	/* sample 4 */
+	offsets[4*3 + 0] =  0.5f + 0.125f*pw;
+	offsets[4*3 + 1] = -0.5f - 0.375f*ph;
+	offsets[4*3 + 2] =  0.0f;
+	offsets[4*3 + 3] =  0.0f;
+
+	/* Scale matrix per sample */
+	(void)m44scalef(scale, 0.5f, 0.5f, 1.0f);
+	(void)m44mulf(scaled_proj, scale, view->projection);
+
+	/* draw four samples */
+	gl->UseProgram(xylo->shapes.program);
+	gl->Enable(GL_CLIP_DISTANCE0);
+	gl->Enable(GL_CLIP_DISTANCE1);
+	xylo_shapes_set_sample_offset(&xylo->shapes, gl, samples, offsets);
+	xylo_shapes_set_sample_clip(&xylo->shapes, gl, samples, clip);
+	resize_fb(gl, &xylo->center_samples, size);
+	gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, xylo->center_samples.fbo);
+	gl->Viewport(0, 0, size[0], size[1]);
+	gl->Clear(ALL_BUFFERS);
+	xylo_draw_rec(xylo, samples, scaled_proj, (struct xylo_draw *)draw);
+	gl->Disable(GL_CLIP_DISTANCE0);
+	gl->Disable(GL_CLIP_DISTANCE1);
+
+	/* compose all samples */
+	gl->BindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	gl->Viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+	gl->UseProgram(xylo->rgss.program);
+	gl->ActiveTexture(GL_TEXTURE0);
+	gl->BindTexture(GL_TEXTURE_2D, xylo->center_samples.color);
+	xylo_rgss_set_tex_unit(&xylo->rgss, gl, 0);
+	xylo_rgss_draw(&xylo->rgss, gl);
+
+	xylo_end(xylo);
+}
+
 void xylo_draw(
 	struct xylo *xylo,
 	struct xylo_view const *view,
@@ -148,6 +233,10 @@ void xylo_draw(
 
 	case XYLO_AA_QUINCUNX:
 		draw_quincunx(xylo, view, draw);
+		break;
+
+	case XYLO_AA_RGSS:
+		draw_rgss(xylo, view, draw);
 		break;
 
 	default:

@@ -10,6 +10,12 @@ struct xylo_quincunx
 	GLuint pixel_size, tex;
 };
 
+struct xylo_rgss
+{
+	GLuint program, vao, vbo;
+	GLuint tex;
+};
+
 struct saved_state
 {
 	_Bool stencil_test: 1;
@@ -27,6 +33,7 @@ struct xylo
 	struct gl_api *api;
 	struct xylo_shapes shapes;
 	struct xylo_quincunx quincunx;
+	struct xylo_rgss rgss;
 	struct xylo_fb center_samples, corner_samples;
 	unsigned begin;
 	struct saved_state save;
