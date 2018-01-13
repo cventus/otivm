@@ -540,6 +540,7 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 
 	stopwatch_start(&sw, pfclock_usec(clk));
 	xylo_begin(xylo);
+	xylo_set_aa(xylo, XYLO_AA_RGSS);
 	xylo_set_shape_set(xylo, set);
 	do {
 		n++;
