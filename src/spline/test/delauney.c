@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdbool.h>
+#include <math.h>
 #include <ok/ok.h>
 
 #define DELAUNEY_TEST 1
@@ -362,6 +363,188 @@ static int test_triangulate(void)
 	return ok;
 }
 
+static void assert_near_eq(
+	double a,
+	char const *a_exp,
+	double b,
+	char const *b_exp)
+{
+	if (fabs(a - b) > 1e-6) {
+		printf("%s = %g != %g = %s\n", a_exp, a, b, b_exp);
+		ok = -1;
+	}
+}
+#define assert_near_eq(a, b) assert_near_eq(a, #a, b, #b)
+
+static int signed_distance(void)
+{
+	/* ascending line y = x - 4 */
+	float const p0[XY] = { 2.0f,-2.0f };
+	float const p1[XY] = { 6.0f, 2.0f };
+
+	/* points */
+	float const left_of[XY] = { 3.0f, 1.0f };
+	float const right_of[XY] = { 5.0f,-1.0f };
+
+	/* expected distance */
+	double abs_dist = sqrt(2.0);
+
+#define dist(x) line_point_distance(p0, p1, x)
+	assert_near_eq(dist(left_of), -abs_dist);
+	assert_near_eq(dist(right_of), abs_dist);
+#undef dist
+	return ok;
+}
+
+static eref polygon(struct eset *set, float const *pts)
+{
+	float const *p;
+	eref a, b, c;
+
+	if (make_edges(set, 1, &a)) { goto nomem; }
+	p = pts;
+	*org(set, a) = p; p += 2;
+	*dest(set, a) = p; p += 2;
+	b = a;
+
+	for (; isfinite(*p); p += 2) {
+		if (make_edges(set, 1, &c)) { goto nomem; }
+		*org(set, c) = *dest(set, b);
+		*dest(set, c) = p;
+		splice(set, sym(b), c);
+		b = c;
+	}
+	if (make_edges(set, 1, &c)) { goto nomem; }
+	connect(set, b, a, c);
+	return a;
+
+nomem:	fail_test("memory allocation failed");
+	return 0;
+}
+
+static int triangulate_polygons(void)
+{
+	struct eset set;
+	eref triangle, pentagon, star, x;
+	double pi, angle, half, r0, r1, sqrt2;
+	// struct triangulation *t_triangle, *t_pentagon, *t_star, *t_x;
+
+	pi = acos(0.0);
+	angle = pi * 2.0/5.0;
+	r0 = 2;
+	r1 = 5;
+	half = angle / 2.0;
+	sqrt2 = sqrt(2);
+
+	/* triangle with co-linear points */
+	float triangle_coords[] = {
+		2.0f, 2.8f,
+		2.0f, 3.0f,
+		2.0f + sqrt2, 2.0f + sqrt2,
+		2.0f, 2.0f,
+		2.0f, 2.2f,
+		2.0f, 2.4f,
+		2.0f, 2.6f,
+		NAN
+	};
+
+	/* pentagon */
+	float pentagon_coords[] = {
+		cos(pi + angle*0), sin(pi + angle*0),
+		cos(pi + angle*1), sin(pi + angle*1),
+		cos(pi + angle*2), sin(pi + angle*2),
+		cos(pi + angle*3), sin(pi + angle*3),
+		cos(pi + angle*4), sin(pi + angle*4),
+		NAN
+	};
+
+	/* simple concave shape */
+	float star_coords[] = {
+		r1*cos(pi + angle*0), r1*sin(pi + angle*0),
+		r0*cos(pi + angle*0 + half), r1*sin(pi + angle*0 + half),
+		r1*cos(pi + angle*1), r1*sin(pi + angle*1),
+		r0*cos(pi + angle*1 + half), r1*sin(pi + angle*1 + half),
+		r1*cos(pi + angle*2), r1*sin(pi + angle*2),
+		r0*cos(pi + angle*2 + half), r1*sin(pi + angle*2 + half),
+		r1*cos(pi + angle*3), r1*sin(pi + angle*3),
+		r0*cos(pi + angle*3 + half), r1*sin(pi + angle*3 + half),
+		r1*cos(pi + angle*4), r1*sin(pi + angle*4),
+		r0*cos(pi + angle*4 + half), r1*sin(pi + angle*4 + half),
+		NAN
+	};
+
+	float x_coords[] = {
+		/* top right */
+		2.0f, 1.0f, 2.0f, 2.0f, 1.0f, 2.0f,
+
+		/* top */
+		sqrt2, 1+sqrt2, 0.0f, 1.0f, -sqrt2, 1+sqrt2,
+
+		/* top left */
+		-1.0f, 2.0f, -2.0f, 2.0f, -2.0f, 1.0f,
+
+		/* left */
+		-1-sqrt2, sqrt2, -1.0f, 0.0f, -1-sqrt2, -sqrt2,
+
+		/* bottom left */
+		-2.0f, -1.0f, -2.0f, -2.0f, -1.0f, -2.0f,
+
+		/* bottom */
+		-sqrt2, -1-sqrt2, 0.0f, 1.0f, sqrt2, -1-sqrt2,
+
+		/* bottom right */
+		1.0f, -2.0f, 2.0f, -2.0f, 2.0f, -1.0f,
+
+		/* right */
+		1+sqrt2, -sqrt2, 1.0f, 0.0f, 1+sqrt2, sqrt2,
+
+		NAN
+	};
+
+	init_eset(&set);
+
+	triangle = polygon(&set, triangle_coords);
+	pentagon = polygon(&set, pentagon_coords);
+	star = polygon(&set, star_coords);
+	x = polygon(&set, x_coords);
+
+	if (slow_triangulate(&set, triangle)) { fail_test("triangle\n"); }
+	// t_triangle = make_triangles(&set, triangle, length_of(triangle_coords)/2);
+	// if (t_triangle->n != 5) {
+		// printf("triangle: expected 5 triangles\n");
+		// ok = -1;
+	// }
+	// free(t_triangle);
+
+	if (slow_triangulate(&set, pentagon)) { fail_test("pentagon\n"); }
+	// t_pentagon = make_triangles(&set, pentagon, length_of(pentagon_coords)/2);
+	// if (t_pentagon->n != 3) {
+		// printf("pentagon: expected 3 triangles\n");
+		// ok = -1;
+	// }
+	// free(t_pentagon);
+
+	if (slow_triangulate(&set, star)) { fail_test("star\n"); }
+	// t_star = make_triangles(&set, star, length_of(star_coords)/2);
+	// if (t_star->n != 8) {
+		// printf("star: expected 8 triangles\n");
+		// ok = -1;
+	// }
+	// free(t_star);
+
+	if (slow_triangulate(&set, x)) { fail_test("x\n"); }
+	// t_x = make_triangles(&set, x, length_of(x_coords)/2);
+	// if (t_x->n != 22) {
+		// printf("x: expected 22 triangles\n");
+		// ok = -1;
+	// }
+	// free(t_x);
+
+	term_eset(&set);
+
+	return ok;
+}
+
 struct test const tests[] = {
 	{ test_make_edge, "properties of new subdivision" },
 	{ traverse, "traverse edges connected to a vertex/around a face" },
@@ -369,6 +552,9 @@ struct test const tests[] = {
 	{ test_in_circle, "points inside and outside a circle" },
 	{ connections, "connect points" },
 	{ test_triangulate, "triangulate points" },
+
+	{ signed_distance, "signed distance from line to point" },
+	{ triangulate_polygons, "triangulate polygons" },
 
 	{ NULL, NULL }
 };
