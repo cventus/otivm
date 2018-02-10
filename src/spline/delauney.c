@@ -19,8 +19,6 @@
 
 typedef unsigned int eref;
 
-#define EREF(e0, r) (((e0) & ~0x3) | ((r) & 0x3))
-#define MAX_EDGES (~(eref)0 >> 2)
 #define EPSILON 1e-8 /* in determinants (sums/differnces close to zero) */
 
 struct vertex
@@ -41,45 +39,40 @@ struct eset
 	size_t count;
 };
 
-static eref rot(eref e) { return EREF(e, e + 1); }
-static eref sym(eref e) { return EREF(e, e + 2); }
-static eref invrot(eref e) { return EREF(e, e + 3); }
+static inline eref mkref(eref e0, unsigned r) { return (e0 & ~0x3)|(r & 0x3); }
+static inline eref rot(eref e) { return mkref(e, e + 1); }
+static inline eref sym(eref e) { return mkref(e, e + 2); }
+static inline eref invrot(eref e) { return mkref(e, e + 3); }
 
-static eref onext(struct eset *set, eref e)
+static inline eref onext(struct eset *set, eref e)
 {
 	assert(e < wbuf_nmemb(&set->edges, sizeof(struct edge)));
 	return ((struct edge *)set->edges.begin)[e].next;
 }
 
-static eref oprev(struct eset *set, eref e)
+static inline eref oprev(struct eset *set, eref e)
 {
 	return rot(onext(set, rot(e)));
 }
 
-static eref lnext(struct eset *set, eref e)
+static inline eref lnext(struct eset *set, eref e)
 {
 	return rot(onext(set, invrot(e)));
 }
 
-static eref rnext(struct eset *set, eref e)
+static inline eref lprev(struct eset *set, eref e)
+{
+	return sym(onext(set, e));
+}
+
+static inline eref rnext(struct eset *set, eref e)
 {
 	return invrot(onext(set, rot(e)));
 }
 
-static eref rprev(struct eset *set, eref e)
+static inline eref rprev(struct eset *set, eref e)
 {
 	return onext(set, sym(e));
-}
-
-static void init_eset(struct eset *set)
-{
-	wbuf_init(&set->edges);
-	set->count = 0;
-}
-
-static void term_eset(struct eset *set)
-{
-	wbuf_term(&set->edges);
 }
 
 static void const **org(struct eset *set, eref e)
@@ -98,6 +91,12 @@ static void const **right(struct eset *set, eref e)
 	return org(set, rot(e));
 }
 
+static void init_eset(struct eset *set)
+{
+	wbuf_init(&set->edges);
+	set->count = 0;
+}
+
 static void const **dest(struct eset *set, eref e)
 {
 	return org(set, sym(e));
@@ -108,12 +107,17 @@ static float const *dest_xy(struct eset const *set, eref e)
 	return org_xy(set, sym(e));
 }
 
+static void term_eset(struct eset *set)
+{
+	wbuf_term(&set->edges);
+}
+
 /* allocate *n* empty subdivisions (edges) and store references (eref) in the
    *n* following arguments */
 static int make_edges(struct eset *set, size_t n, ...)
 {
 	struct edge *p;
-	eref e, *q;
+	eref e0, *q;
 	size_t i;
 	va_list ap;
 
@@ -123,12 +127,12 @@ static int make_edges(struct eset *set, size_t n, ...)
 	va_start(ap, n);
 	for (i = 0; i < n; i++) {
 		q = va_arg(ap, eref *);
-		*q = e = p - (struct edge *)set->edges.begin;
+		*q = e0 = p - (struct edge *)set->edges.begin;
 		p[0].data = p[1].data = p[2].data = p[3].data = 0;
-		p[0].next = e;
-		p[1].next = e + 3;
-		p[2].next = e + 2;
-		p[3].next = e + 1;
+		p[0].next = mkref(e0, 0);
+		p[1].next = mkref(e0, 3);
+		p[2].next = mkref(e0, 2);
+		p[3].next = mkref(e0, 1);
 		p += 4;
 	}
 	va_end(ap);

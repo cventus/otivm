@@ -69,7 +69,7 @@ static void assert_orbit(
 	assert_orbit(set, next, #next,  #first ", " #__VA_ARGS__, first, __VA_ARGS__)
 
 static eref ref(eref e, unsigned r) {
-	return EREF(e*4, r);
+	return mkref(e*4, r);
 }
 
 static struct edge edge(eref e, unsigned r) {
