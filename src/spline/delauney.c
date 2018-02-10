@@ -17,20 +17,14 @@
 #define Y 1
 #define XY 2
 
-typedef unsigned int eref;
+typedef int eref;
 typedef float const float2[XY];
 
 #define EPSILON 1e-8 /* in determinants (sums/differnces close to zero) */
 
-struct vertex
-{
-	float xy[XY];
-	size_t index;
-};
-
 struct edge
 {
-	void const *data;
+	float2 *data;
 	eref next;
 };
 
@@ -47,7 +41,8 @@ static inline eref invrot(eref e) { return mkref(e, e + 3); }
 
 static inline eref onext(struct eset *set, eref e)
 {
-	assert(e < wbuf_nmemb(&set->edges, sizeof(struct edge)));
+	assert(e >= 0);
+	assert((size_t)e < wbuf_nmemb(&set->edges, sizeof(struct edge)));
 	return ((struct edge *)set->edges.begin)[e].next;
 }
 
@@ -76,20 +71,14 @@ static inline eref rprev(struct eset *set, eref e)
 	return onext(set, sym(e));
 }
 
-static void const **org(struct eset *set, eref e)
+static inline float2 **org(struct eset *set, eref e)
 {
 	return &((struct edge *)set->edges.begin)[e].data;
 }
 
-static float const *org_xy(struct eset const *set, eref e)
+static inline float2 **dest(struct eset *set, eref e)
 {
-	float const *xy = ((struct edge *)set->edges.begin)[e].data;
-	return xy;
-}
-
-static void const **right(struct eset *set, eref e)
-{
-	return org(set, rot(e));
+	return org(set, sym(e));
 }
 
 static void init_eset(struct eset *set)
@@ -98,14 +87,9 @@ static void init_eset(struct eset *set)
 	set->count = 0;
 }
 
-static void const **dest(struct eset *set, eref e)
+static eref eset_max_edge(struct eset *set)
 {
-	return org(set, sym(e));
-}
-
-static float const *dest_xy(struct eset const *set, eref e)
-{
-	return org_xy(set, sym(e));
+	return wbuf_nmemb(&set->edges, sizeof (struct edge[4]));
 }
 
 static void term_eset(struct eset *set)
@@ -241,34 +225,30 @@ static bool in_circle(float2 a, float2 b, float2 c, float2 d)
 	return p0 - n0 + p1 - n1 + p2 - n2 > EPSILON;
 }
 
-static bool in_triangle(
-	float const p0[XY],
-	float const p1[XY],
-	float const p2[XY],
-	float const p[XY])
+static bool in_triangle(float2 p0, float2 p1, float2 p2, float2 p)
 {
-	return is_ccw(p0, p1, p) && is_ccw(p1, p2, p) && !is_ccw(p2, p, p0);
+	/* Is almost touching the line going too far? */
+	return 	line_det(p0, p1, p) >= -EPSILON &&
+		line_det(p1, p2, p) >= -EPSILON &&
+		line_det(p2, p0, p) >= -EPSILON;
 }
 
 static bool is_right_of(struct eset *set, float2 p, eref e)
 {
-	return is_ccw(p, dest_xy(set, e), org_xy(set, e));
+	return is_ccw(p, **dest(set, e), **org(set, e));
 }
 
 static bool is_left_of(struct eset *set, float2 p, eref e)
 {
-	return is_ccw(p, org_xy(set, e), dest_xy(set, e));
+	return is_ccw(p, **org(set, e), **dest(set, e));
 }
 
 static bool is_valid(struct eset *set, eref e, eref basel)
 {
-	return is_right_of(set, dest_xy(set, e), basel);
+	return is_right_of(set, **dest(set, e), basel);
 }
 
-static double line_point_distance(
-	float const p0[XY],
-	float const p1[XY],
-	float const p[XY])
+static double line_point_distance(float2 p0, float2 p1, float2 p)
 {
 	double a, b, c;
 
@@ -278,67 +258,73 @@ static double line_point_distance(
 	return (a*X[p] + b*Y[p] + c)/hypot(a, b);
 }
 
-/* triangulate the face on the right of s, time complexity in O(n²) */
-static int slow_triangulate(struct eset *set, eref s)
+/* triangulate the simple polygon on the left of s, time complexity in O(n²) */
+static int triangulate_polygon(struct eset *set, eref s)
 {
-	int res;
-	eref a, b, c, d, e;
-	float const *p0, *p1, *p2, *p;
+	int count, res;
+	eref a, b, c, d, e, end;
+	float2 *p0, *p1, *p2, *p;
 	double max_dist, dist;
 
 	a = s;
-	b = rnext(set, a);
-	if (rnext(set, b) == rprev(set, a)) {
+	b = lnext(set, a);
+	if (lnext(set, b) == lprev(set, a)) {
 		/* already a tringle */
 		return 0;
 	}
-	p0 = dest_xy(set, a);
-	p1 = org_xy(set, a);
-	p2 = org_xy(set, b);
+	p0 = *org(set, a);
+	p1 = *dest(set, a);
+	p2 = *dest(set, b);
 	/* find the first angle < 180 degrees */
-	while (!is_ccw(p0, p1, p2)) {
+	while (!is_ccw(*p0, *p1, *p2)) {
 		/* is the right face is the outside of a convex polygon? */
 		if (b == s) { return -1; }
 		a = b;
-		b = rnext(set, b);
+		b = lnext(set, b);
 		p0 = p1;
 		p1 = p2;
-		p2 = org_xy(set, b);
+		p2 = *dest(set, b);
 	}
 	if (make_edges(set, 1, &e)) { return -2; }
 	/* find diagonal or create an edge from dest(a) to org(b) */
-	max_dist = -1.0f;
+	max_dist = -1.0;
 	c = b;
-	do {
-		c = rnext(set, c);
-		p = org_xy(set, c);
-		if (in_triangle(p0, p1, p2, p)) {
+	end = lprev(set, a);
+	while (c = lnext(set, c), c != end) {
+		p = *dest(set, c);
+		if (in_triangle(*p0, *p1, *p2, *p)) {
 			/* candidate found */
-			dist = line_point_distance(p2, p0, p);
+			dist = line_point_distance(*p2, *p0, *p);
 			if (dist > max_dist) {
 				max_dist = dist;
 				d = c;
 			}
 		}
-	} while (rnext(set, c) != a);
-
-	if (max_dist > -1.0f) {
+	}
+	count = 1;
+	if (max_dist > -1.0) {
 		/* add diagonal from origin of d to origin of a, and triangulate
 		   both sides of the rest of the polygon */
-		connect(set, b, d, e);
-		res = slow_triangulate(set, e);
-		if (res == 0) {
-			res = slow_triangulate(set, sym(e));
+		connect(set, d, b, e);
+		res = triangulate_polygon(set, e);
+		if (res >= 0) {
+			count += res;
+			res = triangulate_polygon(set, sym(e));
 		}
 	} else {
 		/* add new edge e, forming triangle a->e->b->a */
-		connect(set, a, b, e);
+		connect(set, b, a, e);
 
 		/* triangulate the rest of the polygon */
-		res = slow_triangulate(set, sym(e));
+		res = triangulate_polygon(set, sym(e));
 	}
-	if (res) { delete_edge(set, e); }
-	return res;
+	if (res < 0) {
+		delete_edge(set, e);
+		count = -1;
+	} else {
+		count += res;
+	}
+	return count;
 }
 
 static eref select_cand(
@@ -349,14 +335,14 @@ static eref select_cand(
 	int *count)
 {
 	eref cand, tmp;
-	(void)slow_triangulate;
+	(void)triangulate_polygon;
 
 	cand = next(set, init);
 	if (is_valid(set, cand, basel)) {
-		while (in_circle(dest_xy(set, basel),
-		                 org_xy(set, basel),
-		                 dest_xy(set, cand),
-		                 dest_xy(set, next(set, cand)))) {
+		while (in_circle(**dest(set, basel),
+		                 **org(set, basel),
+		                 **dest(set, cand),
+		                 **dest(set, next(set, cand)))) {
 			tmp = next(set, cand);
 			delete_edge(set, cand);
 			(*count)--;
@@ -369,7 +355,7 @@ static eref select_cand(
 /* implementation of Guibas & Stolfi (1985) */
 static int delauney(
 	struct eset *set,
-	struct vertex const *verts,
+	float2 **verts,
 	size_t nmemb,
 	eref *le,
 	eref *re)
@@ -380,8 +366,8 @@ static int delauney(
 		/* a single edge connecting the points */
 		eref a;
 		if (make_edges(set, 1, &a)) { return -1; }
-		*org(set, a) = verts[0].xy;
-		*dest(set, a) = verts[1].xy;
+		*org(set, a) = verts[0];
+		*dest(set, a) = verts[1];
 		*le = a;
 		*re = sym(a);
 		return 1;
@@ -390,10 +376,10 @@ static int delauney(
 		eref a, b, c;
 		if (make_edges(set, 2, &a, &b)) { return -1; }
 		splice(set, sym(a), b);
-		*org(set, a) = verts[0].xy;
-		*dest(set, a) = *org(set, b) = verts[1].xy;
-		*dest(set, b) = verts[2].xy;
-		if (is_ccw(verts[0].xy, verts[2].xy, verts[1].xy)) {
+		*org(set, a) = verts[0];
+		*dest(set, a) = *org(set, b) = verts[1];
+		*dest(set, b) = verts[2];
+		if (is_ccw(*verts[0], *verts[2], *verts[1])) {
 			if (make_edges(set, 1, &c)) { return -1; }
 			connect(set, b, a, c);
 			*le = sym(c);
@@ -401,7 +387,7 @@ static int delauney(
 			return 3;
 		} else {
 			count = 2;
-			if (is_ccw(verts[0].xy, verts[1].xy, verts[2].xy)) {
+			if (is_ccw(*verts[0], *verts[1], *verts[2])) {
 				if (make_edges(set, 1, &c)) { return -1; }
 				count++;
 				connect(set, b, a, c);
@@ -426,9 +412,9 @@ static int delauney(
 
 		/* find lower common tangent of L and R */
 		while (1) {
-			if (is_left_of(set, org_xy(set, rdi), ldi)) {
+			if (is_left_of(set, **org(set, rdi), ldi)) {
 				ldi = lnext(set, ldi);
-			} else if (is_right_of(set, org_xy(set, ldi), rdi)) {
+			} else if (is_right_of(set, **org(set, ldi), rdi)) {
 				rdi = rprev(set, rdi);
 			} else break;
 		}
@@ -454,10 +440,10 @@ static int delauney(
 			if (make_edges(set, 1, &tmp)) { return -1; }
 			count++;
 			if (!lvalid ||
-			    (rvalid && in_circle(dest_xy(set, lcand),
-			                         org_xy(set, lcand),
-			                         org_xy(set, rcand),
-			                         dest_xy(set, rcand)))) {
+			    (rvalid && in_circle(**dest(set, lcand),
+			                         **org(set, lcand),
+			                         **org(set, rcand),
+			                         **dest(set, rcand)))) {
 				connect(set, rcand, sym(basel), tmp);
 			} else {
 				connect(set, sym(basel), sym(lcand), tmp);
@@ -484,52 +470,62 @@ static bool bits_get(void *bits, size_t i)
 	return ((unsigned char *)bits)[i / CHAR_BIT] & (MSB >> (i % CHAR_BIT));
 }
 
-static bool push_triangle(struct eset *set, eref e, struct triangle *p)
+static void mark_orbit(
+	void *mark,
+	struct eset *set,
+	eref e,
+	eref next(struct eset *, eref))
 {
-	struct vertex const *v0, *v1, *v2;
+	eref a = e;
+	do {
+		bits_set(mark, a >> 1);
+		a = next(set, a);
+	} while (a != e);
+}
+
+static bool push_triangle(
+	struct eset *set,
+	void *mark,
+	float2 *vertices,
+	eref e,
+	struct triangle *p)
+{
+	float2 *v0, *v1, *v2;
 	eref e0, e1, e2;
 
-	if (*right(set, e)) { return false; }
+	/* has the triangle on the left already been added? */
+	if (bits_get(mark, e >> 1)) { return false; }
 
+	mark_orbit(mark, set, e, lnext);
 	e0 = e;
-	e1 = rnext(set, e0);
-	e2 = rnext(set, e1);
-	if (rnext(set, e2) != e0) { return false; }
+	e1 = lnext(set, e0);
+	if (e0 == e1) { return false; }
+	e2 = lnext(set, e1);
+	if (e1 == e2 || lnext(set, e2) != e0) { return false; }
 
 	v0 = *org(set, e0);
 	v1 = *org(set, e1);
 	v2 = *org(set, e2);
 
-	if (is_ccw(v0->xy, v1->xy, v2->xy)) {
-		p->a = v0->index;
-		p->b = v1->index;
-		p->c = v2->index;
-		*right(set, e0) = *right(set, e1) = *right(set, e2) = p;
+	if (is_ccw(*v0, *v1, *v2)) {
+		p->a = v0 - vertices;
+		p->b = v1 - vertices;
+		p->c = v2 - vertices;
 		return true;
 	} else {
 		return false;
 	}
 }
 
-static size_t org_idx(struct eset const *set, eref e)
-{
-	float const *xy = ((struct edge *)set->edges.begin)[e].data;
-	struct vertex const *vertex = container_of(xy, struct vertex, xy);
-	return vertex->index;
-}
-
-static size_t dest_idx(struct eset const *set, eref e)
-{
-	return org_idx(set, sym(e));
-}
-
 static struct triangulation *make_triangles(
 	struct eset *set,
 	eref e,
+	size_t nedges,
+	float2 *vertices,
 	size_t nvert)
 {
 	eref a, b, *stack, *top;
-	void *mark;
+	void *origin, *left;
 	size_t ntris, nstack, nbits;
 	struct triangulation *t;
 	struct triangle *p;
@@ -537,13 +533,11 @@ static struct triangulation *make_triangles(
 	assert(set != NULL);
 	assert(nvert >= 2);
 
-	if (set->count < nvert) {
-		/* not even a single triangle */
-		return NULL;
-	}
+	/* is there even a single triangle? */
+	if (nedges < nvert) { return NULL; }
 
-	/* by euler's characteristic (ignore the exterior face) */
-	ntris = set->count - nvert + 1;
+	/* by euler's characteristic (ignoring the exterior face) */
+	ntris = nedges - nvert + 1;
 	t = malloc(sizeof(*t) + ntris*sizeof t->triangles[0]);
 	if (!t) { return NULL; }
 	t->n = ntris;
@@ -551,14 +545,15 @@ static struct triangulation *make_triangles(
 	/* stack to keep one outgoing edge of a vertex and a bit map for
 	   visited ones */
 	nstack = sizeof(eref) * (nvert - 1);
-	nbits = bits_size(nvert);
-	top = stack = malloc(nstack + nbits);
+	nbits = bits_size(eset_max_edge(set)*4);
+	top = stack = malloc(nstack + nbits*2);
 	if (!top) { return free(t), NULL; }
-	mark = memset((char *)stack + nstack, 0, nbits);
+	origin = memset((char *)stack + nstack, 0, nbits);
+	left = memset((char *)stack + nstack + nbits, 0, nbits);
 
 	/* push starting edge */
 	*top++ = e;
-	bits_set(mark, org_idx(set, e));
+	mark_orbit(origin, set, e, onext);
 
 	/* visit every vertex */
 	p = t->triangles;
@@ -568,10 +563,10 @@ static struct triangulation *make_triangles(
 		do {
 			/* for each outgoing edge */
 			b = onext(set, b);
-			if (push_triangle(set, b, p)) { p++; }
-			if (!bits_get(mark, dest_idx(set, b))) {
+			if (push_triangle(set, left, vertices, b, p)) { p++; }
+			if (!bits_get(origin, sym(b) >> 1)) {
 				*top++ = sym(b);
-				bits_set(mark, dest_idx(set, b));
+				mark_orbit(origin, set, sym(b), onext);
 			}
 		} while (b != a);
 	} while (top != stack);
@@ -580,11 +575,11 @@ static struct triangulation *make_triangles(
 }
 
 /* compare points by axis */
-static int axis_cmp(struct vertex const *va, struct vertex const *vb, int axis)
+static int axis_cmp(float2 *const *va, float2 *const *vb, int axis)
 {
-	if (axis[va->xy] < axis[vb->xy]) {
+	if (axis[**va] < axis[**vb]) {
 		return -1;
-	} else if (axis[va->xy] > axis[vb->xy]) {
+	} else if (axis[**va] > axis[**vb]) {
 		return 1;
 	} else {
 		return 0;
@@ -594,38 +589,34 @@ static int axis_cmp(struct vertex const *va, struct vertex const *vb, int axis)
 static int vertex_cmp(void const *a, void const *b)
 {
 	int res;
-	struct vertex const *va = a, *vb = b;
+	float2 *const *va = a, *const *vb = b;
 	res = axis_cmp(va, vb, X);
 	return res ? res : axis_cmp(va, vb, Y);
 }
 
-struct triangulation *triangulate(float const **vertices, size_t nmemb)
+struct triangulation *triangulate(float2 *vertices, size_t nmemb)
 {
 	eref le, re;
 	struct eset set;
-	struct vertex *v;
+	float2 **v;
 	struct triangulation *res;
 	size_t i;
 	int edges;
 
 	if (nmemb < 3) { return NULL; }
-	v = calloc(nmemb, sizeof(struct vertex));
+	v = calloc(nmemb, sizeof(float2));
 	if (!v) { return NULL; }
-	for (i = 0; i < nmemb; i++) {
-		v[i].index = i;
-		X[v[i].xy] = X[vertices[i]];
-		Y[v[i].xy] = Y[vertices[i]];
-	}
+	for (i = 0; i < nmemb; i++) { v[i] = vertices + i; }
 	qsort(v, nmemb, sizeof *v, vertex_cmp);
-	// TODO: Handle duplicate coordinates?
+	// TODO: Handle duplicate coordinates
 	init_eset(&set);
 	edges = delauney(&set, v, nmemb, &le, &re);
+	free(v);
 	if (edges > 0) {
-		res = make_triangles(&set, le, nmemb);
+		res = make_triangles(&set, le, edges, vertices, nmemb);
 	} else {
 		res = NULL;
 	}
 	term_eset(&set);
-	free(v);
 	return res;
 }

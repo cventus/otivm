@@ -9,4 +9,4 @@ struct triangulation
 	struct triangle triangles[];
 };
 
-struct triangulation *triangulate(float const **vertices, size_t nmemb);
+struct triangulation *triangulate(float const (*vertices)[2], size_t nmemb);
