@@ -18,6 +18,7 @@
 #define XY 2
 
 typedef unsigned int eref;
+typedef float const float2[XY];
 
 #define EPSILON 1e-8 /* in determinants (sums/differnces close to zero) */
 
@@ -188,24 +189,28 @@ static void swap(struct eset *set, eref e)
 }
 */
 
-static bool is_ccw(float const a[XY], float const b[XY], float const c[XY])
+static double line_det(float2 a, float2 b, float2 c)
 {
-	/* counterclockwise 2D points if
+	/* the determinant D of a linear inequality specifies on which side of
+	   line b->c that point a lies
 
 		| X[a] Y[a] 1 |
-		| X[b] Y[b] 1 | > 0
+		| X[b] Y[b] 1 | = D
 		| X[c] Y[c] 1 |
 	*/
 	double p = X[a]*(double)Y[b] + X[b]*(double)Y[c] + X[c]*(double)Y[a];
 	double n = X[c]*(double)Y[b] + X[b]*(double)Y[a] + X[a]*(double)Y[c];
-	return p - n > EPSILON;
+	return p - n;
 }
 
-static bool in_circle(
-	float const a[XY],
-	float const b[XY],
-	float const c[XY],
-	float const d[XY])
+static bool is_ccw(float2 a, float2 b, float2 c)
+{
+	/* counterclockwise 2D points if on the "left" side of the line going
+	   from b to c */
+	return line_det(a, b, c) > EPSILON;
+}
+
+static bool in_circle(float2 a, float2 b, float2 c, float2 d)
 {
 	/* point d within circle specified by (a, b, c), if
 
@@ -245,12 +250,12 @@ static bool in_triangle(
 	return is_ccw(p0, p1, p) && is_ccw(p1, p2, p) && !is_ccw(p2, p, p0);
 }
 
-static bool is_right_of(struct eset *set, float const p[XY], eref e)
+static bool is_right_of(struct eset *set, float2 p, eref e)
 {
 	return is_ccw(p, dest_xy(set, e), org_xy(set, e));
 }
 
-static bool is_left_of(struct eset *set, float const p[XY], eref e)
+static bool is_left_of(struct eset *set, float2 p, eref e)
 {
 	return is_ccw(p, org_xy(set, e), dest_xy(set, e));
 }
