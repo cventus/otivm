@@ -340,7 +340,8 @@ static eref select_cand(
 	struct eset *set,
 	eref basel,
 	eref init,
-	eref next(struct eset *, eref))
+	eref next(struct eset *, eref),
+	int *count)
 {
 	eref cand, tmp;
 	(void)slow_triangulate;
@@ -353,6 +354,7 @@ static eref select_cand(
 		                 dest_xy(set, next(set, cand)))) {
 			tmp = next(set, cand);
 			delete_edge(set, cand);
+			(*count)--;
 			cand = tmp;
 		}
 	}
@@ -367,6 +369,7 @@ static int delauney(
 	eref *le,
 	eref *re)
 {
+	int count;
 	assert(nmemb >= 2);
 	if (nmemb == 2) {
 		/* a single edge connecting the points */
@@ -376,7 +379,7 @@ static int delauney(
 		*dest(set, a) = verts[1].xy;
 		*le = a;
 		*re = sym(a);
-		return 0;
+		return 1;
 	} else if (nmemb == 3) {
 		/* A = 0 -> 1, and B = 1 -> 2 */
 		eref a, b, c;
@@ -390,25 +393,31 @@ static int delauney(
 			connect(set, b, a, c);
 			*le = sym(c);
 			*re = c;
-			return 0;
+			return 3;
 		} else {
+			count = 2;
 			if (is_ccw(verts[0].xy, verts[1].xy, verts[2].xy)) {
 				if (make_edges(set, 1, &c)) { return -1; }
+				count++;
 				connect(set, b, a, c);
-			} /* else, co-linear */
+			} /* else, co-linear points */
 			*le = a;
 			*re = sym(b);
-			return 0;
+			return count;
 		}
 	} else {
+		int lcount, rcount;
 		size_t ln, rn;
 		eref ldo, ldi, rdi, rdo, basel, lcand, rcand, tmp;
 		bool lvalid, rvalid;
 
 		ln = nmemb / 2;
 		rn = nmemb - ln;
-		if (delauney(set, verts, ln, &ldo, &ldi)) { return -1; }
-		if (delauney(set, verts + ln, rn, &rdi, &rdo)) { return -1; }
+		lcount =  delauney(set, verts, ln, &ldo, &ldi);
+		if (lcount < 0) { return -1; }
+		rcount = delauney(set, verts + ln, rn, &rdi, &rdo);
+		if (rcount < 0) { return -1; }
+		count = lcount + rcount;
 
 		/* find lower common tangent of L and R */
 		while (1) {
@@ -422,13 +431,14 @@ static int delauney(
 		/* connect left and right subdivisions */
 		if (make_edges(set, 1, &basel)) { return -1; }
 		connect(set, sym(rdi), ldi, basel);
+		count++;
 		if (*org(set, ldi) == *org(set, ldo)) { ldo = sym(basel); }
 		if (*org(set, rdi) == *org(set, rdo)) { rdo = basel; }
 
 		/* proceed by merging upwards */
 		do {
-			lcand = select_cand(set, basel, sym(basel), onext);
-			rcand = select_cand(set, basel, basel, oprev);
+			lcand = select_cand(set, basel, sym(basel), onext, &count);
+			rcand = select_cand(set, basel, basel, oprev, &count);
 
 			/* are we done? */
 			lvalid = is_valid(set, lcand, basel);
@@ -437,6 +447,7 @@ static int delauney(
 
 			/* else add cross edge */
 			if (make_edges(set, 1, &tmp)) { return -1; }
+			count++;
 			if (!lvalid ||
 			    (rvalid && in_circle(dest_xy(set, lcand),
 			                         org_xy(set, lcand),
@@ -451,7 +462,7 @@ static int delauney(
 		} while (1);
 		*le = ldo;
 		*re = rdo;
-		return 0;
+		return count;
 	}
 }
 
@@ -590,6 +601,7 @@ struct triangulation *triangulate(float const **vertices, size_t nmemb)
 	struct vertex *v;
 	struct triangulation *res;
 	size_t i;
+	int edges;
 
 	if (nmemb < 3) { return NULL; }
 	v = calloc(nmemb, sizeof(struct vertex));
@@ -602,7 +614,8 @@ struct triangulation *triangulate(float const **vertices, size_t nmemb)
 	qsort(v, nmemb, sizeof *v, vertex_cmp);
 	// TODO: Handle duplicate coordinates?
 	init_eset(&set);
-	if (delauney(&set, v, nmemb, &le, &re) == 0) {
+	edges = delauney(&set, v, nmemb, &le, &re);
+	if (edges > 0) {
 		res = make_triangles(&set, le, nmemb);
 	} else {
 		res = NULL;
