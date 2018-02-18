@@ -613,21 +613,29 @@ static int vertex_cmp(void const *a, void const *b)
 	return res ? res : axis_cmp(va, vb, Y);
 }
 
+static float2 **sorted_vertices(float2 *vertices, size_t nmemb)
+{
+	float2 **v;
+	size_t i;
+
+	v = malloc(nmemb * sizeof *v);
+	if (!v) { return NULL; }
+	for (i = 0; i < nmemb; i++) { v[i] = vertices + i; }
+	qsort(v, nmemb, sizeof *v, vertex_cmp);
+	return v;
+}
+
 struct triangulation *triangulate(float2 *vertices, size_t nmemb)
 {
 	eref le, re;
 	struct eset set;
 	float2 **v;
 	struct triangulation *res;
-	size_t i;
 	int edges;
 
 	if (nmemb < 3) { return NULL; }
-	v = calloc(nmemb, sizeof(float2));
+	v = sorted_vertices(vertices, nmemb);
 	if (!v) { return NULL; }
-	for (i = 0; i < nmemb; i++) { v[i] = vertices + i; }
-	qsort(v, nmemb, sizeof *v, vertex_cmp);
-	// TODO: Handle duplicate coordinates
 	init_eset(&set);
 	edges = delauney(&set, v, nmemb, &le, &re);
 	free(v);
