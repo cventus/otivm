@@ -20,6 +20,7 @@
 #define EPSILON 1e-8
 #define MSB (1 << (CHAR_BIT - 1))
 
+typedef unsigned triangle_indices[3];
 typedef int eref;
 typedef float const float2[XY];
 
@@ -510,7 +511,7 @@ static bool push_triangle(
 	void *mark,
 	float2 *vertices,
 	eref e,
-	struct triangle *p)
+	triangle_indices *p)
 {
 	float2 *v0, *v1, *v2;
 	eref e0, e1, e2;
@@ -536,7 +537,7 @@ static bool push_triangle(
 	return true;
 }
 
-static struct triangulation *make_triangles(
+static struct triangle_set *make_triangles(
 	struct eset *set,
 	eref e,
 	size_t nedges,
@@ -546,8 +547,8 @@ static struct triangulation *make_triangles(
 	eref a, b, *stack, *top;
 	void *origin, *left;
 	size_t ntris, nstack, nbits;
-	struct triangulation *t;
-	struct triangle *p;
+	struct triangle_set *t;
+	triangle_indices *p;
 
 	assert(set != NULL);
 	assert(nvert >= 2);
@@ -557,25 +558,25 @@ static struct triangulation *make_triangles(
 
 	/* by euler's characteristic (ignoring the exterior face) */
 	ntris = nedges - nvert + 1;
-	t = malloc(sizeof(*t) + ntris*sizeof t->triangles[0]);
+	t = malloc(triangle_set_size(ntris));
 	if (!t) { return NULL; }
 	t->n = ntris;
 
 	/* stack to keep one outgoing edge of a vertex and a bit map for
 	   visited ones */
 	nstack = sizeof(eref) * (nvert - 1);
-	nbits = bits_size(eset_max_edge(set)*4);
+	nbits = bits_size(eset_max_edge(set)*2);
 	top = stack = malloc(nstack + nbits*2);
 	if (!top) { return free(t), NULL; }
-	origin = memset((char *)stack + nstack, 0, nbits);
-	left = memset((char *)stack + nstack + nbits, 0, nbits);
+	origin = memset((char *)stack + nstack, 0, nbits*2);
+	left = (char *)stack + nstack + nbits;
 
 	/* push starting edge */
 	*top++ = e;
 	mark_orbit(origin, set, e, onext);
 
 	/* visit every vertex */
-	p = t->triangles;
+	p = t->indices;
 	do {
 		a = *--top;
 		b = a;
@@ -625,12 +626,12 @@ static float2 **sorted_vertices(float2 *vertices, size_t nmemb)
 	return v;
 }
 
-struct triangulation *triangulate(float2 *vertices, size_t nmemb)
+struct triangle_set *triangulate(float2 *vertices, size_t nmemb)
 {
 	eref le, re;
 	struct eset set;
 	float2 **v;
-	struct triangulation *res;
+	struct triangle_set *res;
 	int edges;
 
 	if (nmemb < 3) { return NULL; }

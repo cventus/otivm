@@ -92,7 +92,7 @@ static void check_delauney(
 	char const *context,
 	float const (*v)[2],
 	size_t n,
-	struct triangulation *t)
+	struct triangle_set *t)
 {
 	size_t i, j, a, b, c;
 	float const *v0, *v1, *v2;
@@ -105,9 +105,9 @@ static void check_delauney(
 		fail_test("%s: memory allocation failure\n", context);
 	}
 	for (i = 0; i < t->n; i++) {
-		a = t->triangles[i].a;
-		b = t->triangles[i].b;
-		c = t->triangles[i].c;
+		a = t->indices[i][0];
+		b = t->indices[i][1];
+		c = t->indices[i][2];
 		v0 = v[a];
 		v1 = v[b];
 		v2 = v[c];
@@ -348,7 +348,7 @@ static int test_connect(void)
 static int test_triangulate(void)
 {
 	size_t i;
-	struct triangulation *t;
+	struct triangle_set *t;
 
 	float const triangle[][2] = {
 		{27.f, 10.f},
@@ -431,7 +431,7 @@ static int test_triangulate_polygon(void)
 	int ntriangles;
 	float2 *vertices;
 	double pi, angle, half, r0, r1, sqrt2;
-	struct triangulation *triangulation;
+	struct triangle_set *triangle_set;
 
 	pi = acos(0.0) * 2.0;
 	angle = pi*2.0/5.0;
@@ -533,14 +533,14 @@ static int test_triangulate_polygon(void)
 			fail_test("%s: triangulation failed\n", cases[i].name);
 		}
 		nedge = ntriangles + nvertex;
-		triangulation = make_triangles(&set, edge, nedge, vertices,
+		triangle_set = make_triangles(&set, edge, nedge, vertices,
 		                               nvertex);
-		if (triangulation->n != cases[i].expected_triangles) {
+		if (triangle_set->n != cases[i].expected_triangles) {
 			fail_test("%s: expected %zd triangles, got %zd\n",
 			          cases[i].expected_triangles,
-				  triangulation->n);
+				  triangle_set->n);
 		}
-		free(triangulation);
+		free(triangle_set);
 	}
 	term_eset(&set);
 
