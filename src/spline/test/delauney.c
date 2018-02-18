@@ -6,7 +6,6 @@
 #include <math.h>
 #include <ok/ok.h>
 
-#define DELAUNEY_TEST 1
 #include "../delauney.c"
 
 static void assert_eq(char const *as, char const *bs, eref a, eref b)
@@ -407,17 +406,17 @@ static int test_triangulate(void)
 static int signed_distance(void)
 {
 	/* ascending line y = x - 4 */
-	float const p0[XY] = { 2.0f,-2.0f };
-	float const p1[XY] = { 6.0f, 2.0f };
+	float2 p0 = { 2.0f, -2.0f };
+	float2 p1 = { 6.0f, 2.0f };
 
 	/* points */
-	float const left_of[XY] = { 3.0f, 1.0f };
-	float const right_of[XY] = { 5.0f,-1.0f };
+	float2 left_of = { 3.0f, 1.0f };
+	float2 right_of = { 5.0f, -1.0f };
 
 	/* expected distance */
 	double abs_dist = sqrt(2.0);
 
-#define dist(x) line_point_distance(p0, p1, x)
+#define dist(x) line_dist(make_line(p0, p1), x)
 	assert_near_eq(dist(left_of), -abs_dist);
 	assert_near_eq(dist(right_of), abs_dist);
 #undef dist
@@ -555,7 +554,7 @@ struct test const tests[] = {
 	{ test_in_circle, "points inside and outside a circle" },
 	{ test_connect, "connect points" },
 	{ test_triangulate, "triangulate points" },
-	{ signed_distance, "signed distance from line to point" },
+	{ signed_distance, "signed distance from point to line" },
 	{ test_triangulate_polygon, "triangulate polygons" },
 
 	{ NULL, NULL }

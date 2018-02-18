@@ -17,10 +17,11 @@
 #define Y 1
 #define XY 2
 
+#define EPSILON 1e-8
+#define MSB (1 << (CHAR_BIT - 1))
+
 typedef int eref;
 typedef float const float2[XY];
-
-#define EPSILON 1e-8 /* in determinants (sums/differnces close to zero) */
 
 struct edge
 {
@@ -32,6 +33,11 @@ struct eset
 {
 	struct wbuf edges;
 	size_t count;
+};
+
+struct line
+{
+	double a, b, c;
 };
 
 static inline eref mkref(eref e0, unsigned r) { return (e0 & ~0x3)|(r & 0x3); }
@@ -175,23 +181,39 @@ static void swap(struct eset *set, eref e)
 
 static double line_det(float2 a, float2 b, float2 c)
 {
-	/* the determinant D of a linear inequality specifies on which side of
-	   line b->c that point a lies
+	/* The determinant D of the linear inequality specifies on which side
+	   of line `b->c` that point `a` lies
 
 		| X[a] Y[a] 1 |
 		| X[b] Y[b] 1 | = D
 		| X[c] Y[c] 1 |
 	*/
-	double p = X[a]*(double)Y[b] + X[b]*(double)Y[c] + X[c]*(double)Y[a];
-	double n = X[c]*(double)Y[b] + X[b]*(double)Y[a] + X[a]*(double)Y[c];
+	double p = X[a]*Y[b] + X[b]*Y[c] + X[c]*Y[a];
+	double n = X[c]*Y[b] + X[b]*Y[a] + X[a]*Y[c];
 	return p - n;
 }
 
-static bool is_ccw(float2 a, float2 b, float2 c)
+static struct line make_line(float2 p0, float2 p1)
 {
-	/* counterclockwise 2D points if on the "left" side of the line going
-	   from b to c */
-	return line_det(a, b, c) > EPSILON;
+	double dx, dy, a, b, c, s;
+
+	dy = Y[p1] - Y[p0];
+	dx = X[p1] - X[p0];
+	s = hypot(dx, dy);
+	a = dy / s;
+	b = dx / s;
+	c = Y[p1]*b - X[p1]*a;
+
+	return (struct line){ a, b, c };
+}
+
+/* Signed distance from p to l. If the result is zero, then the point is on the
+   line. If it is greater than zero then it is on the "right" side of l, where
+   the orientation is determined when the line was created. A negative result
+   indicates the point is to the "left". */
+static double line_dist(struct line l, float2 p)
+{
+	return l.a*X[p] - l.b*Y[p] + l.c;
 }
 
 static bool in_circle(float2 a, float2 b, float2 c, float2 d)
@@ -225,12 +247,19 @@ static bool in_circle(float2 a, float2 b, float2 c, float2 d)
 	return p0 - n0 + p1 - n1 + p2 - n2 > EPSILON;
 }
 
-static bool in_triangle(float2 p0, float2 p1, float2 p2, float2 p)
+/* triangle defined by the positive side of three lines */
+static bool in_triangle(struct line const tri[3], float2 p)
 {
-	/* Is almost touching the line going too far? */
-	return 	line_det(p0, p1, p) >= -EPSILON &&
-		line_det(p1, p2, p) >= -EPSILON &&
-		line_det(p2, p0, p) >= -EPSILON;
+	return line_dist(tri[0], p) >= -EPSILON &&
+		line_dist(tri[1], p) >= -EPSILON &&
+		line_dist(tri[2], p) >= -EPSILON;
+}
+
+static bool is_ccw(float2 a, float2 b, float2 c)
+{
+	/* counterclockwise 2D points if on the "left" side of the line going
+	   from b to c */
+	return line_det(a, b, c) > EPSILON;
 }
 
 static bool is_right_of(struct eset *set, float2 p, eref e)
@@ -248,16 +277,6 @@ static bool is_valid(struct eset *set, eref e, eref basel)
 	return is_right_of(set, **dest(set, e), basel);
 }
 
-static double line_point_distance(float2 p0, float2 p1, float2 p)
-{
-	double a, b, c;
-
-	a = Y[p1] - Y[p0];
-	b = X[p0] - X[p1];
-	c = X[p1]*Y[p0] - Y[p1]*X[p0];
-	return (a*X[p] + b*Y[p] + c)/hypot(a, b);
-}
-
 /* triangulate the simple polygon on the left of s, time complexity in O(n²) */
 static int triangulate_polygon(struct eset *set, eref s)
 {
@@ -265,6 +284,7 @@ static int triangulate_polygon(struct eset *set, eref s)
 	eref a, b, c, d, e, end;
 	float2 *p0, *p1, *p2, *p;
 	double max_dist, dist;
+	struct line perim[3];
 
 	a = s;
 	b = lnext(set, a);
@@ -287,14 +307,17 @@ static int triangulate_polygon(struct eset *set, eref s)
 	}
 	if (make_edges(set, 1, &e)) { return -2; }
 	/* find diagonal or create an edge from dest(a) to org(b) */
+	perim[0] = make_line(*p1, *p0);
+	perim[1] = make_line(*p2, *p1);
+	perim[2] = make_line(*p0, *p2);
 	max_dist = -1.0;
 	c = b;
 	end = lprev(set, a);
 	while (c = lnext(set, c), c != end) {
 		p = *dest(set, c);
-		if (in_triangle(*p0, *p1, *p2, *p)) {
+		if (in_triangle(perim, *p)) {
 			/* candidate found */
-			dist = line_point_distance(*p2, *p0, *p);
+			dist = line_dist(perim[2], *p);
 			if (dist > max_dist) {
 				max_dist = dist;
 				d = c;
@@ -457,7 +480,6 @@ static int delauney(
 	}
 }
 
-#define MSB (1 << (CHAR_BIT - 1))
 static size_t bits_size(size_t n) { return (n + CHAR_BIT - 1) / CHAR_BIT; }
 
 static void bits_set(void *bits, size_t i)
@@ -506,15 +528,12 @@ static bool push_triangle(
 	v0 = *org(set, e0);
 	v1 = *org(set, e1);
 	v2 = *org(set, e2);
+	if (!is_ccw(*v0, *v1, *v2)) { return false; }
 
-	if (is_ccw(*v0, *v1, *v2)) {
-		p->a = v0 - vertices;
-		p->b = v1 - vertices;
-		p->c = v2 - vertices;
-		return true;
-	} else {
-		return false;
-	}
+	(*p)[0] = v0 - vertices;
+	(*p)[1] = v1 - vertices;
+	(*p)[2] = v2 - vertices;
+	return true;
 }
 
 static struct triangulation *make_triangles(
