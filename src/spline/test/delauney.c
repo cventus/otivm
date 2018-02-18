@@ -391,7 +391,7 @@ static int test_triangulate(void)
 		EXAMPLE(spades)
 	}, *e = examples;
 	for (i = 0; i < length_of(examples); i++, e++) {
-		t = triangulate(e->vertices, e->n);
+		t = triangulate(e->vertices, e->n, NULL);
 		if (!t) {
 			ok = -1;
 			printf("failed to triangulate %s\n", e->name);
@@ -547,6 +547,69 @@ static int test_triangulate_polygon(void)
 	return ok;
 }
 
+static int test_apply_constraints(void)
+{
+	enum { A, B, C, D, E, F, G, H, I, J };
+
+	float2 points[] = {
+		[A] = {1.0f, 1.0f},
+		[B] = {0.5f, 7.0f},
+		[C] = {2.0f, 4.0f},
+		[D] = {5.0f, 3.0f},
+		[E] = {5.0f, 6.0f},
+		[F] = {7.0f, 2.0f},
+		[G] = {8.0f, 8.0f},
+		[H] = {8.0f, 9.0f},
+		[I] = {9.0f, 5.0f},
+		[J] = {9.5f, 8.0f},
+	};
+	float2 *spine[] = {
+		points + A,
+		points + B,
+		points + C,
+		points + D,
+		points + E,
+		points + F,
+		points + G,
+		points + H,
+		points + I,
+		points + J,
+	};
+
+	struct eset set[1];
+	eref e, le, re, *emap;
+	int edges;
+
+	init_eset(set);
+
+	edges = delauney(set, spine, length_of(points), &le, &re);
+	if (edges < 0) { fail_test("delauney\n"); }
+	emap = make_emap(set, le, points, length_of(points));
+	if (!emap) { fail_test("malloc\n"); }
+	if (add_constrained_edge(set, A, J, points, emap) != J) {
+		fail_test("constrain\n");
+	}
+	e = emap[A];
+	ok = -1;
+	do {
+		if (*dest(set, e) - points == J) { ok = 0; break; }
+		e = onext(set, e);
+	} while (e != emap[A]);
+	if (ok) { fail_test("vertex A is not connected to J\n"); }
+	ok = -1;
+	e = emap[J];
+	do {
+		if (*dest(set, e) - points == A) { ok = 0; break; }
+		e = onext(set, e);
+	} while (e != emap[J]);
+	if (ok) { fail_test("vertex J is not connected to A\n"); }
+
+	free(emap);
+	term_eset(set);
+
+	return ok;
+}
+
 struct test const tests[] = {
 	{ test_make_edge, "properties of new subdivision" },
 	{ traverse, "traverse edges connected to a vertex/around a face" },
@@ -556,6 +619,7 @@ struct test const tests[] = {
 	{ test_triangulate, "triangulate points" },
 	{ signed_distance, "signed distance from point to line" },
 	{ test_triangulate_polygon, "triangulate polygons" },
+	{ test_apply_constraints, "apply constraints" },
 
 	{ NULL, NULL }
 };

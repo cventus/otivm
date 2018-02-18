@@ -9,4 +9,10 @@ struct triangle_set
    can hold the given number of triangles */
 size_t triangle_set_size(size_t triangle_count);
 
-struct triangle_set *triangulate(float const (*vertices)[2], size_t nmemb);
+/* Create a constrained delauney triangulation of the vertices, where the
+   optional triangles in `constraint` are maintained. Degenerate triangles,
+   where an index is repeated, can be used to specify edges. */
+struct triangle_set *triangulate(
+	float const (*vertices)[2],
+	size_t vertex_count,
+	struct triangle_set const *constraints);

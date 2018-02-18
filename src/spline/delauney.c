@@ -149,7 +149,8 @@ static void splice(struct eset *set, eref a, eref b)
 	edges[beta].next = tmp;
 }
 
-/* connect a and b with new empty edge c */
+/* connect the destination of `a` to the origin of `b` with the new edge `c` so
+   that left(a) = left(b) = left(c) */
 static void connect(struct eset *set, eref a, eref b, eref c)
 {
 	*org(set, c) = *dest(set, a);
@@ -359,7 +360,6 @@ static eref select_cand(
 	int *count)
 {
 	eref cand, tmp;
-	(void)triangulate_polygon;
 
 	cand = next(set, init);
 	if (is_valid(set, cand, basel)) {
@@ -626,24 +626,179 @@ static float2 **sorted_vertices(float2 *vertices, size_t nmemb)
 	return v;
 }
 
-struct triangle_set *triangulate(float2 *vertices, size_t nmemb)
+/* Create edge from *(vertices + from) to *(vertices + to), removing any edges
+   that gets in the way. It is assumed that edge is part of a triangulation
+   which forms a convex hull of the points, such that only internal edges can
+   be removed. If the edge to be created is too close to a point, then fail by
+   returning the index of the point that is too close. The triangulation has
+   likely already been botched at this point. Return negative on memory
+   allocation error. Return `to` on success. */
+static ptrdiff_t add_constrained_edge(
+	struct eset *set,
+	ptrdiff_t from,
+	ptrdiff_t to,
+	float2 *vertices,
+	eref *emap)
+{
+	eref e, start, next, new_edge;
+	float2 *source, *target;
+	struct line l;
+	double next_dist, dist;
+	ptrdiff_t v;
+
+	next = emap[from];
+	source = *org(set, next);
+	target = vertices + to;
+	if (source == target) { return to; }
+	l = make_line(*source, *target);
+
+	/* Find edge to vertex left of the new edge. In a counter-clockwise
+	   order, the edge to the first vertex on the negative side of the line
+	   where the previous one was on the positive side is the closest one
+	   to the left. */
+	dist = 1.0;
+	next_dist = 1.0;
+	while (dist < 0.0 || next_dist > 0.0) {
+		e = next;
+		dist = next_dist;
+		next = onext(set, e);
+		if (*dest(set, next) == target) { return to; }
+		next_dist = line_dist(l, **dest(set, next));
+		/* FIXME: if next_dist is too close to line, fail */
+	}
+	start = e;
+
+	/* follow the orbit of lnext removing any crossing edges on the way */
+	while (next = lnext(set, e), *dest(set, next) != target) {
+		dist = line_dist(l, **dest(set, next));
+		/* FIXME: if dist is too close to line, fail */
+		if (dist < 0.0) {
+			/* make sure it's not part of emap */
+			v = *org(set, next) - vertices;
+			if (emap[v] == next) {
+				emap[v] = sym(e);
+			}
+			v = *dest(set, next) - vertices;
+			if (emap[v] == sym(next)) {
+				emap[v] = oprev(set, sym(next));
+			}
+			delete_edge(set, next);
+		} else {
+			e = next;
+		}
+	}
+
+	/* Should not be possible: We have removed at least one edge to
+	   get here. */
+	if (make_edges(set, 1, &new_edge)) { return -1; }
+	connect(set, next, start, new_edge);
+
+	if (triangulate_polygon(set, new_edge) < 0) { return -2; }
+	if (triangulate_polygon(set, sym(new_edge)) < 0) { return -3; }
+
+	return to;
+}
+
+static eref *make_emap(
+	struct eset *set,
+	eref edge,
+	float2 *vertices,
+	size_t vertex_count)
+{
+	eref first_edge, e, *emap, *stack, *top;
+	size_t i;
+
+	/* stack of edges for traversing graph, and use emap to keep track
+	   of which vertices have been visited */
+	emap = malloc(sizeof(eref) * (2*vertex_count - 1));
+	if (!emap) { return NULL; }
+	top = stack = emap + vertex_count;
+	for (i = 0; i < vertex_count; i++) { emap[i] = -1; }
+
+	/* map vertices to edges by traversing edges depth-first */
+	*top++ = edge;
+	emap[*org(set, edge) - vertices] = edge;
+	do {
+		first_edge = *--top;
+		e = first_edge;
+		do {
+			/* for each outgoing edge */
+			e = onext(set, e);
+			i = *dest(set, e) - vertices;
+			if (emap[i] == -1) {
+				*top++ = emap[i] = sym(e);
+			}
+		} while (e != first_edge);
+	} while (top != stack);
+
+	return emap;
+}
+
+static int add_constraints(
+	struct eset *set,
+	eref edge,
+	float2 *vertices,
+	size_t vertex_count,
+	struct triangle_set const *constr)
+{
+	int res;
+	eref *emap;
+	size_t i, j, m;
+	unsigned o, n, d;
+
+	assert(set != NULL);
+	assert(constr != NULL);
+
+	/* check all constraints */
+	res = 0;
+	emap = make_emap(set, edge, vertices, vertex_count);
+	if (!emap) { return -1; }
+	m = length_of(constr->indices[0]);
+	for (i = 0; i < constr->n; i++) {
+		for (j = 0; j < m; j++) {
+			o = constr->indices[i][j];
+			d = constr->indices[i][(j + 1) % m];
+			if (o == d) { continue; }
+			n = add_constrained_edge(set, o, d, vertices, emap);
+			if (n != d) {
+				res = -1;
+				goto fail;
+			}
+		}
+	}
+fail:	free(emap);
+
+	return res;
+}
+
+struct triangle_set *triangulate(
+	float2 *vertices,
+	size_t vertex_count,
+	struct triangle_set const *constr)
 {
 	eref le, re;
 	struct eset set;
 	float2 **v;
 	struct triangle_set *res;
-	int edges;
+	int edges, err;
 
-	if (nmemb < 3) { return NULL; }
-	v = sorted_vertices(vertices, nmemb);
+	if (vertex_count < 3) { return NULL; }
+	v = sorted_vertices(vertices, vertex_count);
 	if (!v) { return NULL; }
 	init_eset(&set);
-	edges = delauney(&set, v, nmemb, &le, &re);
+	edges = delauney(&set, v, vertex_count, &le, &re);
 	free(v);
+	err = 0;
+	res = NULL;
 	if (edges > 0) {
-		res = make_triangles(&set, le, edges, vertices, nmemb);
-	} else {
-		res = NULL;
+		if (constr && constr->n > 0) {
+			err = add_constraints(
+				&set, le, vertices, vertex_count, constr);
+		}
+		if (err == 0) {
+			res = make_triangles(
+				&set, le, edges, vertices, vertex_count);
+		}
 	}
 	term_eset(&set);
 	return res;
