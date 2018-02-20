@@ -84,10 +84,6 @@ static eref ref(eref e, unsigned r) {
 	return mkref(e*4, r);
 }
 
-static struct edge edge(eref e, unsigned r) {
-	return (struct edge){ 0, ref(e, r) };
-}
-
 static void check_delauney(
 	char const *context,
 	float const (*v)[2],
@@ -213,17 +209,21 @@ static int traverse(void)
 	enum { a, b, c, d, e, f, g, h };
 
 	/* Based on Fig. 7. from Guibas & Stolfi (1985) */
-	struct edge edges[] = {
-		[a*4] = edge(g, 3), edge(g, 2), edge(a, 2), edge(a, 1),
-		[b*4] = edge(h, 3), edge(a, 0), edge(a, 3), edge(c, 2),
-		[c*4] = edge(d, 3), edge(b, 0), edge(b, 3), edge(b, 2),
-		[d*4] = edge(c, 3), edge(h, 0), edge(c, 1), edge(c, 0),
-		[e*4] = edge(d, 0), edge(e, 3), edge(e, 2), edge(d, 1),
-		[f*4] = edge(e, 0), edge(g, 1), edge(h, 1), edge(e, 1),
-		[g*4] = edge(f, 2), edge(f, 1), edge(f, 0), edge(h, 2),
-		[h*4] = edge(f, 3), edge(g, 0), edge(b, 1), edge(d, 2)
+	eref edges[] = {
+		[a*4] = ref(g, 3), ref(g, 2), ref(a, 2), ref(a, 1),
+		[b*4] = ref(h, 3), ref(a, 0), ref(a, 3), ref(c, 2),
+		[c*4] = ref(d, 3), ref(b, 0), ref(b, 3), ref(b, 2),
+		[d*4] = ref(c, 3), ref(h, 0), ref(c, 1), ref(c, 0),
+		[e*4] = ref(d, 0), ref(e, 3), ref(e, 2), ref(d, 1),
+		[f*4] = ref(e, 0), ref(g, 1), ref(h, 1), ref(e, 1),
+		[g*4] = ref(f, 2), ref(f, 1), ref(f, 0), ref(h, 2),
+		[h*4] = ref(f, 3), ref(g, 0), ref(b, 1), ref(d, 2)
 	};
-	struct eset set = { { edges, edges + length_of(edges), NULL }, 0 };
+	struct eset set = {
+		{ edges, edges + length_of(edges), NULL },
+		{ NULL, NULL, NULL },
+		0
+	};
 
 	assert_eq(onext(&set, ref(a, 2)), ref(a, 2));
 

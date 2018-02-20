@@ -23,16 +23,11 @@
 typedef unsigned triangle_indices[3];
 typedef int eref;
 typedef float const float2[XY];
-
-struct edge
-{
-	float2 *data;
-	eref next;
-};
+typedef eref quad_edge[4];
 
 struct eset
 {
-	struct wbuf edges;
+	struct wbuf edges, data;
 	eref free;
 };
 
@@ -49,8 +44,8 @@ static inline eref invrot(eref e) { return mkref(e, e + 3); }
 static inline eref onext(struct eset *set, eref e)
 {
 	assert(e >= 0);
-	assert((size_t)e < wbuf_nmemb(&set->edges, sizeof(struct edge)));
-	return ((struct edge *)set->edges.begin)[e].next;
+	assert((size_t)e < wbuf_nmemb(&set->edges, sizeof(eref)));
+	return ((eref *)set->edges.begin)[e];
 }
 
 static inline eref oprev(struct eset *set, eref e)
@@ -80,7 +75,9 @@ static inline eref rprev(struct eset *set, eref e)
 
 static inline float2 **org(struct eset *set, eref e)
 {
-	return &((struct edge *)set->edges.begin)[e].data;
+	assert(e >= 0);
+	assert(((size_t)e >> 1) < wbuf_nmemb(&set->data, sizeof(float2*)));
+	return (float2 **)set->data.begin + (e >> 1);
 }
 
 static inline float2 **dest(struct eset *set, eref e)
@@ -91,33 +88,38 @@ static inline float2 **dest(struct eset *set, eref e)
 static void init_eset(struct eset *set)
 {
 	wbuf_init(&set->edges);
+	wbuf_init(&set->data);
 	set->free = -1;
 }
 
 static eref eset_max_edge(struct eset *set)
 {
-	return wbuf_nmemb(&set->edges, sizeof (struct edge[4]));
+	return wbuf_nmemb(&set->edges, sizeof (quad_edge));
 }
 
 static void term_eset(struct eset *set)
 {
 	wbuf_term(&set->edges);
+	wbuf_term(&set->data);
 }
 
-static void init_quad_edge(struct edge *qe, eref e0)
+static void init_quad_edge(eref *qe, float2 **data, eref e0)
 {
-	qe[0].next = mkref(e0, 0);
-	qe[1].next = mkref(e0, 3);
-	qe[2].next = mkref(e0, 2);
-	qe[3].next = mkref(e0, 1);
+	qe[e0 + 0] = mkref(e0, 0);
+	qe[e0 + 1] = mkref(e0, 3);
+	qe[e0 + 2] = mkref(e0, 2);
+	qe[e0 + 3] = mkref(e0, 1);
+
+	data[e0 >> 1] = 0;
+	data[(e0 >> 1) + 1] = 0;
 }
 
 /* allocate *n* empty subdivisions (edges) and store references (eref) in the
    *n* following arguments */
 static int make_edges(struct eset *set, size_t n, ...)
 {
-	struct edge *alloc, *p, *edges;
-	eref e0;
+	eref *alloc, *p, *edges, e0;
+	float2 **data;
 	size_t i, j, nfree;
 	va_list ap;
 
@@ -126,19 +128,23 @@ static int make_edges(struct eset *set, size_t n, ...)
 	edges = set->edges.begin;
 	nfree = 0;
 	while (e0 >= 0 && nfree < n) {
-		e0 = edges[e0].next;
+		e0 = edges[e0];
 		nfree++;
 	}
 	/* allocate the rest */
-	alloc = wbuf_alloc(&set->edges, (n - nfree) * sizeof (struct edge[4]));
+	alloc = wbuf_alloc(&set->edges, (n - nfree) * sizeof (quad_edge));
 	if (!alloc) { return -1; }
+	if (!wbuf_alloc(&set->data, (n - nfree) * sizeof (float2 *[2]))) {
+		return -1;
+	}
 	edges = set->edges.begin;
+	data = set->data.begin;
 
 	va_start(ap, n);
 	for (i = 0, j = 0; i < n; i++) {
 		if (j < nfree) {
 			e0 = set->free;
-			set->free = edges[e0].next;
+			set->free = edges[e0];
 			p = edges + e0;
 			j++;
 		} else {
@@ -146,8 +152,7 @@ static int make_edges(struct eset *set, size_t n, ...)
 			e0 = p - edges;
 		}
 		*va_arg(ap, eref *) = e0;
-		p[0].data = p[1].data = p[2].data = p[3].data = 0;
-		init_quad_edge(p, e0);
+		init_quad_edge(edges, data, e0);
 	}
 	va_end(ap);
 	return 0;
@@ -155,20 +160,19 @@ static int make_edges(struct eset *set, size_t n, ...)
 
 static void splice(struct eset *set, eref a, eref b)
 {
-	eref alpha, beta, tmp;
-	struct edge *edges;
+	eref alpha, beta, tmp, *edges;
 
 	edges = set->edges.begin;
 	alpha = rot(onext(set, a));
 	beta = rot(onext(set, b));
 
-	tmp = edges[a].next;
-	edges[a].next = edges[b].next;
-	edges[b].next = tmp;
+	tmp = edges[a];
+	edges[a] = edges[b];
+	edges[b] = tmp;
 
-	tmp = edges[alpha].next;
-	edges[alpha].next = edges[beta].next;
-	edges[beta].next = tmp;
+	tmp = edges[alpha];
+	edges[alpha] = edges[beta];
+	edges[beta] = tmp;
 }
 
 /* connect the destination of `a` to the origin of `b` with the new edge `c` so
@@ -187,7 +191,7 @@ static void delete_edge(struct eset *set, eref e)
 	splice(set, sym(e), oprev(set, sym(e)));
 
 	/* add to free list */
-	((struct edge *)set->edges.begin)[e & ~0x3].next = set->free;
+	((eref *)set->edges.begin)[e & ~0x3] = set->free;
 	set->free = e & ~0x3;
 }
 
