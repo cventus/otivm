@@ -33,7 +33,7 @@ struct edge
 struct eset
 {
 	struct wbuf edges;
-	size_t count;
+	eref free;
 };
 
 struct line
@@ -91,7 +91,7 @@ static inline float2 **dest(struct eset *set, eref e)
 static void init_eset(struct eset *set)
 {
 	wbuf_init(&set->edges);
-	set->count = 0;
+	set->free = -1;
 }
 
 static eref eset_max_edge(struct eset *set)
@@ -104,28 +104,50 @@ static void term_eset(struct eset *set)
 	wbuf_term(&set->edges);
 }
 
+static void init_quad_edge(struct edge *qe, eref e0)
+{
+	qe[0].next = mkref(e0, 0);
+	qe[1].next = mkref(e0, 3);
+	qe[2].next = mkref(e0, 2);
+	qe[3].next = mkref(e0, 1);
+}
+
 /* allocate *n* empty subdivisions (edges) and store references (eref) in the
    *n* following arguments */
 static int make_edges(struct eset *set, size_t n, ...)
 {
-	struct edge *p;
-	eref e0, *q;
-	size_t i;
+	struct edge *alloc, *p, *edges;
+	eref e0;
+	size_t i, j, nfree;
 	va_list ap;
 
-	p = wbuf_alloc(&set->edges, n * sizeof (struct edge[4]));
-	set->count += n;
-	if (!p) { return -1; }
+	/* look in free list first */
+	e0 = set->free;
+	edges = set->edges.begin;
+	nfree = 0;
+	while (e0 >= 0 && nfree < n) {
+		e0 = edges[e0].next;
+		nfree++;
+	}
+	/* allocate the rest */
+	alloc = wbuf_alloc(&set->edges, (n - nfree) * sizeof (struct edge[4]));
+	if (!alloc) { return -1; }
+	edges = set->edges.begin;
+
 	va_start(ap, n);
-	for (i = 0; i < n; i++) {
-		q = va_arg(ap, eref *);
-		*q = e0 = p - (struct edge *)set->edges.begin;
+	for (i = 0, j = 0; i < n; i++) {
+		if (j < nfree) {
+			e0 = set->free;
+			set->free = edges[e0].next;
+			p = edges + e0;
+			j++;
+		} else {
+			p = alloc + 4*(i - j);
+			e0 = p - edges;
+		}
+		*va_arg(ap, eref *) = e0;
 		p[0].data = p[1].data = p[2].data = p[3].data = 0;
-		p[0].next = mkref(e0, 0);
-		p[1].next = mkref(e0, 3);
-		p[2].next = mkref(e0, 2);
-		p[3].next = mkref(e0, 1);
-		p += 4;
+		init_quad_edge(p, e0);
 	}
 	va_end(ap);
 	return 0;
@@ -161,25 +183,13 @@ static void connect(struct eset *set, eref a, eref b, eref c)
 
 static void delete_edge(struct eset *set, eref e)
 {
-	/* TODO: free list */
-	set->count--;
 	splice(set, e, oprev(set, e));
 	splice(set, sym(e), oprev(set, sym(e)));
-}
 
-/*
-static void swap(struct eset *set, eref e)
-{
-	eref a = oprev(set, e);
-	eref b = oprev(set, sym(e));
-	splice(set, e, a);
-	splice(set, sym(e), b);
-	splice(set, e, lnext(set, a));
-	splice(set, sym(e), lnext(b));
-	*org(set, e) = *dest(set, a);
-	*dest(set, e) = *dest(set, b);
+	/* add to free list */
+	((struct edge *)set->edges.begin)[e & ~0x3].next = set->free;
+	set->free = e & ~0x3;
 }
-*/
 
 static double line_det(float2 a, float2 b, float2 c)
 {
