@@ -12,13 +12,13 @@
 #include <base/mem.h>
 
 #include "include/triangulate.h"
+#include "bits.h"
 
 #define X 0
 #define Y 1
 #define XY 2
 
 #define EPSILON 1e-8
-#define MSB (1 << (CHAR_BIT - 1))
 
 typedef unsigned triangle_indices[3];
 typedef int eref;
@@ -493,18 +493,6 @@ static int delauney(
 		*re = rdo;
 		return count;
 	}
-}
-
-static size_t bits_size(size_t n) { return (n + CHAR_BIT - 1) / CHAR_BIT; }
-
-static void bits_set(void *bits, size_t i)
-{
-	((unsigned char *)bits)[i / CHAR_BIT] |= (MSB >> (i % CHAR_BIT));
-}
-
-static bool bits_get(void *bits, size_t i)
-{
-	return ((unsigned char *)bits)[i / CHAR_BIT] & (MSB >> (i % CHAR_BIT));
 }
 
 static void mark_orbit(
