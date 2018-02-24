@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
@@ -554,4 +555,17 @@ struct triangle_set *triangulate(
 	}
 	term_eset(&set);
 	return res;
+}
+
+size_t triangle_set_size(size_t triangle_count)
+{
+	size_t ts_sz = sizeof (struct triangle_set);
+	size_t idx_sz = sizeof ((struct triangle_set *)0)->indices[0];
+	size_t max = (SIZE_MAX - ts_sz) / idx_sz;
+
+	if (max <= triangle_count) {
+		return 0;
+	} else {
+		return ts_sz + triangle_count * idx_sz;
+	}
 }

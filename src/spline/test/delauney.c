@@ -6,7 +6,7 @@
 #include <math.h>
 #include <ok/ok.h>
 
-#include "../delauney.c"
+#include "../triangulate.c"
 
 static void assert_eq(char const *as, char const *bs, eref a, eref b)
 {
