@@ -13,12 +13,6 @@ http://www.cs.mtu.edu/~shene/COURSES/cs3621/NOTES/
 Barendrecht, P. J. "A gentle introduction to Bézier curves and NURBS"
 http://www.redpanda.nl/TUe/GentleIntroToNURBS.pdf
 
-
-References
-----------
-
-CS3261 course notes by Dr. C.-K. Shene from Michigan Technological University
-http://www.cs.mtu.edu/~shene/COURSES/cs3621/NOTES/
-
-Barendrecht, P. J. "A gentle introduction to Bézier curves and NURBS"
-http://www.redpanda.nl/TUe/GentleIntroToNURBS.pdf
+Guibas, L., and Stolfi, J., "Primitives for the manipulation of general
+subdivisions and the computation of Voronoi." ACM transactions on graphics
+(TOG) 4.2 (1985): 74-123
