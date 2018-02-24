@@ -6,83 +6,8 @@
 #include <math.h>
 #include <ok/ok.h>
 
+#include "test.h"
 #include "../triangulate.c"
-
-static void assert_eq(char const *as, char const *bs, eref a, eref b)
-{
-	if (a != b) {
-		printf("not equal: %s = %ld != %ld = %s\n", as, (long)a, (long)b, bs);
-		ok = -1;
-	}
-}
-#define assert_eq(a, b) assert_eq(#a, #b, a, b)
-
-static void assert_bool(char const *expr, int val, int target)
-{
-	if (!val != !target) {
-		printf("not %s: %s \n", target ? "true" : "false",  expr);
-		ok = -1;
-	}
-}
-#define assert_true(x) assert_bool(#x, x, 1)
-#define assert_false(x) assert_bool(#x, x, 0)
-
-static void assert_near_eq(
-	double a,
-	char const *a_exp,
-	double b,
-	char const *b_exp)
-{
-	if (fabs(a - b) > 1e-6) {
-		printf("%s = %g != %g = %s\n", a_exp, a, b, b_exp);
-		ok = -1;
-	}
-}
-#define assert_near_eq(a, b) assert_near_eq(a, #a, b, #b)
-
-/* specify orbit with a sequence of edge references, ending in the first */
-static void assert_orbit(
-	struct eset *set,
-	eref next(struct eset *, eref),
-	char const *nextname,
-	char const *args,
-	eref first,
-	...)
-{
-	va_list ap;
-	struct { eref ref; char const *name; int len; } prev, cur;
-	static char const *delim = ", \t\n";
-
-	prev.ref = first;
-	prev.name = args;
-	prev.len = strcspn(prev.name, delim);
-	va_start(ap, first);
-	do {
-		cur.ref = va_arg(ap, eref);
-		cur.name = prev.name + prev.len;
-		cur.name += strspn(cur.name, delim);
-		cur.len = strcspn(cur.name, delim);
-		if (next(set, prev.ref) != cur.ref) {
-			printf("%.*s is not followed by %.*s, ",
-				prev.len, prev.name,
-				cur.len, cur.name);
-			printf("%s(%.*s) = %d, expected %d\n",
-				nextname,
-				prev.len, prev.name,
-				(int)next(set, prev.ref), (int)cur.ref);
-			ok = -1;
-			break;
-		}
-		memcpy(&prev, &cur, sizeof cur);
-	} while (cur.ref != first);
-	va_end(ap);
-}
-#define assert_orbit(set, next, first, ...) \
-	assert_orbit(set, next, #next,  #first ", " #__VA_ARGS__, first, __VA_ARGS__)
-
-static eref ref(eref e, unsigned r) {
-	return mkref(e*4, r);
-}
 
 static void check_delauney(
 	char const *context,
@@ -180,171 +105,6 @@ nomem:		fail_test("memory allocation failed");
 	return a;
 }
 
-static int test_make_edge(void)
-{
-	struct eset set;
-	eref e;
-
-	init_eset(&set);
-
-	if (eset_alloc(&set, 1, &e)) { fail_test("allocation failure"); }
-	assert_eq(lnext(&set, e), sym(e));
-	assert_eq(rnext(&set, e), sym(e));
-	assert_eq(onext(&set, e), e);
-	assert_eq(oprev(&set, e), e);
-
-	e = rot(e);
-	assert_eq(lnext(&set, e), e);
-	assert_eq(rnext(&set, e), e);
-	assert_eq(onext(&set, e), sym(e));
-	assert_eq(oprev(&set, e), sym(e));
-
-	term_eset(&set);
-
-	return ok;
-}
-
-static int traverse(void)
-{
-	enum { a, b, c, d, e, f, g, h };
-
-	/* Based on Fig. 7. from Guibas & Stolfi (1985) */
-	eref edges[] = {
-		[a*4] = ref(g, 3), ref(g, 2), ref(a, 2), ref(a, 1),
-		[b*4] = ref(h, 3), ref(a, 0), ref(a, 3), ref(c, 2),
-		[c*4] = ref(d, 3), ref(b, 0), ref(b, 3), ref(b, 2),
-		[d*4] = ref(c, 3), ref(h, 0), ref(c, 1), ref(c, 0),
-		[e*4] = ref(d, 0), ref(e, 3), ref(e, 2), ref(d, 1),
-		[f*4] = ref(e, 0), ref(g, 1), ref(h, 1), ref(e, 1),
-		[g*4] = ref(f, 2), ref(f, 1), ref(f, 0), ref(h, 2),
-		[h*4] = ref(f, 3), ref(g, 0), ref(b, 1), ref(d, 2)
-	};
-	struct eset set = {
-		{ edges, edges + length_of(edges), NULL },
-		{ NULL, NULL, NULL },
-		0
-	};
-
-	assert_eq(onext(&set, ref(a, 2)), ref(a, 2));
-
-	assert_eq(onext(&set, ref(a, 0)), ref(g, 3));
-	assert_eq(onext(&set, ref(g, 3)), ref(h, 2));
-	assert_eq(onext(&set, ref(h, 2)), ref(b, 1));
-	assert_eq(onext(&set, ref(b, 1)), ref(a, 0));
-
-	assert_eq(onext(&set, ref(d, 1)), ref(h, 0));
-	assert_eq(onext(&set, ref(h, 0)), ref(f, 3));
-	assert_eq(onext(&set, ref(f, 3)), ref(e, 1));
-	assert_eq(onext(&set, ref(e, 1)), sym(ref(e, 1)));
-	assert_eq(onext(&set, sym(ref(e, 1))), ref(d, 1));
-
-	return ok;
-}
-
-static int winding_order(void)
-{
-	typedef float xy[XY];
-
-	xy A = { 0.0f, 0.0f };
-	xy B = { 1.0f, 0.0f };
-	xy C = { 0.0f, 1.0f };
-
-	assert_true(is_ccw(A, B, C));
-	assert_false(is_ccw(A, C, B));
-
-	return ok;
-}
-
-static int test_in_circle(void)
-{
-	typedef float xy[XY];
-
-	xy A = { 10.0f, 10.0f };
-	xy B = { 11.0f, 10.0f };
-	xy C = { 10.0f, 11.0f };
-
-	xy D = { 10.1f, 10.1f };
-
-	xy E = { 11.0f, 11.0f };
-	xy F = { 12.0f, 12.0f };
-
-	/* clearly inside */
-	assert_true(point2d_in_circle(A, B, C, D));
-
-	/* co-circular */
-	assert_false(point2d_in_circle(A, B, C, E));
-
-	/* clearly outside */
-	assert_false(point2d_in_circle(A, B, C, F));
-
-	return ok;
-}
-
-static int test_connect(void)
-{
-	struct eset set;
-	eref a, b, c, d, e, f, g, h;
-
-	/* Create the following subdivision with canonical edges going counter
-	   clock wise around the edges:
-
-	    O-------O
-	   /|   g   |\
-	 d/ |       | \b
-	 /  |       |  \
-	O   |f     c|   O
-	 \  |       |  /
-	 e\ |       | /a
-	   \|   h   |/
-	    O-------O
-	*/
-
-	init_eset(&set);
-
-	if (eset_alloc(&set, 8, &a, &b, &c, &d, &e, &f, &g, &h)) {
-		fail_test("allocation failure");
-	}
-
-	/* create triangle on the right */
-	eset_splice(&set, sym(a), b);
-	eset_connect(&set, b, a, c);
-
-	assert_orbit(&set, onext, a, sym(c), a);
-	assert_orbit(&set, onext, b, sym(a), b);
-	assert_orbit(&set, onext, c, sym(b), c);
-	assert_orbit(&set, lnext, a, b, c, a);
-	assert_orbit(&set, rnext, sym(a), sym(b), sym(c), sym(a));
-
-	/* create triangle on the left */
-	eset_splice(&set, sym(d), e);
-	eset_connect(&set, e, d, f);
-
-	assert_orbit(&set, onext, d, sym(f), d);
-	assert_orbit(&set, onext, e, sym(d), e);
-	assert_orbit(&set, onext, f, sym(e), f);
-	assert_orbit(&set, lnext, d, e, f, d);
-	assert_orbit(&set, rnext, sym(d), sym(e), sym(f), sym(d));
-
-	/* connect the two triangles forming a quad in the middle */
-	eset_connect(&set, sym(d), sym(b), g);
-	eset_connect(&set, sym(a), sym(e), h);
-
-	assert_orbit(&set, onext, g, d, sym(f), g);
-	assert_orbit(&set, onext, c, sym(b), sym(g), c);
-	assert_orbit(&set, onext, h, a, sym(c), h);
-	assert_orbit(&set, onext, f, sym(e), sym(h), f);
-
-	/* inner quad orbit */
-	assert_orbit(&set, rnext, h, c, g, f, h);
-
-	/* outer shape orbit */
-	assert_orbit(&set, lnext, h, sym(e), sym(d), g, sym(b), sym(a), h);
-
-	term_eset(&set);
-
-	return ok;
-}
-
 static int test_triangulate(void)
 {
 	size_t i;
@@ -400,26 +160,6 @@ static int test_triangulate(void)
 		check_delauney(e->name, e->vertices, e->n, t);
 		free(t);
 	}
-	return ok;
-}
-
-static int signed_distance(void)
-{
-	/* ascending line y = x - 4 */
-	float2 p0 = { 2.0f, -2.0f };
-	float2 p1 = { 6.0f, 2.0f };
-
-	/* points */
-	float2 left_of = { 3.0f, 1.0f };
-	float2 right_of = { 5.0f, -1.0f };
-
-	/* expected distance */
-	double abs_dist = sqrt(2.0);
-
-#define dist(x) line2d_dist(make_line2d(p0, p1), x)
-	assert_near_eq(dist(left_of), -abs_dist);
-	assert_near_eq(dist(right_of), abs_dist);
-#undef dist
 	return ok;
 }
 
@@ -611,13 +351,7 @@ static int test_apply_constraints(void)
 }
 
 struct test const tests[] = {
-	{ test_make_edge, "properties of new subdivision" },
-	{ traverse, "traverse edges connected to a vertex/around a face" },
-	{ winding_order, "winding order of points" },
-	{ test_in_circle, "points inside and outside a circle" },
-	{ test_connect, "connect points" },
 	{ test_triangulate, "triangulate points" },
-	{ signed_distance, "signed distance from point to line" },
 	{ test_triangulate_polygon, "triangulate polygons" },
 	{ test_apply_constraints, "apply constraints" },
 
