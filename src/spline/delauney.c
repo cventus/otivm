@@ -11,179 +11,13 @@
 #include <base/wbuf.h>
 #include <base/mem.h>
 
-#include "include/triangulate.h"
 #include "geometry.h"
+#include "quadedge.h"
 #include "bits.h"
 
+#include "include/triangulate.h"
 
 typedef unsigned triangle_indices[3];
-typedef int eref;
-typedef eref quad_edge[4];
-struct eset
-{
-	struct wbuf edges, data;
-	eref free;
-};
-
-static inline eref mkref(eref e0, unsigned r) { return (e0 & ~0x3)|(r & 0x3); }
-static inline eref rot(eref e) { return mkref(e, e + 1); }
-static inline eref sym(eref e) { return mkref(e, e + 2); }
-static inline eref invrot(eref e) { return mkref(e, e + 3); }
-
-static inline eref onext(struct eset *set, eref e)
-{
-	assert(e >= 0);
-	assert((size_t)e < wbuf_nmemb(&set->edges, sizeof(eref)));
-	return ((eref *)set->edges.begin)[e];
-}
-
-static inline eref oprev(struct eset *set, eref e)
-{
-	return rot(onext(set, rot(e)));
-}
-
-static inline eref lnext(struct eset *set, eref e)
-{
-	return rot(onext(set, invrot(e)));
-}
-
-static inline eref lprev(struct eset *set, eref e)
-{
-	return sym(onext(set, e));
-}
-
-static inline eref rnext(struct eset *set, eref e)
-{
-	return invrot(onext(set, rot(e)));
-}
-
-static inline eref rprev(struct eset *set, eref e)
-{
-	return onext(set, sym(e));
-}
-
-static inline float2 **org(struct eset *set, eref e)
-{
-	assert(e >= 0);
-	assert(((size_t)e >> 1) < wbuf_nmemb(&set->data, sizeof(float2*)));
-	return (float2 **)set->data.begin + (e >> 1);
-}
-
-static inline float2 **dest(struct eset *set, eref e)
-{
-	return org(set, sym(e));
-}
-
-static void init_eset(struct eset *set)
-{
-	wbuf_init(&set->edges);
-	wbuf_init(&set->data);
-	set->free = -1;
-}
-
-static eref eset_max_edge(struct eset *set)
-{
-	return wbuf_nmemb(&set->edges, sizeof (quad_edge));
-}
-
-static void term_eset(struct eset *set)
-{
-	wbuf_term(&set->edges);
-	wbuf_term(&set->data);
-}
-
-static void init_quad_edge(eref *qe, float2 **data, eref e0)
-{
-	qe[e0 + 0] = mkref(e0, 0);
-	qe[e0 + 1] = mkref(e0, 3);
-	qe[e0 + 2] = mkref(e0, 2);
-	qe[e0 + 3] = mkref(e0, 1);
-
-	data[e0 >> 1] = 0;
-	data[(e0 >> 1) + 1] = 0;
-}
-
-/* allocate *n* empty subdivisions (edges) and store references (eref) in the
-   *n* following arguments */
-static int make_edges(struct eset *set, size_t n, ...)
-{
-	eref *alloc, *p, *edges, e0;
-	float2 **data;
-	size_t i, j, nfree;
-	va_list ap;
-
-	/* look in free list first */
-	e0 = set->free;
-	edges = set->edges.begin;
-	nfree = 0;
-	while (e0 >= 0 && nfree < n) {
-		e0 = edges[e0];
-		nfree++;
-	}
-	/* allocate the rest */
-	alloc = wbuf_alloc(&set->edges, (n - nfree) * sizeof (quad_edge));
-	if (!alloc) { return -1; }
-	if (!wbuf_alloc(&set->data, (n - nfree) * sizeof (float2 *[2]))) {
-		return -1;
-	}
-	edges = set->edges.begin;
-	data = set->data.begin;
-
-	va_start(ap, n);
-	for (i = 0, j = 0; i < n; i++) {
-		if (j < nfree) {
-			e0 = set->free;
-			set->free = edges[e0];
-			p = edges + e0;
-			j++;
-		} else {
-			p = alloc + 4*(i - j);
-			e0 = p - edges;
-		}
-		*va_arg(ap, eref *) = e0;
-		init_quad_edge(edges, data, e0);
-	}
-	va_end(ap);
-	return 0;
-}
-
-static void splice(struct eset *set, eref a, eref b)
-{
-	eref alpha, beta, tmp, *edges;
-
-	edges = set->edges.begin;
-	alpha = rot(onext(set, a));
-	beta = rot(onext(set, b));
-
-	tmp = edges[a];
-	edges[a] = edges[b];
-	edges[b] = tmp;
-
-	tmp = edges[alpha];
-	edges[alpha] = edges[beta];
-	edges[beta] = tmp;
-}
-
-/* connect the destination of `a` to the origin of `b` with the new edge `c` so
-   that left(a) = left(b) = left(c) */
-static void connect(struct eset *set, eref a, eref b, eref c)
-{
-	*org(set, c) = *dest(set, a);
-	*dest(set, c) = *org(set, b);
-	splice(set, c, lnext(set, a));
-	splice(set, sym(c), b);
-}
-
-static void delete_edge(struct eset *set, eref e)
-{
-	splice(set, e, oprev(set, e));
-	splice(set, sym(e), oprev(set, sym(e)));
-
-	/* add to free list */
-	((eref *)set->edges.begin)[e & ~0x3] = set->free;
-	set->free = e & ~0x3;
-}
-
 
 static bool is_ccw(float2 a, float2 b, float2 c)
 {
@@ -235,7 +69,7 @@ static int triangulate_polygon(struct eset *set, eref s)
 		p1 = p2;
 		p2 = *dest(set, b);
 	}
-	if (make_edges(set, 1, &e)) { return -2; }
+	if (eset_alloc(set, 1, &e)) { return -2; }
 	/* find diagonal or create an edge from dest(a) to org(b) */
 	perim[0] = make_line2d(*p1, *p0);
 	perim[1] = make_line2d(*p2, *p1);
@@ -258,7 +92,7 @@ static int triangulate_polygon(struct eset *set, eref s)
 	if (max_dist > -1.0) {
 		/* add diagonal from origin of d to origin of a, and triangulate
 		   both sides of the rest of the polygon */
-		connect(set, d, b, e);
+		eset_connect(set, d, b, e);
 		res = triangulate_polygon(set, e);
 		if (res >= 0) {
 			count += res;
@@ -266,13 +100,13 @@ static int triangulate_polygon(struct eset *set, eref s)
 		}
 	} else {
 		/* add new edge e, forming triangle a->e->b->a */
-		connect(set, b, a, e);
+		eset_connect(set, b, a, e);
 
 		/* triangulate the rest of the polygon */
 		res = triangulate_polygon(set, sym(e));
 	}
 	if (res < 0) {
-		delete_edge(set, e);
+		eset_delete(set, e);
 		count = -1;
 	} else {
 		count += res;
@@ -298,7 +132,7 @@ static eref select_cand(
 			**dest(set, next(set, cand)))
 		) {
 			tmp = next(set, cand);
-			delete_edge(set, cand);
+			eset_delete(set, cand);
 			(*count)--;
 			cand = tmp;
 		}
@@ -319,7 +153,7 @@ static int delauney(
 	if (nmemb == 2) {
 		/* a single edge connecting the points */
 		eref a;
-		if (make_edges(set, 1, &a)) { return -1; }
+		if (eset_alloc(set, 1, &a)) { return -1; }
 		*org(set, a) = verts[0];
 		*dest(set, a) = verts[1];
 		*le = a;
@@ -328,23 +162,23 @@ static int delauney(
 	} else if (nmemb == 3) {
 		/* A = 0 -> 1, and B = 1 -> 2 */
 		eref a, b, c;
-		if (make_edges(set, 2, &a, &b)) { return -1; }
-		splice(set, sym(a), b);
+		if (eset_alloc(set, 2, &a, &b)) { return -1; }
+		eset_splice(set, sym(a), b);
 		*org(set, a) = verts[0];
 		*dest(set, a) = *org(set, b) = verts[1];
 		*dest(set, b) = verts[2];
 		if (is_ccw(*verts[0], *verts[2], *verts[1])) {
-			if (make_edges(set, 1, &c)) { return -1; }
-			connect(set, b, a, c);
+			if (eset_alloc(set, 1, &c)) { return -1; }
+			eset_connect(set, b, a, c);
 			*le = sym(c);
 			*re = c;
 			return 3;
 		} else {
 			count = 2;
 			if (is_ccw(*verts[0], *verts[1], *verts[2])) {
-				if (make_edges(set, 1, &c)) { return -1; }
+				if (eset_alloc(set, 1, &c)) { return -1; }
 				count++;
-				connect(set, b, a, c);
+				eset_connect(set, b, a, c);
 			} /* else, co-linear points */
 			*le = a;
 			*re = sym(b);
@@ -374,8 +208,8 @@ static int delauney(
 		}
 
 		/* connect left and right subdivisions */
-		if (make_edges(set, 1, &basel)) { return -1; }
-		connect(set, sym(rdi), ldi, basel);
+		if (eset_alloc(set, 1, &basel)) { return -1; }
+		eset_connect(set, sym(rdi), ldi, basel);
 		count++;
 		if (*org(set, ldi) == *org(set, ldo)) { ldo = sym(basel); }
 		if (*org(set, rdi) == *org(set, rdo)) { rdo = basel; }
@@ -391,16 +225,16 @@ static int delauney(
 			if (!lvalid && !rvalid) { break; }
 
 			/* else add cross edge */
-			if (make_edges(set, 1, &tmp)) { return -1; }
+			if (eset_alloc(set, 1, &tmp)) { return -1; }
 			count++;
 			if (!lvalid ||
 			    (rvalid && point2d_in_circle(**dest(set, lcand),
 			                                 **org(set, lcand),
 			                                 **org(set, rcand),
 			                                 **dest(set, rcand)))) {
-				connect(set, rcand, sym(basel), tmp);
+				eset_connect(set, rcand, sym(basel), tmp);
 			} else {
-				connect(set, sym(basel), sym(lcand), tmp);
+				eset_connect(set, sym(basel), sym(lcand), tmp);
 			}
 			/* continue building from it */
 			basel = tmp;
@@ -600,7 +434,7 @@ static ptrdiff_t add_constrained_edge(
 			if (emap[v] == sym(next)) {
 				emap[v] = oprev(set, sym(next));
 			}
-			delete_edge(set, next);
+			eset_delete(set, next);
 		} else {
 			e = next;
 		}
@@ -608,8 +442,8 @@ static ptrdiff_t add_constrained_edge(
 
 	/* Should not be possible: We have removed at least one edge to
 	   get here. */
-	if (make_edges(set, 1, &new_edge)) { return -1; }
-	connect(set, next, start, new_edge);
+	if (eset_alloc(set, 1, &new_edge)) { return -1; }
+	eset_connect(set, next, start, new_edge);
 
 	if (triangulate_polygon(set, new_edge) < 0) { return -2; }
 	if (triangulate_polygon(set, sym(new_edge)) < 0) { return -3; }

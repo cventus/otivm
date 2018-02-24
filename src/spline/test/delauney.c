@@ -159,7 +159,7 @@ static eref simple_polygon(struct eset *set, float2 *pts, size_t n)
 	eref a, b, c;
 	size_t i;
 
-	if (make_edges(set, 1, &a)) {
+	if (eset_alloc(set, 1, &a)) {
 nomem:		fail_test("memory allocation failed");
 	}
 	p = pts;
@@ -168,15 +168,15 @@ nomem:		fail_test("memory allocation failed");
 	b = a;
 
 	for (i = 2; i < n; i++) {
-		if (make_edges(set, 1, &c)) { goto nomem; }
+		if (eset_alloc(set, 1, &c)) { goto nomem; }
 		*org(set, c) = *dest(set, b);
 		*dest(set, c) = p;
-		splice(set, sym(b), c);
+		eset_splice(set, sym(b), c);
 		b = c;
 		p++;
 	}
-	if (make_edges(set, 1, &c)) { goto nomem; }
-	connect(set, b, a, c);
+	if (eset_alloc(set, 1, &c)) { goto nomem; }
+	eset_connect(set, b, a, c);
 	return a;
 }
 
@@ -187,7 +187,7 @@ static int test_make_edge(void)
 
 	init_eset(&set);
 
-	if (make_edges(&set, 1, &e)) { fail_test("allocation failure"); }
+	if (eset_alloc(&set, 1, &e)) { fail_test("allocation failure"); }
 	assert_eq(lnext(&set, e), sym(e));
 	assert_eq(rnext(&set, e), sym(e));
 	assert_eq(onext(&set, e), e);
@@ -301,13 +301,13 @@ static int test_connect(void)
 
 	init_eset(&set);
 
-	if (make_edges(&set, 8, &a, &b, &c, &d, &e, &f, &g, &h)) {
+	if (eset_alloc(&set, 8, &a, &b, &c, &d, &e, &f, &g, &h)) {
 		fail_test("allocation failure");
 	}
 
 	/* create triangle on the right */
-	splice(&set, sym(a), b);
-	connect(&set, b, a, c);
+	eset_splice(&set, sym(a), b);
+	eset_connect(&set, b, a, c);
 
 	assert_orbit(&set, onext, a, sym(c), a);
 	assert_orbit(&set, onext, b, sym(a), b);
@@ -316,8 +316,8 @@ static int test_connect(void)
 	assert_orbit(&set, rnext, sym(a), sym(b), sym(c), sym(a));
 
 	/* create triangle on the left */
-	splice(&set, sym(d), e);
-	connect(&set, e, d, f);
+	eset_splice(&set, sym(d), e);
+	eset_connect(&set, e, d, f);
 
 	assert_orbit(&set, onext, d, sym(f), d);
 	assert_orbit(&set, onext, e, sym(d), e);
@@ -326,8 +326,8 @@ static int test_connect(void)
 	assert_orbit(&set, rnext, sym(d), sym(e), sym(f), sym(d));
 
 	/* connect the two triangles forming a quad in the middle */
-	connect(&set, sym(d), sym(b), g);
-	connect(&set, sym(a), sym(e), h);
+	eset_connect(&set, sym(d), sym(b), g);
+	eset_connect(&set, sym(a), sym(e), h);
 
 	assert_orbit(&set, onext, g, d, sym(f), g);
 	assert_orbit(&set, onext, c, sym(b), sym(g), c);
