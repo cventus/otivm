@@ -123,7 +123,7 @@ static void check_delauney(
 			/* delauney property: no other point is within the
 			   circle circumscribed on the three points of the
 			   triangle */
-			if (in_circle(v0, v1, v2, v[j])) {
+			if (point2d_in_circle(v0, v1, v2, v[j])) {
 				ok = -1;
 				printf("%s: triangle %zd is not delauney\n",
 				       context, i);
@@ -269,13 +269,13 @@ static int test_in_circle(void)
 	xy F = { 12.0f, 12.0f };
 
 	/* clearly inside */
-	assert_true(in_circle(A, B, C, D));
+	assert_true(point2d_in_circle(A, B, C, D));
 
 	/* co-circular */
-	assert_false(in_circle(A, B, C, E));
+	assert_false(point2d_in_circle(A, B, C, E));
 
 	/* clearly outside */
-	assert_false(in_circle(A, B, C, F));
+	assert_false(point2d_in_circle(A, B, C, F));
 
 	return ok;
 }
@@ -416,7 +416,7 @@ static int signed_distance(void)
 	/* expected distance */
 	double abs_dist = sqrt(2.0);
 
-#define dist(x) line_dist(make_line(p0, p1), x)
+#define dist(x) line2d_dist(make_line2d(p0, p1), x)
 	assert_near_eq(dist(left_of), -abs_dist);
 	assert_near_eq(dist(right_of), abs_dist);
 #undef dist

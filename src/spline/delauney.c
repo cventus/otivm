@@ -12,28 +12,17 @@
 #include <base/mem.h>
 
 #include "include/triangulate.h"
+#include "geometry.h"
 #include "bits.h"
 
-#define X 0
-#define Y 1
-#define XY 2
-
-#define EPSILON 1e-8
 
 typedef unsigned triangle_indices[3];
 typedef int eref;
-typedef float const float2[XY];
 typedef eref quad_edge[4];
-
 struct eset
 {
 	struct wbuf edges, data;
 	eref free;
-};
-
-struct line
-{
-	double a, b, c;
 };
 
 static inline eref mkref(eref e0, unsigned r) { return (e0 & ~0x3)|(r & 0x3); }
@@ -195,87 +184,12 @@ static void delete_edge(struct eset *set, eref e)
 	set->free = e & ~0x3;
 }
 
-static double line_det(float2 a, float2 b, float2 c)
-{
-	/* The determinant D of the linear inequality specifies on which side
-	   of line `b->c` that point `a` lies
-
-		| X[a] Y[a] 1 |
-		| X[b] Y[b] 1 | = D
-		| X[c] Y[c] 1 |
-	*/
-	double p = X[a]*Y[b] + X[b]*Y[c] + X[c]*Y[a];
-	double n = X[c]*Y[b] + X[b]*Y[a] + X[a]*Y[c];
-	return p - n;
-}
-
-static struct line make_line(float2 p0, float2 p1)
-{
-	double dx, dy, a, b, c, s;
-
-	dy = Y[p1] - Y[p0];
-	dx = X[p1] - X[p0];
-	s = hypot(dx, dy);
-	a = dy / s;
-	b = dx / s;
-	c = Y[p1]*b - X[p1]*a;
-
-	return (struct line){ a, b, c };
-}
-
-/* Signed distance from p to l. If the result is zero, then the point is on the
-   line. If it is greater than zero then it is on the "right" side of l, where
-   the orientation is determined when the line was created. A negative result
-   indicates the point is to the "left". */
-static double line_dist(struct line l, float2 p)
-{
-	return l.a*X[p] - l.b*Y[p] + l.c;
-}
-
-static bool in_circle(float2 a, float2 b, float2 c, float2 d)
-{
-	/* point d within circle specified by (a, b, c), if
-
-		| X[a]-X[d]  Y[a]-Y[d]  ((X[a]-X[d])^2 + (Y[a]-Y[d])^2) |
-		| X[b]-X[d]  Y[b]-Y[d]  ((X[b]-X[d])^2 + (Y[b]-Y[d])^2) | > 0
-		| X[c]-X[d]  Y[c]-Y[d]  ((X[c]-X[d])^2 + (Y[c]-Y[d])^2) |
-	*/
-	double dx0 = X[a] - X[d];
-	double dx1 = X[b] - X[d];
-	double dx2 = X[c] - X[d];
-
-	double dy0 = Y[a] - Y[d];
-	double dy1 = Y[b] - Y[d];
-	double dy2 = Y[c] - Y[d];
-
-	double d20 = dx0*dx0 + dy0*dy0;
-	double d21 = dx1*dx1 + dy1*dy1;
-	double d22 = dx2*dx2 + dy2*dy2;
-
-	double p0 = dx0 * dy1 * d22;
-	double p1 = dx2 * dy0 * d21;
-	double p2 = dx1 * dy2 * d20;
-
-	double n0 = dx2 * dy1 * d20;
-	double n1 = dx0 * dy2 * d21;
-	double n2 = dx1 * dy0 * d22;
-
-	return p0 - n0 + p1 - n1 + p2 - n2 > EPSILON;
-}
-
-/* triangle defined by the positive side of three lines */
-static bool in_triangle(struct line const tri[3], float2 p)
-{
-	return line_dist(tri[0], p) >= -EPSILON &&
-		line_dist(tri[1], p) >= -EPSILON &&
-		line_dist(tri[2], p) >= -EPSILON;
-}
 
 static bool is_ccw(float2 a, float2 b, float2 c)
 {
 	/* counterclockwise 2D points if on the "left" side of the line going
 	   from b to c */
-	return line_det(a, b, c) > EPSILON;
+	return line2d_det(a, b, c) > EPSILON;
 }
 
 static bool is_right_of(struct eset *set, float2 p, eref e)
@@ -300,7 +214,7 @@ static int triangulate_polygon(struct eset *set, eref s)
 	eref a, b, c, d, e, end;
 	float2 *p0, *p1, *p2, *p;
 	double max_dist, dist;
-	struct line perim[3];
+	struct line2d perim[3];
 
 	a = s;
 	b = lnext(set, a);
@@ -323,17 +237,17 @@ static int triangulate_polygon(struct eset *set, eref s)
 	}
 	if (make_edges(set, 1, &e)) { return -2; }
 	/* find diagonal or create an edge from dest(a) to org(b) */
-	perim[0] = make_line(*p1, *p0);
-	perim[1] = make_line(*p2, *p1);
-	perim[2] = make_line(*p0, *p2);
+	perim[0] = make_line2d(*p1, *p0);
+	perim[1] = make_line2d(*p2, *p1);
+	perim[2] = make_line2d(*p0, *p2);
 	max_dist = -1.0;
 	c = b;
 	end = lprev(set, a);
 	while (c = lnext(set, c), c != end) {
 		p = *dest(set, c);
-		if (in_triangle(perim, *p)) {
+		if (point2d_in_triangle(perim, *p)) {
 			/* candidate found */
-			dist = line_dist(perim[2], *p);
+			dist = line2d_dist(perim[2], *p);
 			if (dist > max_dist) {
 				max_dist = dist;
 				d = c;
@@ -377,10 +291,12 @@ static eref select_cand(
 
 	cand = next(set, init);
 	if (is_valid(set, cand, basel)) {
-		while (in_circle(**dest(set, basel),
-		                 **org(set, basel),
-		                 **dest(set, cand),
-		                 **dest(set, next(set, cand)))) {
+		while (point2d_in_circle(
+			**dest(set, basel),
+			**org(set, basel),
+			**dest(set, cand),
+			**dest(set, next(set, cand)))
+		) {
 			tmp = next(set, cand);
 			delete_edge(set, cand);
 			(*count)--;
@@ -478,10 +394,10 @@ static int delauney(
 			if (make_edges(set, 1, &tmp)) { return -1; }
 			count++;
 			if (!lvalid ||
-			    (rvalid && in_circle(**dest(set, lcand),
-			                         **org(set, lcand),
-			                         **org(set, rcand),
-			                         **dest(set, rcand)))) {
+			    (rvalid && point2d_in_circle(**dest(set, lcand),
+			                                 **org(set, lcand),
+			                                 **org(set, rcand),
+			                                 **dest(set, rcand)))) {
 				connect(set, rcand, sym(basel), tmp);
 			} else {
 				connect(set, sym(basel), sym(lcand), tmp);
@@ -644,7 +560,7 @@ static ptrdiff_t add_constrained_edge(
 {
 	eref e, start, next, new_edge;
 	float2 *source, *target;
-	struct line l;
+	struct line2d l;
 	double next_dist, dist;
 	ptrdiff_t v;
 
@@ -652,7 +568,7 @@ static ptrdiff_t add_constrained_edge(
 	source = *org(set, next);
 	target = vertices + to;
 	if (source == target) { return to; }
-	l = make_line(*source, *target);
+	l = make_line2d(*source, *target);
 
 	/* Find edge to vertex left of the new edge. In a counter-clockwise
 	   order, the edge to the first vertex on the negative side of the line
@@ -665,14 +581,14 @@ static ptrdiff_t add_constrained_edge(
 		dist = next_dist;
 		next = onext(set, e);
 		if (*dest(set, next) == target) { return to; }
-		next_dist = line_dist(l, **dest(set, next));
+		next_dist = line2d_dist(l, **dest(set, next));
 		/* FIXME: if next_dist is too close to line, fail */
 	}
 	start = e;
 
 	/* follow the orbit of lnext removing any crossing edges on the way */
 	while (next = lnext(set, e), *dest(set, next) != target) {
-		dist = line_dist(l, **dest(set, next));
+		dist = line2d_dist(l, **dest(set, next));
 		/* FIXME: if dist is too close to line, fail */
 		if (dist < 0.0) {
 			/* make sure it's not part of emap */
