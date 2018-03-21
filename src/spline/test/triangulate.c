@@ -151,7 +151,7 @@ static int test_triangulate(void)
 		EXAMPLE(spades)
 	}, *e = examples;
 	for (i = 0; i < length_of(examples); i++, e++) {
-		t = triangulate(e->vertices, e->n, NULL);
+		t = triangle_set_triangulate(e->vertices, e->n, NULL, 0);
 		if (!t) {
 			ok = -1;
 			printf("failed to triangulate %s\n", e->name);

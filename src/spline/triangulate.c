@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
+#include <stdalign.h>
 
 #include <base/wbuf.h>
 #include <base/mem.h>
@@ -302,6 +303,7 @@ static struct triangle_set *make_triangles(
 	size_t ntris, nstack, nbits;
 	struct triangle_set *t;
 	triangle_indices *p;
+	struct memblk blk[2];
 
 	assert(set != NULL);
 	assert(nvert >= 2);
@@ -311,9 +313,13 @@ static struct triangle_set *make_triangles(
 
 	/* by euler's characteristic (ignoring the exterior face) */
 	ntris = nedges - nvert + 1;
-	t = malloc(triangle_set_size(ntris));
-	if (!t) { return NULL; }
+        if (memblk_init(blk+0, 1, sizeof(*t))) { return NULL; }
+        if (memblk_push(blk+1, ntris, sizeof(*t->indices), alignof(*t->indices))) {
+                return NULL;
+        }
+        if (t = malloc(blk[1].extent), !t) { return NULL; }
 	t->n = ntris;
+        t->indices = memblk_offset(t, blk[1]);
 
 	/* stack to keep one outgoing edge of a vertex and a bit map for
 	   visited ones */
@@ -492,31 +498,34 @@ static int add_constraints(
 	eref edge,
 	float2 *vertices,
 	size_t vertex_count,
-	struct triangle_set const *constr)
+	unsigned const (*constraints)[2],
+	size_t constraint_count)
 {
 	int res;
 	eref *emap;
-	size_t i, j, m;
+	size_t i;
 	unsigned o, n, d;
 
 	assert(set != NULL);
-	assert(constr != NULL);
+	assert(constraints != NULL);
+	assert(constraint_count > 0);
 
 	/* check all constraints */
 	res = 0;
 	emap = make_emap(set, edge, vertices, vertex_count);
 	if (!emap) { return -1; }
-	m = length_of(constr->indices[0]);
-	for (i = 0; i < constr->n; i++) {
-		for (j = 0; j < m; j++) {
-			o = constr->indices[i][j];
-			d = constr->indices[i][(j + 1) % m];
-			if (o == d) { continue; }
-			n = add_constrained_edge(set, o, d, vertices, emap);
-			if (n != d) {
-				res = -1;
-				goto fail;
-			}
+	for (i = 0; i < constraint_count; i++) {
+		o = constraints[i][0];
+		d = constraints[i][1];
+		if (o == d) { continue; }
+		if (o >= vertex_count || d >= vertex_count) {
+			res = -1;
+			goto fail;
+		}
+		n = add_constrained_edge(set, o, d, vertices, emap);
+		if (n != d) {
+			res = -1;
+			goto fail;
 		}
 	}
 fail:	free(emap);
@@ -524,48 +533,38 @@ fail:	free(emap);
 	return res;
 }
 
-struct triangle_set *triangulate(
+struct triangle_set *triangle_set_triangulate(
 	float2 *vertices,
-	size_t vertex_count,
-	struct triangle_set const *constr)
+	size_t nvert,
+	unsigned const (*edges)[2],
+	size_t nedge)
 {
 	eref le, re;
 	struct eset set;
 	float2 **v;
 	struct triangle_set *res;
-	int edges, err;
+	int final_edges, err;
 
-	if (vertex_count < 3) { return NULL; }
-	v = sorted_vertices(vertices, vertex_count);
+	if (nvert < 3) { return NULL; }
+	v = sorted_vertices(vertices, nvert);
 	if (!v) { return NULL; }
 	init_eset(&set);
-	edges = delauney(&set, v, vertex_count, &le, &re);
+	final_edges = delauney(&set, v, nvert, &le, &re);
 	free(v);
 	err = 0;
 	res = NULL;
-	if (edges > 0) {
-		if (constr && constr->n > 0) {
-			err = add_constraints(
-				&set, le, vertices, vertex_count, constr);
-		}
-		if (err == 0) {
-			res = make_triangles(
-				&set, le, edges, vertices, vertex_count);
-		}
+	if (final_edges <= 0) { err = -1; }
+	if (err == 0 && edges && nedge > 0) {
+		err = add_constraints(&set, le, vertices, nvert, edges, nedge);
+	}
+	if (err == 0) {
+		res = make_triangles(&set, le, final_edges, vertices, nvert);
 	}
 	term_eset(&set);
 	return res;
 }
 
-size_t triangle_set_size(size_t triangle_count)
+void triangle_set_free(struct triangle_set *set)
 {
-	size_t ts_sz = sizeof (struct triangle_set);
-	size_t idx_sz = sizeof ((struct triangle_set *)0)->indices[0];
-	size_t max = (SIZE_MAX - ts_sz) / idx_sz;
-
-	if (max <= triangle_count) {
-		return 0;
-	} else {
-		return ts_sz + triangle_count * idx_sz;
-	}
+	free(set);
 }
