@@ -104,7 +104,7 @@ void xylo_end(struct xylo *xylo)
 	if (xylo->save.multisample) { gl->Enable(GL_MULTISAMPLE); }
 }
 
-void xylo_set_shape_set(struct xylo *xylo, struct xylo_glshape_set *set)
+void xylo_set_outline_set(struct xylo *xylo, struct xylo_outline_set *set)
 {
 	gl_get_core33(xylo->api)->BindVertexArray(set->vao);
 }

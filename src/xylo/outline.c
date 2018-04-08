@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdalign.h>
+#include <stdbool.h>
 #include <string.h>
 #include <math.h>
 
@@ -9,19 +10,20 @@
 #include <glapi/api.h>
 #include <glapi/core.h>
 
+#include <spline/shape.h>
+
 #include "include/types.h"
 #include "include/shape.h"
+#include "outline.h"
 #include "private.h"
 #include "types.h"
-
-#define VERTEX_FLOATS 5
 
 static size_t vertex_size(size_t n)
 {
 	return n * sizeof(float) * VERTEX_FLOATS;
 }
 
-static size_t vertex_count(struct xylo_shape const *shape)
+static size_t vertex_count(struct spline_shape const *shape)
 {
 	size_t i, n;
 	for (n = i = 0; i < shape->n; i++) {
@@ -30,7 +32,7 @@ static size_t vertex_count(struct xylo_shape const *shape)
 	return n;
 }
 
-static size_t max_vertex_count(size_t n, struct xylo_shape const *shapes)
+static size_t max_vertex_count(size_t n, struct spline_shape const *shapes)
 {
 	size_t i, m, max;
 	for (max = i = 0; i < n; i++) {
@@ -62,10 +64,10 @@ static size_t type_size(GLenum type)
 }
 
 /* allocate space for buffer meta-data */
-static struct xylo_glshape_set *alloc_block(size_t n)
+static struct xylo_outline_set *alloc_block(size_t n)
 {
 	struct memblk blk[2];
-	struct xylo_glshape_set *set;
+	struct xylo_outline_set *set;
 
 	/* create single block to hold the shapes and set header */
 	if (memblk_init(blk+0, 1, sizeof(*set))) { return NULL; }
@@ -81,13 +83,13 @@ static struct xylo_glshape_set *alloc_block(size_t n)
 	return set;
 }
 
-static float *append_center(float *dest, struct xylo_shape const *shape)
+static float *append_center(float *dest, struct spline_shape const *shape)
 {
 	static float const q0[3] = { 0.f, 1.f, 1.f };
 
 	size_t i, j, n;
-	struct xylo_outline const *outline;
-	struct xylo_leg const *leg;
+	struct spline_outline const *outline;
+	struct spline_segment const *segment;
 
 	dest[0] = dest[1] = 0.f;
 	n = 0;
@@ -95,9 +97,9 @@ static float *append_center(float *dest, struct xylo_shape const *shape)
 		outline = shape->outlines + i;
 		n += outline->n;
 		for (j 	= 0; j < outline->n; j++) {
-			leg = outline->legs + j;
-			dest[0] += leg->end[0];
-			dest[1] += leg->end[1];
+			segment = outline->segments + j;
+			dest[0] += segment->end[0];
+			dest[1] += segment->end[1];
 		}
 	}
 
@@ -121,29 +123,29 @@ static void wcoord(float *dest, float w)
    and off-curve pair) in the order 0) off-curve, 1) on-curve, 2) on-curve from
    the following segment. Each vertex contains two attributes: 2D-position and
    quadratic-curve space position. */
-static float *append_vertices(float *dest, struct xylo_outline const *outline)
+static float *append_vertices(float *dest, struct spline_outline const *outline)
 {
 	/* TODO: find more compact representation of quadratic coordinates */
 	static float const q1[3] = { 0.f, 0.f, 1.f };
 	static float const q2[3] = { 1.f, 1.f, 1.f };
 
 	size_t i;
-	struct xylo_leg const *leg;
+	struct spline_segment const *segment;
 
 	/* add three vertices per triangle side */
-	leg = outline->legs;
+	segment = outline->segments;
 	for (i = 0; i < outline->n; i++) {
 		/* weighted control point */
-		(void)memcpy(dest, leg->mid, sizeof leg->mid);
-		wcoord(dest + 2, leg->weight);
+		(void)memcpy(dest, segment->mid, sizeof segment->mid);
+		wcoord(dest + 2, segment->weight);
 
 		/* on-curve control point*/
-		(void)memcpy(dest + 5, leg->end, sizeof leg->end);
+		(void)memcpy(dest + 5, segment->end, sizeof segment->end);
 		(void)memcpy(dest + 7, q1, sizeof q1);
 
 		/* next on-curve control point */
-		leg = outline->legs + (i + 1 == outline->n ? 0 : i + 1);
-		(void)memcpy(dest + 10, leg->end, sizeof leg->end);
+		segment = outline->segments + (i + 1 == outline->n ? 0 : i + 1);
+		(void)memcpy(dest + 10, segment->end, sizeof segment->end);
 		(void)memcpy(dest + 12, q2, sizeof q2);
 		dest += 3*VERTEX_FLOATS;
 	}
@@ -219,19 +221,19 @@ static size_t setup_parameters(
 	size_t max_index,
 	GLenum type,
 	size_t n,
-	struct xylo_shape const *shapes,
-	struct xylo_glshape *glshapes)
+	struct spline_shape const *shapes,
+	struct xylo_outline *outlines)
 {
 	size_t i, vertices, shape_vertices, offset;
 
 	vertices = 0;
 	for (i = 0; i < n; i++) {
-		glshapes[i].type = type;
-		glshapes[i].basevertex = vertices;
+		outlines[i].type = type;
+		outlines[i].basevertex = vertices;
 		shape_vertices = vertex_count(shapes + i);
 		offset = max_index - shape_vertices;
-		glshapes[i].indices = (void const *)offset;
-		glshapes[i].count = shape_vertices * 2;
+		outlines[i].indices = (void const *)offset;
+		outlines[i].count = shape_vertices * 2;
 		vertices += shape_vertices + 1;
 	}
 
@@ -243,12 +245,12 @@ static GLuint make_shape_buffers(
 	struct gl_api *api,
 	GLenum usage,
 	size_t n,
-	struct xylo_shape const *shapes,
-	struct xylo_glshape_set *set)
+	struct spline_shape const *shapes,
+	struct xylo_outline_set *set)
 {
 	void *p;
 	size_t i, j, vertices, max_index, index_size, buffer_size;
-	struct xylo_shape const *shape;
+	struct spline_shape const *shape;
 	struct gl_core33 const *restrict gl;
 	GLuint evbo;
 	GLenum type;
@@ -290,10 +292,10 @@ static GLuint make_shape_buffers(
 	return evbo;
 }
 
-struct xylo_glshape_set *xylo_make_glshape_set(
+struct xylo_outline_set *xylo_make_outline_set(
 	struct gl_api *api,
 	size_t n,
-	struct xylo_shape const *shapes)
+	struct spline_shape const *shapes)
 {
 	static struct {
 		GLuint location;
@@ -306,7 +308,7 @@ struct xylo_glshape_set *xylo_make_glshape_set(
 
 	struct gl_core33 const *restrict gl;
 	size_t i;
-	struct xylo_glshape_set *set;
+	struct xylo_outline_set *set;
 	GLuint vao, evbo;
 	GLsizei stride;
 
@@ -345,7 +347,7 @@ struct xylo_glshape_set *xylo_make_glshape_set(
 	return set;
 }
 
-void xylo_free_glshape_set(struct xylo_glshape_set *set, struct gl_api *api)
+void xylo_free_outline_set(struct xylo_outline_set *set, struct gl_api *api)
 {
 	struct gl_core33 const *restrict gl;
 	gl = gl_get_core33(api);
@@ -354,23 +356,23 @@ void xylo_free_glshape_set(struct xylo_glshape_set *set, struct gl_api *api)
 	free(set);
 }
 
-struct xylo_glshape const *xylo_get_glshape(
-	struct xylo_glshape_set *set,
+struct xylo_outline const *xylo_get_outline(
+	struct xylo_outline_set *set,
 	size_t i)
 {
 	return set->shapes + i;
 }
 
-void xylo_glshape_draw(
+void xylo_outline_draw(
        struct gl_core33 const *restrict gl,
-       struct xylo_glshape const *shape,
+       struct xylo_outline const *outline,
        GLsizei samples)
 {
 	gl->DrawElementsInstancedBaseVertex(
 		GL_TRIANGLES,
-		shape->count,
-		shape->type,
-		shape->indices,
+		outline->count,
+		outline->type,
+		outline->indices,
 		samples,
-		shape->basevertex);
+		outline->basevertex);
 }

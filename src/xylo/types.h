@@ -40,7 +40,7 @@ struct xylo
 	int aa;
 };
 
-struct xylo_glshape
+struct xylo_outline
 {
 	void const *indices;
 	GLsizei count;
@@ -48,10 +48,10 @@ struct xylo_glshape
 	GLint basevertex;
 };
 
-struct xylo_glshape_set
+struct xylo_outline_set
 {
 	size_t n;
-	struct xylo_glshape *shapes;
+	struct xylo_outline *shapes;
 	GLuint vao, evbo;
 	GLsizei vertex_offset;
 };

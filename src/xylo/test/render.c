@@ -10,6 +10,7 @@
 #include <gm/matrix.h>
 #include <base/gbuf.h>
 #include <base/mem.h>
+#include <spline/shape.h>
 
 #include <tempo/tempo.h>
 
@@ -27,13 +28,13 @@
 static float const red[4] = { 0.87, 0.05, 0.11, 1.0 };
 static float const black[4] = { 0.02, 0.02, 0.02, 1.0 };
 
-static struct xylo_shape test_shape[] = {
+static struct spline_shape test_shape[] = {
 	{
 		1,
-		(struct xylo_outline[]) {
+		(struct spline_outline[]) {
 			{
 				21,
-				(struct xylo_leg[]) {
+				(struct spline_segment[]) {
 					{ { 0.20f, -0.30f }, { 0.02f, -0.25f }, 0.707106781f },
 					{ { 0.02f, -0.04f }, { 0.02f, -0.04f }, 0.f },
 					{ { 0.07f, -0.04f }, { 0.07f, -0.17f }, 0.707106781f },
@@ -61,10 +62,10 @@ static struct xylo_shape test_shape[] = {
 	},
 	{
 		1,
-		(struct xylo_outline[]) {
+		(struct spline_outline[]) {
 			{
 				4,
-				(struct xylo_leg[]) {
+				(struct spline_segment[]) {
 					{ {-0.125f, 0.22f }, { 0.00f, 0.44f }, 3.6f },
 					{ { 0.125f, 0.22f }, { 0.24f,-0.00f }, 4.0f },
 					{ { 0.125f,-0.22f }, { 0.00f,-0.44f }, 3.6f },
@@ -75,10 +76,10 @@ static struct xylo_shape test_shape[] = {
 	},
 	{
 		1,
-		(struct xylo_outline[]) {
+		(struct spline_outline[]) {
 			{
 				11,
-				(struct xylo_leg[]) {
+				(struct spline_segment[]) {
 					{ { 0.20f,-0.29f }, { 0.02f,-0.24f }, 0.707106781f },
 					{ { 0.02f,-0.08f }, { 0.10f,-0.19f }, 0.707106781f },
 					{ { 0.20f,-0.19f }, { 0.40f,-0.19f }, 0.707106781f },
@@ -96,10 +97,10 @@ static struct xylo_shape test_shape[] = {
 	},
 	{
 		1,
-		(struct xylo_outline[]) {
+		(struct spline_outline[]) {
 			{
 				8,
-				(struct xylo_leg[]) {
+				(struct spline_segment[]) {
 					{ { 0.0f, 0.09f }, { 0.0f, 0.29f }, 0.707106781f },
 					{ { 0.2f, 0.29f }, { 0.4f, 0.29f }, 0.707106781f },
 					{ { 0.4f, 0.09f }, { 0.4f,-0.11f }, 1.0f },
@@ -114,19 +115,19 @@ static struct xylo_shape test_shape[] = {
 	},
 	{
 		2,
-		(struct xylo_outline[]) {
+		(struct spline_outline[]) {
 			{
 				4,
-				(struct xylo_leg[]) {
+				(struct spline_segment[]) {
 					{ { 0.0f, 0.5f }, { 0.5f, 0.5f }, 0.707106781f },
-					{ { 0.5f, 0.0f }, { 0.0f, 0.0f }, 1.f },
+					{ { 0.5f, 0.0f }, { 0.1f, -.1f }, 1.f },
 					{ { 0.0f, -.5f }, { -.5f, -.5f }, 0.00001f },
 					{ { -.5f, 0.0f }, { -.5f, 0.5f }, 4.0f }
 				}
 			},
 			{
 				4,
-				(struct xylo_leg[]) {
+				(struct spline_segment[]) {
 					{ { 0.0f, 0.1f }, { 0.1f, 0.1f }, 1.f },
 					{ { 0.1f, 0.0f }, { -.0f, 0.0f }, 0.707106781f },
 					{ { 0.0f, -.1f }, { -.1f, -.1f }, 0.00001f },
@@ -190,7 +191,7 @@ static int creation(void) { return run(creation_); }
 static int dlist_(struct gl_api *api, struct gl_test *test)
 {
 	struct xylo *xylo;
-	struct xylo_glshape_set *set;
+	struct xylo_outline_set *set;
 	struct xylo_dlist dlist;
 	struct xylo_dshape a, b, c;
 	struct gl_core33 const *gl;
@@ -200,13 +201,13 @@ static int dlist_(struct gl_api *api, struct gl_test *test)
 	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
 	xylo = make_xylo(api);
 	if (!xylo) { return -1; }
-	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
+	set = xylo_make_outline_set(api, length_of(test_shape), test_shape);
 	if (!set) { return -1; }
 
 	/* create list nodes */
-	xylo_init_dshape(&a, black, xylo_get_glshape(set, 0));
-	xylo_init_dshape(&b, black, xylo_get_glshape(set, 2));
-	xylo_init_dshape(&c, red, xylo_get_glshape(set, 3));
+	xylo_init_dshape(&a, black, xylo_get_outline(set, 0));
+	xylo_init_dshape(&b, black, xylo_get_outline(set, 2));
+	xylo_init_dshape(&c, red, xylo_get_outline(set, 3));
 
 	/* create draw list */
 	xylo_init_dlist(&dlist);
@@ -225,14 +226,14 @@ static int dlist_(struct gl_api *api, struct gl_test *test)
 	gl->Clear(GL_COLOR_BUFFER_BIT);
 
 	update_view(gl, &view);
-	xylo_set_shape_set(xylo, set);
+	xylo_set_outline_set(xylo, set);
 	xylo_draw(xylo, &view, &dlist.draw);
 
 	xylo_term_dlist(&dlist);
 	xylo_term_dshape(&a);
 	xylo_term_dshape(&b);
 	xylo_term_dshape(&c);
-	xylo_free_glshape_set(set, api);
+	xylo_free_outline_set(set, api);
 	gl_test_swap_buffers(test);
 
 	if (is_test_interactive()) { gl_test_wait_for_key(test); }
@@ -244,7 +245,7 @@ static int dlist(void) { return run(dlist_); }
 static int aa_(struct gl_api *api, struct gl_test *test)
 {
 	struct xylo *xylo;
-	struct xylo_glshape_set *set;
+	struct xylo_outline_set *set;
 	struct xylo_dlist dlist;
 	struct xylo_dshape a, b, c;
 	struct gl_core33 const *gl;
@@ -254,13 +255,13 @@ static int aa_(struct gl_api *api, struct gl_test *test)
 	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
 	xylo = make_xylo(api);
 	if (!xylo) { return -1; }
-	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
+	set = xylo_make_outline_set(api, length_of(test_shape), test_shape);
 	if (!set) { return -1; }
 
 	/* create list nodes */
-	xylo_init_dshape(&a, black, xylo_get_glshape(set, 0));
-	xylo_init_dshape(&b, black, xylo_get_glshape(set, 2));
-	xylo_init_dshape(&c, red, xylo_get_glshape(set, 3));
+	xylo_init_dshape(&a, black, xylo_get_outline(set, 0));
+	xylo_init_dshape(&b, black, xylo_get_outline(set, 2));
+	xylo_init_dshape(&c, red, xylo_get_outline(set, 3));
 
 	/* create draw list */
 	xylo_init_dlist(&dlist);
@@ -279,7 +280,7 @@ static int aa_(struct gl_api *api, struct gl_test *test)
 	gl->Clear(GL_COLOR_BUFFER_BIT);
 
 	update_view(gl, &view);
-	xylo_set_shape_set(xylo, set);
+	xylo_set_outline_set(xylo, set);
 
 	xylo_set_aa(xylo, XYLO_AA_NONE);
 	xylo_draw(xylo, &view, &dlist.draw);
@@ -300,7 +301,7 @@ static int aa_(struct gl_api *api, struct gl_test *test)
 	xylo_term_dshape(&a);
 	xylo_term_dshape(&b);
 	xylo_term_dshape(&c);
-	xylo_free_glshape_set(set, api);
+	xylo_free_outline_set(set, api);
 
 	free_xylo(xylo);
 	return 0;
@@ -324,8 +325,8 @@ static void update(void *dest, void const *child, void const *parent)
 static int transformed_(struct gl_api *api, struct gl_test *test)
 {
 	struct xylo *xylo;
-	struct xylo_glshape_set *set;
-	struct xylo_glshape const *clubs, *diamonds, *spades, *hearts;
+	struct xylo_outline_set *set;
+	struct xylo_outline const *clubs, *diamonds, *spades, *hearts;
 	struct xylo_dlist dlist;
 	struct xylo_dshape a, b, c;
 	struct xylo_tgraph *tgraph;
@@ -344,15 +345,15 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
 	xylo = make_xylo(api);
 	if (!xylo) { return -1; }
-	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
+	set = xylo_make_outline_set(api, length_of(test_shape), test_shape);
 	if (!set) { return -1; }
-	clubs = xylo_get_glshape(set, 0);
+	clubs = xylo_get_outline(set, 0);
 	if (!clubs) { return -1; }
-	diamonds = xylo_get_glshape(set, 1);
+	diamonds = xylo_get_outline(set, 1);
 	if (!diamonds) { return -1; }
-	spades = xylo_get_glshape(set, 2);
+	spades = xylo_get_outline(set, 2);
 	if (!spades) { return -1; }
-	hearts = xylo_get_glshape(set, 3);
+	hearts = xylo_get_outline(set, 3);
 	if (!hearts) { return -1; }
 
 	/* create list nodes */
@@ -389,7 +390,7 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 
 	stopwatch_start(&sw, pfclock_usec(clk));
 	xylo_begin(xylo);
-	xylo_set_shape_set(xylo, set);
+	xylo_set_outline_set(xylo, set);
 	do {
 		dt = stopwatch_elapsed(&sw, pfclock_usec(clk)) * 1.e-6;
 
@@ -437,7 +438,7 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 	xylo_term_dshape(&c);
 	xylo_free_tgraph(tgraph);
 
-	xylo_free_glshape_set(set, api);
+	xylo_free_outline_set(set, api);
 	free_xylo(xylo);
 	pfclock_free(clk);
 	return 0;
@@ -500,8 +501,8 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 {
 	struct gl_core33 const *gl;
 	struct xylo *xylo;
-	struct xylo_glshape_set *set;
-	struct xylo_glshape const *shape;
+	struct xylo_outline_set *set;
+	struct xylo_outline const *shape;
 	struct xylo_dlist dlist;
 	struct xylo_dshape dshapes[200];
 	struct pfclock *clk;
@@ -518,13 +519,13 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
 	xylo = make_xylo(api);
 	if (!xylo) { return -1; }
-	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
+	set = xylo_make_outline_set(api, length_of(test_shape), test_shape);
 	if (!set) { return -1; }
 
 	/* create draw nodes */
 	xylo_init_dlist(&dlist);
 	for (i = 0; i < length_of(dshapes); i++) {
-		shape = xylo_get_glshape(set, i % 4);
+		shape = xylo_get_outline(set, i % 4);
 		color = i & 1 ? red : black;
 		xylo_init_dshape(dshapes + i, color, shape);
 		xylo_dlist_append(&dlist, &dshapes[i].draw);
@@ -541,7 +542,7 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 	stopwatch_start(&sw, pfclock_usec(clk));
 	xylo_begin(xylo);
 	xylo_set_aa(xylo, XYLO_AA_RGSS);
-	xylo_set_shape_set(xylo, set);
+	xylo_set_outline_set(xylo, set);
 	do {
 		n++;
 		dt = stopwatch_elapsed(&sw, pfclock_usec(clk)) * 1.e-6;
@@ -576,7 +577,7 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 	for (i = 0; i < length_of(dshapes); i++) {
 		xylo_term_dshape(dshapes + i);
 	}
-	xylo_free_glshape_set(set, api);
+	xylo_free_outline_set(set, api);
 	free_xylo(xylo);
 	pfclock_free(clk);
 	return 0;
@@ -586,7 +587,7 @@ static int rain(void) { return run(rain_); }
 static int object_id_(struct gl_api *api, struct gl_test *test)
 {
 	struct xylo *xylo;
-	struct xylo_glshape_set *set;
+	struct xylo_outline_set *set;
 	struct xylo_dlist dlist;
 	struct xylo_dshape a, b, c;
 	struct gl_core33 const *gl;
@@ -599,15 +600,15 @@ static int object_id_(struct gl_api *api, struct gl_test *test)
 	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
 	xylo = make_xylo(api);
 	if (!xylo) { return -1; }
-	set = xylo_make_glshape_set(api, length_of(test_shape), test_shape);
+	set = xylo_make_outline_set(api, length_of(test_shape), test_shape);
 	if (!set) { return -1; }
 
 	xylo_set_aa(xylo, XYLO_AA_QUINCUNX);
 
 	/* create list nodes */
-	xylo_init_dshape_id(&a, 1, black, xylo_get_glshape(set, 0));
-	xylo_init_dshape_id(&b, 2, black, xylo_get_glshape(set, 2));
-	xylo_init_dshape_id(&c, 3, red, xylo_get_glshape(set, 3));
+	xylo_init_dshape_id(&a, 1, black, xylo_get_outline(set, 0));
+	xylo_init_dshape_id(&b, 2, black, xylo_get_outline(set, 2));
+	xylo_init_dshape_id(&c, 3, red, xylo_get_outline(set, 3));
 
 	/* create draw list */
 	xylo_init_dlist(&dlist);
@@ -626,7 +627,7 @@ static int object_id_(struct gl_api *api, struct gl_test *test)
 	gl->Clear(GL_COLOR_BUFFER_BIT);
 
 	update_view(gl, &view);
-	xylo_set_shape_set(xylo, set);
+	xylo_set_outline_set(xylo, set);
 	xylo_draw(xylo, &view, &dlist.draw);
 	gl->Finish();
 
@@ -655,7 +656,7 @@ static int object_id_(struct gl_api *api, struct gl_test *test)
 	xylo_term_dshape(&a);
 	xylo_term_dshape(&b);
 	xylo_term_dshape(&c);
-	xylo_free_glshape_set(set, api);
+	xylo_free_outline_set(set, api);
 
 	free_xylo(xylo);
 	return 0;

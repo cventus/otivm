@@ -1,7 +1,7 @@
 /* Tree-shaped group of groups of drawable shapes */
 struct xylo;
-struct xylo_glshape;
-struct xylo_glshape_set;
+struct xylo_outline;
+struct xylo_outline_set;
 
 enum xylo_dtype
 {
@@ -32,7 +32,7 @@ struct xylo_dshape
 	/* shape to draw */
 	unsigned id;
 	float color[4];
-	struct xylo_glshape const *glshape;
+	struct xylo_outline const *outline;
 };
 
 void xylo_init_dlist(struct xylo_dlist *);
@@ -52,11 +52,11 @@ ptrdiff_t xylo_dlist_indexof(struct xylo_dlist *, struct xylo_draw *d);
 void xylo_init_dshape(
 	struct xylo_dshape *,
 	float const color[4],
-	struct xylo_glshape const *);
+	struct xylo_outline const *);
 void xylo_init_dshape_id(
 	struct xylo_dshape *,
 	unsigned id,
 	float const color[4],
-	struct xylo_glshape const *);
+	struct xylo_outline const *);
 void xylo_term_dshape(struct xylo_dshape *);
 struct xylo_dshape *xylo_dshape_cast(struct xylo_draw *);

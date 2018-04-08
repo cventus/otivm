@@ -1,7 +1,7 @@
 struct gl_api;
 struct gl_core33;
 struct xylo;
-struct xylo_glshape_set;
+struct xylo_outline_set;
 
 struct xylo *make_xylo(struct gl_api *api);
 int init_xylo(struct xylo *dest, struct gl_api *api);
@@ -15,7 +15,7 @@ void xylo_begin(struct xylo *xylo);
 void xylo_end(struct xylo *xylo);
 
 /* specify which shapes to draw - binds a vertex array object */
-void xylo_set_shape_set(struct xylo *xylo, struct xylo_glshape_set *set);
+void xylo_set_outline_set(struct xylo *xylo, struct xylo_outline_set *set);
 
 /* wrapper of glGet */
 GLuint xylo_get_uint(struct gl_core33 const *restrict gl, GLenum t);

@@ -1,5 +1,7 @@
 #define GLSL(version, src) ("#version " #version " core\n" #src)
 
+#define VERTEX_FLOATS 5
+
 enum
 {
 	FILL_COLOR_LOC = 0,

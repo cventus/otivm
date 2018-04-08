@@ -13,7 +13,7 @@
 #include "types.h"
 #include "fb.h"
 #include "xylo.h"
-#include "glshape.h"
+#include "outline.h"
 #include "shapes.h"
 #include "aa.h"
 
@@ -243,9 +243,9 @@ void xylo_draw(
 	}
 }
 
-static void draw_glshape(
+static void draw_outline(
 	struct xylo *xylo,
-	struct xylo_glshape const *shape,
+	struct xylo_outline const *shape,
 	size_t samples)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
@@ -255,14 +255,14 @@ static void draw_glshape(
 	gl->StencilFunc(GL_ALWAYS, 0x00, 0x01);
 	gl->StencilOp(GL_KEEP, GL_KEEP, GL_INVERT);
 
-	xylo_glshape_draw(gl, shape, samples);
+	xylo_outline_draw(gl, shape, samples);
 
 	/* Step two - fill in color without overdraw and erase stencil */
 	gl->ColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	gl->StencilFunc(GL_EQUAL, 0x01, 0x01);
 	gl->StencilOp(GL_ZERO, GL_ZERO, GL_ZERO);
 
-	xylo_glshape_draw(gl, shape, samples);
+	xylo_outline_draw(gl, shape, samples);
 }
 
 static void transform_to_modelview(float *dest, struct xylo_dshape *shape)
@@ -300,7 +300,7 @@ static void xylo_draw_rec(
 		xylo_shapes_set_object_id(&xylo->shapes, gl, shape->id);
 		xylo_shapes_set_mvp(&xylo->shapes, gl, m44mulf(mvp, proj, mv));
 		xylo_shapes_set_color4fv(&xylo->shapes, gl, shape->color);
-		draw_glshape(xylo, shape->glshape, samples);
+		draw_outline(xylo, shape->outline, samples);
 		break;
 
 	case xylo_dlist:
@@ -400,14 +400,14 @@ ptrdiff_t xylo_dlist_indexof(struct xylo_dlist *list, struct xylo_draw *needle)
 void xylo_init_dshape(
 	struct xylo_dshape *shape,
 	float const color[4],
-	struct xylo_glshape const *glshape)
+	struct xylo_outline const *outline)
 {
 	shape->draw.type = xylo_dshape;
 	shape->id = 0;
 	shape->pos[0] = shape->pos[1] = 0.f;
 	shape->m22[0] = shape->m22[3] = 1.f;
 	shape->m22[1] = shape->m22[2] = 0.f;
-	shape->glshape = glshape;
+	shape->outline = outline;
 	(void)memcpy(shape->color, color, sizeof shape->color);
 }
 
@@ -415,20 +415,20 @@ void xylo_init_dshape_id(
 	struct xylo_dshape *shape,
 	unsigned id,
 	float const color[4],
-	struct xylo_glshape const *glshape)
+	struct xylo_outline const *outline)
 {
 	shape->draw.type = xylo_dshape;
 	shape->id = id;
 	shape->pos[0] = shape->pos[1] = 0.f;
 	shape->m22[0] = shape->m22[3] = 1.f;
 	shape->m22[1] = shape->m22[2] = 0.f;
-	shape->glshape = glshape;
+	shape->outline = outline;
 	(void)memcpy(shape->color, color, sizeof shape->color);
 }
 
 void xylo_term_dshape(struct xylo_dshape *shape)
 {
-	shape->glshape = NULL;
+	shape->outline = NULL;
 }
 
 struct xylo_dshape *xylo_dshape_cast(struct xylo_draw *d)
