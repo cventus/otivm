@@ -10,7 +10,7 @@
 #include "private.h"
 #include "types.h"
 #include "xylo.h"
-#include "quincunx.h"
+#include "aa.h"
 
 static struct gl_shader_source const quincunx_vert = {
 	GL_VERTEX_SHADER,

@@ -19,8 +19,7 @@
 #include "xylo.h"
 #include "include/xylo.h"
 #include "shapes.h"
-#include "quincunx.h"
-#include "rgss.h"
+#include "aa.h"
 
 int init_xylo(struct xylo *xylo, struct gl_api *api)
 {

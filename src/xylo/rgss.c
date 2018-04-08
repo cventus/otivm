@@ -10,7 +10,7 @@
 #include "private.h"
 #include "types.h"
 #include "xylo.h"
-#include "rgss.h"
+#include "aa.h"
 
 static struct gl_shader_source const rgss_vert = {
 	GL_VERTEX_SHADER,

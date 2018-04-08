@@ -15,8 +15,7 @@
 #include "xylo.h"
 #include "glshape.h"
 #include "shapes.h"
-#include "quincunx.h"
-#include "rgss.h"
+#include "aa.h"
 
 #include "include/xylo.h"
 #include "include/draw.h"
