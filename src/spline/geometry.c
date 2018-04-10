@@ -1,4 +1,6 @@
+#include <stddef.h>
 #include <math.h>
+#include <gm/vector.h>
 #include "geometry.h"
 
 double line2d_det(float2 a, float2 b, float2 c)
@@ -59,4 +61,74 @@ _Bool point2d_in_triangle(struct line2d const tri[3], float2 p)
 	return line2d_dist(tri[0], p) >= -EPSILON &&
 		line2d_dist(tri[1], p) >= -EPSILON &&
 		line2d_dist(tri[2], p) >= -EPSILON;
+}
+
+float *line2d_intersect(float dest[2], struct line2d l0, struct line2d l1)
+{
+	 double det;
+
+	 det = X[l1.n]*Y[l0.n] - X[l0.n]*Y[l1.n];
+	 if (fabs(det) >= EPSILON) {
+		X[dest] = -(Y[l0.n]*l1.c - l0.c*Y[l1.n])/det;
+		Y[dest] = -(X[l1.n]*l0.c - l1.c*X[l0.n])/det;
+		return dest;
+	 } else {
+		return NULL;
+	 }
+}
+
+/* unit vector parallel with line */
+static void line2d_vector(float dest[2], struct line2d line)
+{
+	X[dest] = Y[line.n];
+	Y[dest] = -X[line.n];
+}
+
+struct lseg2d make_lseg2d(float2 p0, float2 p1)
+{
+	struct lseg2d s;
+	float r[XY];
+
+	s.l = make_line2d(p0, p1);
+	line2d_vector(r, s.l);
+	s.e[0] = v2dotf(r, p0);
+	s.e[1] = v2dotf(r, p1);
+	return s;
+}
+
+float *lseg2d_p0(float dest[2], struct lseg2d s)
+{
+	float r[XY];
+	line2d_vector(r, s.l);
+	return v2scalef(dest, r, s.e[0]);
+}
+
+float *lseg2d_p1(float dest[2], struct lseg2d s)
+{
+	float r[XY];
+	line2d_vector(r, s.l);
+	return v2scalef(dest, r, s.e[1]);
+}
+
+static _Bool on_segment(struct lseg2d s, float d)
+{
+	return d > -s.e[0] && d < -s.e[1];
+}
+
+float *lseg2d_intersect(float dest[2], struct lseg2d s0, struct lseg2d s1)
+{
+	float r[2], d;
+
+	line2d_vector(r, s0.l);
+	if (line2d_intersect(dest, s0.l, s1.l)) {
+		/* intersecting lines */
+		if (on_segment(s0, -v2dotf(r, dest))) { return dest; }
+	} else {
+		/* parallel, or nearly parallel lines */
+		d = -v2dotf(lseg2d_p0(dest, s1), r);
+		if (on_segment(s0, d)) { return dest; }
+		d = -v2dotf(lseg2d_p1(dest, s1), r);
+		if (on_segment(s0, d)) { return dest; }
+	}
+	return NULL;
 }
