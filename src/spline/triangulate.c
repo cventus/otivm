@@ -349,6 +349,7 @@ static struct triangle_set *make_triangles(
 			}
 		} while (b != a);
 	} while (top != stack);
+	t->n = p - t->indices;
 	free(stack);
 	return t;
 }
@@ -415,8 +416,7 @@ static ptrdiff_t add_constrained_edge(
 	   order, the edge to the first vertex on the negative side of the line
 	   where the previous one was on the positive side is the closest one
 	   to the left. */
-	dist = 1.0;
-	next_dist = 1.0;
+	dist = next_dist = -1.0;
 	while (dist < 0.0 || next_dist > 0.0) {
 		e = next;
 		dist = next_dist;
