@@ -13,13 +13,13 @@ struct line2d make_line2d(float2 p0, float2 p1)
 	double dx, dy, a, b, c, s;
 
 	dy = Y[p1] - Y[p0];
-	dx = X[p1] - X[p0];
+	dx = X[p0] - X[p1];
 	s = hypot(dx, dy);
 	a = dy / s;
 	b = dx / s;
-	c = Y[p1]*b - X[p1]*a;
+	c = -(X[p1]*a + Y[p1]*b);
 
-	return (struct line2d){ a, b, c };
+	return (struct line2d){ { a, b }, c };
 }
 
 _Bool point2d_in_circle(float2 a, float2 b, float2 c, float2 d)

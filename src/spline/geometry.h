@@ -5,10 +5,7 @@
 
 typedef float const float2[XY];
 
-struct line2d
-{
-	double a, b, c;
-};
+struct line2d { double n[XY], c; };
 
 /* non-normalized signed distance to line */
 double line2d_det(float2 a, float2 b, float2 c);
@@ -22,7 +19,7 @@ struct line2d make_line2d(float2 p0, float2 p1);
 static inline double line2d_dist(struct line2d l, float2 p)
 {
 	/* offset dot product with line normal */
-	return l.a*X[p] - l.b*Y[p] + l.c;
+	return X[l.n]*X[p] + Y[l.n]*Y[p] + l.c;
 }
 
 /* check if point d is within circle specified by counter-clockwise points */
