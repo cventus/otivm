@@ -104,10 +104,41 @@ static int conic_circle(void)
 	return ok;
 }
 
+static int split(void)
+{
+	float points[] = {
+		1.0f, 1.0f,
+		1.0f, 2.0f,
+		2.0f, 2.0f
+	};
+	float expected_points[] = {
+		1.0f, 1.5f,
+		1.5f, 1.5f,
+		1.5f, 2.0f
+	};
+	float pt[6], err, maxerr;
+	size_t i;
+
+	bezier2_split(pt, 2, points, 0.5);
+
+	maxerr = 1e-6;
+
+	err = 0.0;
+	for (i = 0; i < 6; i++) {
+		err += pt[i] - expected_points[i];
+	}
+	if (err > maxerr) {
+		fail_test("error too great (%f) at t=0.0\n", err);
+	}
+
+	return ok;
+}
+
 struct test const tests[] = {
 	{ endpoints, "interpolate endpoints at t=0 and t=1" },
 	{ parabola, "compare bezier evaluation function to parabola" },
 	{ conic_circle, "quarter circle segment with rational bezier curve" },
+	{ split, "subdivide a quadratic Bézier curve" },
 
 	{ NULL, NULL }
 };
