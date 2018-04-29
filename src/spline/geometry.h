@@ -28,6 +28,13 @@ static inline double line2d_dist(struct line2d l, float2 p)
 	return X[l.n]*X[p] + Y[l.n]*Y[p] + l.c;
 }
 
+static inline bool is_ccw(float2 a, float2 b, float2 c)
+{
+	/* counterclockwise 2D points if on the "left" side of the line going
+	   from b to c */
+	return line2d_det(a, b, c) > EPSILON;
+}
+
 float *line2d_intersect(float *dest, struct line2d l0, struct line2d l1);
 
 /* check if point d is within circle specified by counter-clockwise points */

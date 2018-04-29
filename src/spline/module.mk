@@ -1,5 +1,5 @@
 OUT=archive
-MOD=base gm
+MOD=base gm adt
 LIB=-lm
 TEST_MOD=ok
 

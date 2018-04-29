@@ -170,13 +170,11 @@ static int test_triangulate_polygon(void)
 	size_t nvertex, nedge, i;
 	int ntriangles;
 	float2 *vertices;
-	double pi, angle, half, r0, r1, sqrt2;
+	double pi, angle, half, sqrt2;
 	struct triangle_set *triangle_set;
 
 	pi = acos(0.0) * 2.0;
 	angle = pi*2.0/5.0;
-	r0 = 2;
-	r1 = 5;
 	half = angle / 2.0;
 	sqrt2 = sqrt(2);
 
@@ -195,40 +193,40 @@ static int test_triangulate_polygon(void)
 		{cos(pi/2.0 + angle*3), sin(pi/2.0 + angle*3)},
 		{cos(pi/2.0 + angle*4), sin(pi/2.0 + angle*4)},
 	}, star[] = {
-		{r1*cos(pi + angle*0), r1*sin(pi + angle*0)},
-		{r0*cos(pi + angle*0 + half), r1*sin(pi + angle*0 + half)},
-		{r1*cos(pi + angle*1), r1*sin(pi + angle*1)},
-		{r0*cos(pi + angle*1 + half), r1*sin(pi + angle*1 + half)},
-		{r1*cos(pi + angle*2), r1*sin(pi + angle*2)},
-		{r0*cos(pi + angle*2 + half), r1*sin(pi + angle*2 + half)},
-		{r1*cos(pi + angle*3), r1*sin(pi + angle*3)},
-		{r0*cos(pi + angle*3 + half), r1*sin(pi + angle*3 + half)},
-		{r1*cos(pi + angle*4), r1*sin(pi + angle*4)},
-		{r0*cos(pi + angle*4 + half), r1*sin(pi + angle*4 + half)},
+		{2*cos(pi/2.0 + angle*0), 2*sin(pi/2.0 + angle*0)},
+		{cos(pi/2.0 + angle*0 + half), sin(pi/2.0 + angle*0 + half)},
+		{2*cos(pi/2.0 + angle*1), 2*sin(pi/2.0 + angle*1)},
+		{cos(pi/2.0 + angle*1 + half), sin(pi/2.0 + angle*1 + half)},
+		{2*cos(pi/2.0 + angle*2), 2*sin(pi/2.0 + angle*2)},
+		{cos(pi/2.0 + angle*2 + half), sin(pi/2.0 + angle*2 + half)},
+		{2*cos(pi/2.0 + angle*3), 2*sin(pi/2.0 + angle*3)},
+		{cos(pi/2.0 + angle*3 + half), sin(pi/2.0 + angle*3 + half)},
+		{2*cos(pi/2.0 + angle*4), 2*sin(pi/2.0 + angle*4)},
+		{cos(pi/2.0 + angle*4 + half), sin(pi/2.0 + angle*4 + half)},
 	}, concave_shape[] = {
 		/* top right */
 		{2.0f, 1.0f}, {2.0f, 2.0f}, {1.0f, 2.0f},
 
 		/* top */
-		{sqrt2, 1+sqrt2}, {0.0f, 1.0f}, {-sqrt2, 1+sqrt2},
+		{sqrt2 - 1, sqrt2}, {0.0f, 1.0f}, {1 - sqrt2, sqrt2},
 
 		/* top left */
 		{-1.0f, 2.0f}, {-2.0f, 2.0f}, {-2.0f, 1.0f},
 
 		/* left */
-		{-1-sqrt2, sqrt2}, {-1.0f, 0.0f}, {-1-sqrt2, -sqrt2},
+		{-sqrt2, sqrt2 - 1}, {-1.0f, 0.0f}, {-sqrt2, 1 - sqrt2},
 
 		/* bottom left */
 		{-2.0f, -1.0f}, {-2.0f, -2.0f}, {-1.0f, -2.0f},
 
 		/* bottom */
-		{-sqrt2, -1-sqrt2}, {0.0f, 1.0f}, {sqrt2, -1-sqrt2},
+		{1 - sqrt2, -sqrt2}, {0.0f, -1.0f}, {sqrt2 - 1, -sqrt2},
 
 		/* bottom right */
 		{1.0f, -2.0f}, {2.0f, -2.0f}, {2.0f, -1.0f},
 
 		/* right */
-		{1+sqrt2, -sqrt2}, {1.0f, 0.0f}, {1+sqrt2, sqrt2},
+		{sqrt2, 1 - sqrt2}, {1.0f, 0.0f}, {sqrt2, sqrt2 - 1},
 	};
 
 	struct test_case {
@@ -277,6 +275,7 @@ static int test_triangulate_polygon(void)
 		                               nvertex);
 		if (triangle_set->n != cases[i].expected_triangles) {
 			fail_test("%s: expected %zd triangles, got %zd\n",
+			          cases[i].name,
 			          cases[i].expected_triangles,
 				  triangle_set->n);
 		}

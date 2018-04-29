@@ -21,13 +21,6 @@
 
 typedef unsigned triangle_indices[3];
 
-static bool is_ccw(float2 a, float2 b, float2 c)
-{
-	/* counterclockwise 2D points if on the "left" side of the line going
-	   from b to c */
-	return line2d_det(a, b, c) > EPSILON;
-}
-
 static bool is_right_of(struct eset *set, float2 p, eref e)
 {
 	return is_ccw(p, **dest(set, e), **org(set, e));
