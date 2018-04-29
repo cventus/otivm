@@ -1,13 +1,13 @@
 #include <stddef.h>
+#include <string.h>
+#include <stdbool.h>
 #include <math.h>
 #include <gm/vector.h>
 #include "geometry.h"
 
 double line2d_det(float2 a, float2 b, float2 c)
 {
-	double p = X[a]*Y[b] + X[b]*Y[c] + X[c]*Y[a];
-	double n = X[c]*Y[b] + X[b]*Y[a] + X[a]*Y[c];
-	return p - n;
+	return X[a]*Y[b] - X[c]*Y[b] + X[b]*Y[c] - X[b]*Y[a] + X[c]*Y[a] - X[a]*Y[c];
 }
 
 struct line2d make_line2d(float2 p0, float2 p1)
@@ -24,7 +24,7 @@ struct line2d make_line2d(float2 p0, float2 p1)
 	return (struct line2d){ { a, b }, c };
 }
 
-_Bool point2d_in_circle(float2 a, float2 b, float2 c, float2 d)
+bool point2d_in_circle(float2 a, float2 b, float2 c, float2 d)
 {
 	/* point d within circle specified by (a, b, c), if
 
@@ -56,7 +56,7 @@ _Bool point2d_in_circle(float2 a, float2 b, float2 c, float2 d)
 }
 
 /* triangle defined by the positive side of three lines */
-_Bool point2d_in_triangle(struct line2d const tri[3], float2 p)
+bool point2d_in_triangle(struct line2d const tri[3], float2 p)
 {
 	return line2d_dist(tri[0], p) >= -EPSILON &&
 		line2d_dist(tri[1], p) >= -EPSILON &&
@@ -91,44 +91,39 @@ struct lseg2d make_lseg2d(float2 p0, float2 p1)
 
 	s.l = make_line2d(p0, p1);
 	line2d_vector(r, s.l);
-	s.e[0] = v2dotf(r, p0);
-	s.e[1] = v2dotf(r, p1);
+	(void)memcpy(s.p0, p0, sizeof s.p0);
+	(void)memcpy(s.p1, p1, sizeof s.p1);
 	return s;
 }
 
 float *lseg2d_p0(float dest[2], struct lseg2d s)
 {
-	float r[XY];
-	line2d_vector(r, s.l);
-	return v2scalef(dest, r, s.e[0]);
+	return memcpy(dest, s.p0, sizeof s.p0);
 }
 
 float *lseg2d_p1(float dest[2], struct lseg2d s)
 {
-	float r[XY];
-	line2d_vector(r, s.l);
-	return v2scalef(dest, r, s.e[1]);
+	return memcpy(dest, s.p0, sizeof s.p0);
 }
 
-static _Bool on_segment(struct lseg2d s, float d)
+static bool in_bounding_box(struct lseg2d s, float2 p)
 {
-	return d > -s.e[0] && d < -s.e[1];
+	return
+		((s.p0[0] < p[0] && p[0] < s.p1[0]) ||
+		(s.p0[0] > p[0] && p[0] > s.p1[0])) &&
+		((s.p0[1] < p[1] && p[1] < s.p1[1]) ||
+		(s.p0[1] > p[1] && p[1] > s.p1[1]));
 }
 
 float *lseg2d_intersect(float dest[2], struct lseg2d s0, struct lseg2d s1)
 {
-	float r[2], d;
-
-	line2d_vector(r, s0.l);
 	if (line2d_intersect(dest, s0.l, s1.l)) {
 		/* intersecting lines */
-		if (on_segment(s0, -v2dotf(r, dest))) { return dest; }
-	} else {
+		if (in_bounding_box(s0, dest) && in_bounding_box(s1, dest)) { return dest; }
+	} else if (fabs(line2d_dist(s0.l, s1.p0)) < EPSILON) {
 		/* parallel, or nearly parallel lines */
-		d = -v2dotf(lseg2d_p0(dest, s1), r);
-		if (on_segment(s0, d)) { return dest; }
-		d = -v2dotf(lseg2d_p1(dest, s1), r);
-		if (on_segment(s0, d)) { return dest; }
+		if (in_bounding_box(s0, s1.p0)) { return dest; }
+		if (in_bounding_box(s0, s1.p1)) { return dest; }
 	}
 	return NULL;
 }

@@ -10,7 +10,7 @@ struct line2d { double n[XY], c; };
 struct lseg2d
 {
 	struct line2d l;
-	double e[2];
+	float p0[2], p1[2];
 };
 
 /* non-normalized signed distance to line */
@@ -31,10 +31,10 @@ static inline double line2d_dist(struct line2d l, float2 p)
 float *line2d_intersect(float *dest, struct line2d l0, struct line2d l1);
 
 /* check if point d is within circle specified by counter-clockwise points */
-_Bool point2d_in_circle(float2 a, float2 b, float2 c, float2 d);
+bool point2d_in_circle(float2 a, float2 b, float2 c, float2 d);
 
 /* triangle defined by the positive side of three lines */
-_Bool point2d_in_triangle(struct line2d const tri[3], float2 p);
+bool point2d_in_triangle(struct line2d const tri[3], float2 p);
 
 struct lseg2d make_lseg2d(float2 p0, float2 p1);
 

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <math.h>
 #include <ok/ok.h>
 #include <gm/misc.h>
@@ -12,13 +13,8 @@
 static int test_create(void)
 {
 	struct lseg2d s;
-	size_t i;
 
 	float2 from = { 2.f, 1.f }, to = { 1.f, 3.f };
-	double a[2], b[2];
-
-	/* tangent points along vector */
-	double const t[2] = { -1.0 / sqrt(5.0), 2.0 / sqrt(5.0) };
 
 	/* normal points right from tangent */
 	double const n[2] = { 2.0 / sqrt(5.0), 1.0 / sqrt(5.0) };
@@ -28,18 +24,7 @@ static int test_create(void)
 		printf("incorrect line normal\n");
 		ok = -1;
 	}
-	for (i = 0; i < 2; i++) {
-		a[i] = from[i];
-		b[i] = to[i];
-	}
-	if (!fneareqf(-v2dot(a, t), s.e[0])) {
-		printf("incorrect origin extent\n");
-		ok = -1;
-	}
-	if (!fneareqf(-v2dot(b, t), s.e[1])) {
-		printf("incorrect destination extent\n");
-		ok = -1;
-	}
+
 	return ok;
 }
 
@@ -57,7 +42,7 @@ static void intersect(
 	float alpha, phi, theta, p0[2], p1[2], p2[2], p3[2], p4[2], p5[2];
 	struct lseg2d s0, s1;
 
-	for (i = 0; i < divisions; i++) {
+	for (i = 1; i < divisions; i++) {
 		alpha = i * min_angle / 3.0;
 		phi = alpha + min_angle + i*(2.0*pi - min_angle)/divisions;
 		theta = alpha;
@@ -123,19 +108,19 @@ static void intersect(
 
 static int test_intersect_short_segments(void)
 {
-	intersect(600, 15e-2, 1e-4f, 1e-4f, 0.103f, 0.103f);
+	intersect(600, 1e-3, 1e-4f, 1e-4f, 0.103f, 0.103f);
 	return ok;
 }
 
 static int test_intersect_short_and_long_segments(void)
 {
-	intersect(600, 15e-2, 1e-3f, 1e3f, 2.f, -2.f);
+	intersect(600, 1e-3, 1e-3f, 1e3f, 2.f, -2.f);
 	return ok;
 }
 
 static int test_intersect_long_segments(void)
 {
-	intersect(600, 15e-2, 1e4f, 1e4f, 42.f, 42.f);
+	intersect(600, 1e-3, 1e4f, 1e4f, 42.f, 42.f);
 	return ok;
 }
 
