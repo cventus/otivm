@@ -19,8 +19,8 @@ float *bezier2(float *dest, size_t d, float const *p, double t)
 	float const *p0, *p1, *p2;
 	size_t i;
 
-	if (t < 0.0) { return memcpy(dest, p, sizeof (float) * d); }
-	if (t > 1.0) { return memcpy(dest, p + 2*d, sizeof (float) * d); }
+	if (t <= 0.0) { return memcpy(dest, p, sizeof (float) * d); }
+	if (t >= 1.0) { return memcpy(dest, p + 2*d, sizeof (float) * d); }
 
 	p0 = p;
 	p1 = p0 + d;
@@ -32,6 +32,43 @@ float *bezier2(float *dest, size_t d, float const *p, double t)
 	return dest;
 }
 
+float *bezier2_split(float *dest, size_t d, float const *p, double t)
+{
+	double s;
+	float const *p0, *p1, *p2;
+	float *q1, *q2, *q3;
+	size_t i;
+
+	p0 = p;
+	p1 = p0 + d;
+	p2 = p1 + d;
+
+	q1 = dest;
+	q2 = q1 + d;
+	q3 = q2 + d;
+
+	if (t <= 0.0) {
+		(void)memcpy(q1, p0, sizeof (float) * d);
+		(void)memcpy(q2, p0, sizeof (float) * d);
+		(void)memcpy(q3, p1, sizeof (float) * d);
+		return dest;
+	}
+	if (t >= 1.0) {
+		(void)memcpy(q1, p1, sizeof (float) * d);
+		(void)memcpy(q2, p2, sizeof (float) * d);
+		(void)memcpy(q3, p2, sizeof (float) * d);
+		return dest;
+	}
+
+	s = 1.0 - t;
+	for (i = 0; i < d; i++) {
+		q1[i] = s*p0[i] + t*p1[i];
+		q3[i] = s*p1[i] + t*p2[i];
+		q2[i] = s*q1[i] + t*q3[i];
+	}
+	return dest;
+}
+
 float *rbezier2(float *dest, size_t d, float const *p, double t)
 {
 	size_t i;
@@ -39,8 +76,8 @@ float *rbezier2(float *dest, size_t d, float const *p, double t)
 	float const *p0, *p1, *p2;
 	double c[3];
 
-	if (t < 0.0) { return memcpy(dest, p, sizeof (float) * d); }
-	if (t > 1.0) { return memcpy(dest, p + 2*(d+1), sizeof (float) * d); }
+	if (t <= 0.0) { return memcpy(dest, p, sizeof (float) * d); }
+	if (t >= 1.0) { return memcpy(dest, p + 2*(d+1), sizeof (float) * d); }
 
 	bernstein2(c, t);
 
