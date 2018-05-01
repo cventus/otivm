@@ -193,7 +193,7 @@ static int dlist_(struct gl_api *api, struct gl_test *test)
 	struct xylo *xylo;
 	struct xylo_outline_set *set;
 	struct xylo_dlist dlist;
-	struct xylo_dshape a, b, c;
+	struct xylo_doutline a, b, c;
 	struct gl_core33 const *gl;
 	struct xylo_view view;
 
@@ -205,9 +205,13 @@ static int dlist_(struct gl_api *api, struct gl_test *test)
 	if (!set) { return -1; }
 
 	/* create list nodes */
-	xylo_init_dshape(&a, black, xylo_get_outline(set, 0));
-	xylo_init_dshape(&b, black, xylo_get_outline(set, 2));
-	xylo_init_dshape(&c, red, xylo_get_outline(set, 3));
+	xylo_init_doutline(&a, xylo_get_outline(set, 0));
+	xylo_init_doutline(&b, xylo_get_outline(set, 2));
+	xylo_init_doutline(&c, xylo_get_outline(set, 3));
+
+	memcpy(a.style.color, black, sizeof black);
+	memcpy(b.style.color, black, sizeof black);
+	memcpy(c.style.color, red, sizeof red);
 
 	/* create draw list */
 	xylo_init_dlist(&dlist);
@@ -215,12 +219,12 @@ static int dlist_(struct gl_api *api, struct gl_test *test)
 	xylo_dlist_append(&dlist, &b.draw);
 	xylo_dlist_append(&dlist, &c.draw);
 
-	m22mulsf(a.m22, a.m22, 30.0f);
-	m22mulsf(b.m22, b.m22, 60.0f);
-	m22mulsf(c.m22, c.m22, 90.0f);
+	m22mulsf(a.transform.m22, a.transform.m22, 30.0f);
+	m22mulsf(b.transform.m22, b.transform.m22, 60.0f);
+	m22mulsf(c.transform.m22, c.transform.m22, 90.0f);
 
-	a.pos[0] = a.pos[1] = -90.0;
-	c.pos[0] = b.pos[1] = 90.0;
+	a.transform.pos[0] = a.transform.pos[1] = -90.0;
+	c.transform.pos[0] = b.transform.pos[1] = 90.0;
 
 	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
 	gl->Clear(GL_COLOR_BUFFER_BIT);
@@ -230,9 +234,9 @@ static int dlist_(struct gl_api *api, struct gl_test *test)
 	xylo_draw(xylo, &view, &dlist.draw);
 
 	xylo_term_dlist(&dlist);
-	xylo_term_dshape(&a);
-	xylo_term_dshape(&b);
-	xylo_term_dshape(&c);
+	xylo_term_doutline(&a);
+	xylo_term_doutline(&b);
+	xylo_term_doutline(&c);
 	xylo_free_outline_set(set, api);
 	gl_test_swap_buffers(test);
 
@@ -247,7 +251,7 @@ static int aa_(struct gl_api *api, struct gl_test *test)
 	struct xylo *xylo;
 	struct xylo_outline_set *set;
 	struct xylo_dlist dlist;
-	struct xylo_dshape a, b, c;
+	struct xylo_doutline a, b, c;
 	struct gl_core33 const *gl;
 	struct xylo_view view;
 
@@ -259,9 +263,13 @@ static int aa_(struct gl_api *api, struct gl_test *test)
 	if (!set) { return -1; }
 
 	/* create list nodes */
-	xylo_init_dshape(&a, black, xylo_get_outline(set, 0));
-	xylo_init_dshape(&b, black, xylo_get_outline(set, 2));
-	xylo_init_dshape(&c, red, xylo_get_outline(set, 3));
+	xylo_init_doutline(&a, xylo_get_outline(set, 0));
+	xylo_init_doutline(&b, xylo_get_outline(set, 2));
+	xylo_init_doutline(&c, xylo_get_outline(set, 3));
+
+	memcpy(a.style.color, black, sizeof black);
+	memcpy(b.style.color, black, sizeof black);
+	memcpy(c.style.color, red, sizeof red);
 
 	/* create draw list */
 	xylo_init_dlist(&dlist);
@@ -269,12 +277,12 @@ static int aa_(struct gl_api *api, struct gl_test *test)
 	xylo_dlist_append(&dlist, &b.draw);
 	xylo_dlist_append(&dlist, &c.draw);
 
-	m22mulsf(a.m22, a.m22, 30.0f);
-	m22mulsf(b.m22, b.m22, 60.0f);
-	m22mulsf(c.m22, c.m22, 90.0f);
+	m22mulsf(a.transform.m22, a.transform.m22, 30.0f);
+	m22mulsf(b.transform.m22, b.transform.m22, 60.0f);
+	m22mulsf(c.transform.m22, c.transform.m22, 90.0f);
 
-	a.pos[0] = a.pos[1] = -90.0;
-	c.pos[0] = b.pos[1] = 90.0;
+	a.transform.pos[0] = a.transform.pos[1] = -90.0;
+	c.transform.pos[0] = b.transform.pos[1] = 90.0;
 
 	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
 	gl->Clear(GL_COLOR_BUFFER_BIT);
@@ -298,9 +306,9 @@ static int aa_(struct gl_api *api, struct gl_test *test)
 	gl_test_wait_for_key(test);
 
 	xylo_term_dlist(&dlist);
-	xylo_term_dshape(&a);
-	xylo_term_dshape(&b);
-	xylo_term_dshape(&c);
+	xylo_term_doutline(&a);
+	xylo_term_doutline(&b);
+	xylo_term_doutline(&c);
 	xylo_free_outline_set(set, api);
 
 	free_xylo(xylo);
@@ -308,13 +316,13 @@ static int aa_(struct gl_api *api, struct gl_test *test)
 }
 static int aa(void) { return run(aa_); }
 
-static void copy_transform(struct xylo_tnode *tnode, struct xylo_dshape *shape)
+static void copy_transform(struct xylo_tnode *tnode, struct xylo_doutline *shape)
 {
 	float const *t;
 	t = xylo_tnode_global(tnode);
-	(void)memcpy(shape->m22, t, 2 * sizeof *t);
-	(void)memcpy(shape->m22 + 2, t + 3, 2 * sizeof *t);
-	(void)memcpy(shape->pos, t + 6, sizeof shape->pos);
+	(void)memcpy(shape->transform.m22, t, 2 * sizeof *t);
+	(void)memcpy(shape->transform.m22 + 2, t + 3, 2 * sizeof *t);
+	(void)memcpy(shape->transform.pos, t + 6, sizeof shape->transform.pos);
 }
 
 static void update(void *dest, void const *child, void const *parent)
@@ -328,7 +336,7 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 	struct xylo_outline_set *set;
 	struct xylo_outline const *clubs, *diamonds, *spades, *hearts;
 	struct xylo_dlist dlist;
-	struct xylo_dshape a, b, c;
+	struct xylo_doutline a, b, c;
 	struct xylo_tgraph *tgraph;
 	struct xylo_tnode *root, *a_t[2], *b_t[1], *c_t[3];
 	struct pfclock *clk;
@@ -357,9 +365,13 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 	if (!hearts) { return -1; }
 
 	/* create list nodes */
-	xylo_init_dshape(&a, black, clubs);
-	xylo_init_dshape(&b, red, hearts);
-	xylo_init_dshape(&c, red, diamonds);
+	xylo_init_doutline(&a, clubs);
+	xylo_init_doutline(&b, hearts);
+	xylo_init_doutline(&c, diamonds);
+
+	memcpy(a.style.color, black, sizeof black);
+	memcpy(b.style.color, red, sizeof red);
+	memcpy(c.style.color, red, sizeof red);
 
 	/* create draw list */
 	xylo_init_dlist(&dlist);
@@ -433,9 +445,9 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 	xylo_end(xylo);
 
 	xylo_term_dlist(&dlist);
-	xylo_term_dshape(&a);
-	xylo_term_dshape(&b);
-	xylo_term_dshape(&c);
+	xylo_term_doutline(&a);
+	xylo_term_doutline(&b);
+	xylo_term_doutline(&c);
 	xylo_free_tgraph(tgraph);
 
 	xylo_free_outline_set(set, api);
@@ -445,7 +457,7 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 }
 static int transformed(void) { return run(transformed_); }
 
-static void update_transform(size_t i, double t, struct xylo_dshape *shape)
+static void update_transform(size_t i, double t, struct xylo_draw_transform *tfm)
 {
 	double c, s, scale, phase, avel, xvel, yvel;
 	double range = 360.0;
@@ -456,8 +468,8 @@ static void update_transform(size_t i, double t, struct xylo_dshape *shape)
 	if (i % 50 == 0) {
 		scale = 42.0;
 	} else if (i % 13 == 0) {
-		scale = 85.0;
-	} else if (i % 10 == 0) {
+		scale = 120.0;
+	} else if (i % 5 == 0) {
 		scale = 15.0;
 	} else {
 		scale = 30.0;
@@ -485,11 +497,11 @@ static void update_transform(size_t i, double t, struct xylo_dshape *shape)
 	s = sin(phase + t*avel);
 	c = cos(phase + t*avel);
 
-	shape->pos[0] = fmod(range + t*xvel + range*sin(i), 2*range) - range;
-	shape->pos[1] = -fmod(i*6.0 + t*yvel + range*sin(i), 2*range) + range;
+	tfm->pos[0] = fmod(range + t*xvel + range*sin(i), 2*range) - range;
+	tfm->pos[1] = -fmod(i*6.0 + t*yvel + range*sin(i), 2*range) + range;
 
-	shape->m22[0] = scale * c; shape->m22[2] = scale * -s;
-	shape->m22[1] = scale * s; shape->m22[3] = scale * c;
+	tfm->m22[0] = scale * c; tfm->m22[2] = scale * -s;
+	tfm->m22[1] = scale * s; tfm->m22[3] = scale * c;
 }
 
 #define ALL_BUFFERS ( \
@@ -504,7 +516,7 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 	struct xylo_outline_set *set;
 	struct xylo_outline const *shape;
 	struct xylo_dlist dlist;
-	struct xylo_dshape dshapes[200];
+	struct xylo_doutline doutlines[1000];
 	struct pfclock *clk;
 	struct stopwatch sw;
 	float const *color;
@@ -524,11 +536,12 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 
 	/* create draw nodes */
 	xylo_init_dlist(&dlist);
-	for (i = 0; i < length_of(dshapes); i++) {
+	for (i = 0; i < length_of(doutlines); i++) {
 		shape = xylo_get_outline(set, i % 4);
 		color = i & 1 ? red : black;
-		xylo_init_dshape(dshapes + i, color, shape);
-		xylo_dlist_append(&dlist, &dshapes[i].draw);
+		xylo_init_doutline(doutlines + i, shape);
+		memcpy(doutlines[i].style.color, color, sizeof black);
+		xylo_dlist_append(&dlist, &doutlines[i].draw);
 	}
 
 	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
@@ -546,8 +559,8 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 	do {
 		n++;
 		dt = stopwatch_elapsed(&sw, pfclock_usec(clk)) * 1.e-6;
-		for (i = 0; i < length_of(dshapes); i++) {
-			update_transform(i, dt + 3.0, dshapes + i);
+		for (i = 0; i < length_of(doutlines); i++) {
+			update_transform(i, dt + 3.0, &doutlines[i].transform);
 		}
 		gl->BeginQuery(GL_TIME_ELAPSED, query);
 		gl->Viewport(0, 0, gl_test_output_width, gl_test_output_height);
@@ -574,8 +587,8 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 	xylo_end(xylo);
 
 	xylo_term_dlist(&dlist);
-	for (i = 0; i < length_of(dshapes); i++) {
-		xylo_term_dshape(dshapes + i);
+	for (i = 0; i < length_of(doutlines); i++) {
+		xylo_term_doutline(doutlines + i);
 	}
 	xylo_free_outline_set(set, api);
 	free_xylo(xylo);
@@ -589,7 +602,7 @@ static int object_id_(struct gl_api *api, struct gl_test *test)
 	struct xylo *xylo;
 	struct xylo_outline_set *set;
 	struct xylo_dlist dlist;
-	struct xylo_dshape a, b, c;
+	struct xylo_doutline a, b, c;
 	struct gl_core33 const *gl;
 	struct xylo_view view;
 	unsigned id0, id1, id2, id3;
@@ -606,9 +619,17 @@ static int object_id_(struct gl_api *api, struct gl_test *test)
 	xylo_set_aa(xylo, XYLO_AA_QUINCUNX);
 
 	/* create list nodes */
-	xylo_init_dshape_id(&a, 1, black, xylo_get_outline(set, 0));
-	xylo_init_dshape_id(&b, 2, black, xylo_get_outline(set, 2));
-	xylo_init_dshape_id(&c, 3, red, xylo_get_outline(set, 3));
+	xylo_init_doutline(&a, xylo_get_outline(set, 0));
+	xylo_init_doutline(&b, xylo_get_outline(set, 2));
+	xylo_init_doutline(&c, xylo_get_outline(set, 3));
+
+	memcpy(a.style.color, black, sizeof black);
+	memcpy(b.style.color, black, sizeof black);
+	memcpy(c.style.color, red, sizeof red);
+
+	a.id = 1;
+	b.id = 2;
+	c.id = 3;
 
 	/* create draw list */
 	xylo_init_dlist(&dlist);
@@ -616,12 +637,12 @@ static int object_id_(struct gl_api *api, struct gl_test *test)
 	xylo_dlist_append(&dlist, &b.draw);
 	xylo_dlist_append(&dlist, &c.draw);
 
-	m22mulsf(a.m22, a.m22, 30.0f);
-	m22mulsf(b.m22, b.m22, 60.0f);
-	m22mulsf(c.m22, c.m22, 90.0f);
+	m22mulsf(a.transform.m22, a.transform.m22, 30.0f);
+	m22mulsf(b.transform.m22, b.transform.m22, 60.0f);
+	m22mulsf(c.transform.m22, c.transform.m22, 90.0f);
 
-	a.pos[0] = a.pos[1] = -90.0;
-	c.pos[0] = b.pos[1] = 90.0;
+	a.transform.pos[0] = a.transform.pos[1] = -90.0;
+	c.transform.pos[0] = b.transform.pos[1] = 90.0;
 
 	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
 	gl->Clear(GL_COLOR_BUFFER_BIT);
@@ -653,15 +674,260 @@ static int object_id_(struct gl_api *api, struct gl_test *test)
 	}
 
 	xylo_term_dlist(&dlist);
-	xylo_term_dshape(&a);
-	xylo_term_dshape(&b);
-	xylo_term_dshape(&c);
+	xylo_term_doutline(&a);
+	xylo_term_doutline(&b);
+	xylo_term_doutline(&c);
 	xylo_free_outline_set(set, api);
 
 	free_xylo(xylo);
 	return 0;
 }
 static int object_id(void) { return run(object_id_); }
+
+static int dmesh_(struct gl_api *api, struct gl_test *test)
+{
+	struct xylo *xylo;
+	struct xylo_mesh_set *set;
+	struct xylo_dlist dlist;
+	struct xylo_dmesh a, b, c;
+	struct gl_core33 const *gl;
+	struct xylo_view view;
+
+	gl = gl_get_core33(api);
+	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
+	xylo = make_xylo(api);
+	if (!xylo) { return -1; }
+	set = xylo_make_mesh_set(api, length_of(test_shape), test_shape);
+	if (!set) { return -1; }
+
+	/* create list nodes */
+	xylo_init_dmesh(&a, xylo_get_mesh(set, 0));
+	xylo_init_dmesh(&b, xylo_get_mesh(set, 2));
+	xylo_init_dmesh(&c, xylo_get_mesh(set, 3));
+
+	memcpy(a.style.color, black, sizeof black);
+	memcpy(b.style.color, black, sizeof black);
+	memcpy(c.style.color, red, sizeof red);
+
+	/* create draw list */
+	xylo_init_dlist(&dlist);
+	xylo_dlist_append(&dlist, &a.draw);
+	xylo_dlist_append(&dlist, &b.draw);
+	xylo_dlist_append(&dlist, &c.draw);
+
+	m22mulsf(a.transform.m22, a.transform.m22, 30.0f);
+	m22mulsf(b.transform.m22, b.transform.m22, 60.0f);
+	m22mulsf(c.transform.m22, c.transform.m22, 90.0f);
+
+	a.transform.pos[0] = a.transform.pos[1] = -90.0;
+	c.transform.pos[0] = b.transform.pos[1] = 90.0;
+
+	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
+	gl->Clear(GL_COLOR_BUFFER_BIT);
+
+	update_view(gl, &view);
+	xylo_set_mesh_set(xylo, set);
+	xylo_draw(xylo, &view, &dlist.draw);
+
+	xylo_term_dlist(&dlist);
+	xylo_term_dmesh(&a);
+	xylo_term_dmesh(&b);
+	xylo_term_dmesh(&c);
+	xylo_free_mesh_set(set, api);
+	gl_test_swap_buffers(test);
+
+	if (is_test_interactive()) { gl_test_wait_for_key(test); }
+	free_xylo(xylo);
+	return 0;
+}
+static int dmesh(void) { return run(dmesh_); }
+
+static int rigid_rain_(struct gl_api *api, struct gl_test *test)
+{
+	struct gl_core33 const *gl;
+	struct xylo *xylo;
+	struct xylo_mesh_set *set;
+	struct xylo_mesh const *shape;
+	struct xylo_dlist dlist;
+	struct xylo_dmesh dmeshes[1000];
+	struct pfclock *clk;
+	struct stopwatch sw;
+	float const *color;
+	double dt, et, et_mean, et_max, et_min;
+	size_t i, n;
+	GLuint gl_ns, query;
+	struct xylo_view view;
+
+	clk = pfclock_make();
+	if (!clk) { return -1; }
+	gl = gl_get_core33(api);
+	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
+	xylo = make_xylo(api);
+	if (!xylo) { return -1; }
+	set = xylo_make_mesh_set(api, length_of(test_shape), test_shape);
+	if (!set) { return -1; }
+
+	/* create draw nodes */
+	xylo_init_dlist(&dlist);
+	for (i = 0; i < length_of(dmeshes); i++) {
+		shape = xylo_get_mesh(set, i % 4);
+		color = i & 1 ? red : black;
+		xylo_init_dmesh(dmeshes + i, shape);
+		memcpy(dmeshes[i].style.color, color, sizeof black);
+		xylo_dlist_append(&dlist, &dmeshes[i].draw);
+	}
+
+	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
+	gl->GenQueries(1, &query);
+	n = 0;
+	et = 0.0;
+	et_mean = 0.0;
+	et_min = HUGE_VAL;
+	et_max = 0.0;
+
+	stopwatch_start(&sw, pfclock_usec(clk));
+	xylo_begin(xylo);
+	xylo_set_aa(xylo, XYLO_AA_RGSS);
+	xylo_set_mesh_set(xylo, set);
+	do {
+		n++;
+		dt = stopwatch_elapsed(&sw, pfclock_usec(clk)) * 1.e-6;
+		for (i = 0; i < length_of(dmeshes); i++) {
+			update_transform(i, dt + 3.0, &dmeshes[i].transform);
+		}
+		gl->BeginQuery(GL_TIME_ELAPSED, query);
+		gl->Viewport(0, 0, gl_test_output_width, gl_test_output_height);
+		gl->Clear(ALL_BUFFERS);
+		update_view(gl, &view);
+		xylo_draw(xylo, &view, &dlist.draw);
+		gl->EndQuery(GL_TIME_ELAPSED);
+		gl_test_swap_buffers(test);
+		gl->Finish();
+		gl->GetQueryObjectuiv(query, GL_QUERY_RESULT, &gl_ns);
+		et = gl_ns * 1e-9;
+		et_mean += et;
+		if (et_max < et) { et_max = et; }
+		if (et_min > et) { et_min = et; }
+		if (et_mean > 1.0) {
+			printf("%g\t%g\t%g\n", et_mean / n, et_max, et_min);
+			et = 0.0;
+			et_mean = 0.0;
+			et_min = HUGE_VAL;
+			et_max = 0.0;
+			n = 0;
+		}
+	} while (gl_test_poll_key(test) == 0);
+	xylo_end(xylo);
+
+	xylo_term_dlist(&dlist);
+	for (i = 0; i < length_of(dmeshes); i++) {
+		xylo_term_dmesh(dmeshes + i);
+	}
+	xylo_free_mesh_set(set, api);
+	free_xylo(xylo);
+	pfclock_free(clk);
+	return 0;
+}
+static int rigid_rain(void) { return run(rigid_rain_); }
+
+static int aa2_(struct gl_api *api, struct gl_test *test)
+{
+	struct xylo *xylo;
+	struct xylo_outline_set *set;
+	struct xylo_mesh_set *tet;
+	struct xylo_dlist dlist, blist;
+	struct xylo_doutline a, b, c;
+	struct xylo_dmesh e, f, g;
+	struct gl_core33 const *gl;
+	struct xylo_view view;
+	size_t i;
+	enum xylo_aa aas[] = { XYLO_AA_NONE, XYLO_AA_QUINCUNX, XYLO_AA_RGSS };
+
+	gl = gl_get_core33(api);
+	if (!gl) { skip_test("OpenGL 3.3 or above required"); }
+	xylo = make_xylo(api);
+	if (!xylo) { return -1; }
+	set = xylo_make_outline_set(api, length_of(test_shape), test_shape);
+	if (!set) { return -1; }
+	tet = xylo_make_mesh_set(api, length_of(test_shape), test_shape);
+	if (!tet) { return -1; }
+
+	/* create list nodes */
+	xylo_init_doutline(&a, xylo_get_outline(set, 0));
+	xylo_init_doutline(&b, xylo_get_outline(set, 2));
+	xylo_init_doutline(&c, xylo_get_outline(set, 3));
+
+	memcpy(a.style.color, black, sizeof black);
+	memcpy(b.style.color, black, sizeof black);
+	memcpy(c.style.color, red, sizeof red);
+
+	xylo_init_dmesh(&e, xylo_get_mesh(tet, 0));
+	xylo_init_dmesh(&f, xylo_get_mesh(tet, 2));
+	xylo_init_dmesh(&g, xylo_get_mesh(tet, 3));
+
+	memcpy(e.style.color, black, sizeof black);
+	memcpy(f.style.color, black, sizeof black);
+	memcpy(g.style.color, red, sizeof red);
+
+	/* create draw list */
+	xylo_init_dlist(&dlist);
+	xylo_dlist_append(&dlist, &a.draw);
+	xylo_dlist_append(&dlist, &b.draw);
+	xylo_dlist_append(&dlist, &c.draw);
+
+	xylo_init_dlist(&blist);
+	xylo_dlist_append(&blist, &e.draw);
+	xylo_dlist_append(&blist, &f.draw);
+	xylo_dlist_append(&blist, &g.draw);
+
+	m22mulsf(a.transform.m22, a.transform.m22, 30.0f);
+	m22mulsf(b.transform.m22, b.transform.m22, 60.0f);
+	m22mulsf(c.transform.m22, c.transform.m22, 90.0f);
+
+	a.transform.pos[0] = a.transform.pos[1] = -90.0;
+	c.transform.pos[0] = b.transform.pos[1] = 90.0;
+
+	m22mulsf(e.transform.m22, e.transform.m22, 30.0f);
+	m22mulsf(f.transform.m22, f.transform.m22, 60.0f);
+	m22mulsf(g.transform.m22, g.transform.m22, 90.0f);
+
+	e.transform.pos[0] = e.transform.pos[1] = -90.0;
+	g.transform.pos[0] = f.transform.pos[1] = 90.0;
+
+	gl->ClearColor(1.f, 1.f, 1.f, 1.f);
+	update_view(gl, &view);
+
+	for (i = 0; i < length_of(aas); i++) {
+		xylo_set_aa(xylo, aas[i]);
+
+		gl->Clear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		xylo_set_outline_set(xylo, set);
+		xylo_draw(xylo, &view, &dlist.draw);
+		gl_test_swap_buffers(test);
+		gl_test_wait_for_key(test);
+
+		gl->Clear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+		xylo_set_mesh_set(xylo, tet);
+		xylo_draw(xylo, &view, &blist.draw);
+		gl_test_swap_buffers(test);
+		gl_test_wait_for_key(test);
+	}
+
+	xylo_term_dlist(&dlist);
+	xylo_term_dlist(&blist);
+	xylo_term_doutline(&a);
+	xylo_term_doutline(&b);
+	xylo_term_doutline(&c);
+	xylo_term_dmesh(&e);
+	xylo_term_dmesh(&f);
+	xylo_term_dmesh(&g);
+	xylo_free_outline_set(set, api);
+	xylo_free_mesh_set(tet, api);
+
+	free_xylo(xylo);
+	return 0;
+}
+static int aa2(void) { return run(aa2_); }
 
 struct test const tests[] = {
 	{ creation, "create xylo renderer" },
@@ -670,6 +936,9 @@ struct test const tests[] = {
 	{ rain, "one hundred shapes" },
 	{ object_id, "read object ID at pixel" },
 	{ aa, "render using anti-aliasing" },
+	{ dmesh, "draw rigid shapes" },
+	{ rigid_rain, "one hundred shapes again" },
+	{ aa2, "render using anti-aliasing" },
 
 	{ NULL, NULL }
 };

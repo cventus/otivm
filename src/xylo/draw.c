@@ -14,6 +14,7 @@
 #include "fb.h"
 #include "xylo.h"
 #include "outline.h"
+#include "mesh.h"
 #include "shapes.h"
 #include "aa.h"
 
@@ -24,6 +25,31 @@
 
 #define ALL_BUFFERS \
 	(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+static void init_transform(struct xylo_draw_transform *t)
+{
+	t->pos[0] = t->pos[1] = 0.f;
+	t->m22[0] = t->m22[3] = 1.f;
+	t->m22[1] = t->m22[2] = 0.f;
+}
+
+static void transform_to_modelview(
+	float *dest,
+	struct xylo_draw_transform const *t)
+{
+	(void)m44idf(dest);
+	dest[0*4 + 0] = t->m22[0];
+	dest[0*4 + 1] = t->m22[1];
+	dest[1*4 + 0] = t->m22[2];
+	dest[1*4 + 1] = t->m22[3];
+	dest[3*4 + 0] = t->pos[0];
+	dest[3*4 + 1] = t->pos[1];
+}
+
+static void init_style(struct xylo_draw_style *s)
+{
+	s->color[0] = s->color[1] = s->color[2] = s->color[3] = 0.0f;
+}
 
 static void xylo_draw_rec(
 	struct xylo *xylo,
@@ -245,7 +271,7 @@ void xylo_draw(
 
 static void draw_outline(
 	struct xylo *xylo,
-	struct xylo_outline const *shape,
+	struct xylo_outline const *outline,
 	size_t samples)
 {
 	struct gl_core33 const *restrict gl = gl_get_core33(xylo->api);
@@ -255,25 +281,14 @@ static void draw_outline(
 	gl->StencilFunc(GL_ALWAYS, 0x00, 0x01);
 	gl->StencilOp(GL_KEEP, GL_KEEP, GL_INVERT);
 
-	xylo_outline_draw(gl, shape, samples);
+	xylo_outline_draw(gl, outline, samples);
 
 	/* Step two - fill in color without overdraw and erase stencil */
 	gl->ColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	gl->StencilFunc(GL_EQUAL, 0x01, 0x01);
 	gl->StencilOp(GL_ZERO, GL_ZERO, GL_ZERO);
 
-	xylo_outline_draw(gl, shape, samples);
-}
-
-static void transform_to_modelview(float *dest, struct xylo_dshape *shape)
-{
-	(void)m44idf(dest);
-	dest[0*4 + 0] = shape->m22[0];
-	dest[0*4 + 1] = shape->m22[1];
-	dest[1*4 + 0] = shape->m22[2];
-	dest[1*4 + 1] = shape->m22[3];
-	dest[3*4 + 0] = shape->pos[0];
-	dest[3*4 + 1] = shape->pos[1];
+	xylo_outline_draw(gl, outline, samples);
 }
 
 static void xylo_draw_rec(
@@ -283,8 +298,9 @@ static void xylo_draw_rec(
 	struct xylo_draw *draw)
 {
 	struct gl_core33 const *restrict gl;
-	struct xylo_dshape *shape;
-	struct xylo_dlist *list;
+	struct xylo_doutline *doutline;
+	struct xylo_dmesh *dmesh;
+	struct xylo_dlist *dlist;
 	struct xylo_draw **p, **q;
 	float mvp[16], mv[16];
 	int i;
@@ -293,21 +309,31 @@ static void xylo_draw_rec(
 	assert(proj != 0);
 	assert(draw != 0);
 	switch (draw->type) {
-	case xylo_dshape:
-		shape = xylo_dshape_cast(draw);
-		transform_to_modelview(mv, shape);
+	case xylo_doutline:
+		doutline = xylo_doutline_cast(draw);
+		transform_to_modelview(mv, &doutline->transform);
 		gl = gl_get_core33(xylo->api);
-		xylo_shapes_set_object_id(&xylo->shapes, gl, shape->id);
+		xylo_shapes_set_object_id(&xylo->shapes, gl, doutline->id);
 		xylo_shapes_set_mvp(&xylo->shapes, gl, m44mulf(mvp, proj, mv));
-		xylo_shapes_set_color4fv(&xylo->shapes, gl, shape->color);
-		draw_outline(xylo, shape->outline, samples);
+		xylo_shapes_set_color4fv(&xylo->shapes, gl, doutline->style.color);
+		draw_outline(xylo, doutline->outline, samples);
+		break;
+
+	case xylo_dmesh:
+		dmesh = xylo_dmesh_cast(draw);
+		transform_to_modelview(mv, &dmesh->transform);
+		gl = gl_get_core33(xylo->api);
+		xylo_shapes_set_object_id(&xylo->shapes, gl, dmesh->id);
+		xylo_shapes_set_mvp(&xylo->shapes, gl, m44mulf(mvp, proj, mv));
+		xylo_shapes_set_color4fv(&xylo->shapes, gl, dmesh->style.color);
+		xylo_mesh_draw(gl, dmesh->mesh, samples);
 		break;
 
 	case xylo_dlist:
-		list = xylo_dlist_cast(draw);
+		dlist = xylo_dlist_cast(draw);
 		for (i = 0; i < 2; i++) {
-			p = list->elements.begin[i];
-			q = list->elements.end[i];
+			p = dlist->elements.begin[i];
+			q = dlist->elements.end[i];
 			for (; p < q; p++) {
 				xylo_draw_rec(xylo, samples, proj, *p);
 			}
@@ -321,39 +347,39 @@ static void xylo_draw_rec(
 	}
 }
 
-void xylo_init_dlist(struct xylo_dlist *list)
+void xylo_init_dlist(struct xylo_dlist *dlist)
 {
-	list->draw.type = xylo_dlist;
-	gbuf_init(&list->elements);
+	dlist->draw.type = xylo_dlist;
+	gbuf_init(&dlist->elements);
 }
 
-void xylo_term_dlist(struct xylo_dlist *list)
+void xylo_term_dlist(struct xylo_dlist *dlist)
 {
-	gbuf_term(&list->elements);
+	gbuf_term(&dlist->elements);
 }
 
-struct xylo_dlist *xylo_dlist_cast(struct xylo_draw *d)
+struct xylo_dlist *xylo_dlist_cast(struct xylo_draw *dlist)
 {
-	return container_of(d, struct xylo_dlist, draw);
+	return container_of(dlist, struct xylo_dlist, draw);
 }
 
 #define DLIST_ELEM_SIZE (sizeof(struct xylo_draw *))
 
 int xylo_dlist_insert(
-	struct xylo_dlist *list,
+	struct xylo_dlist *dlist,
 	struct xylo_draw *element,
 	ptrdiff_t index)
 {
 	int ret;
 	struct gbuf *elems;
 
-	assert(list != NULL);
+	assert(dlist != NULL);
 	assert(element != NULL);
 
-	if (index < 0 || (size_t)index > xylo_dlist_length(list)) {
+	if (index < 0 || (size_t)index > xylo_dlist_length(dlist)) {
 		return -1;
 	}
-	elems = &list->elements;
+	elems = &dlist->elements;
 	ret = gbuf_move_to(elems, index * sizeof element);
 	if (ret) { return -2; }
 	ret = gbuf_write(elems, &element, sizeof element) ? 0 : -3;
@@ -361,35 +387,35 @@ int xylo_dlist_insert(
 }
 
 int xylo_dlist_append(
-	struct xylo_dlist *list,
+	struct xylo_dlist *dlist,
 	struct xylo_draw *element)
 {
-	return xylo_dlist_insert(list, element, xylo_dlist_length(list));
+	return xylo_dlist_insert(dlist, element, xylo_dlist_length(dlist));
 }
 
-size_t xylo_dlist_length(struct xylo_dlist *list)
+size_t xylo_dlist_length(struct xylo_dlist *dlist)
 {
-	assert(list != NULL);
-	return gbuf_nmemb(&list->elements, DLIST_ELEM_SIZE);
+	assert(dlist != NULL);
+	return gbuf_nmemb(&dlist->elements, DLIST_ELEM_SIZE);
 }
 
-int xylo_dlist_remove(struct xylo_dlist *list, ptrdiff_t index)
+int xylo_dlist_remove(struct xylo_dlist *dlist, ptrdiff_t index)
 {
-	if (index < 0 || (size_t)index > xylo_dlist_length(list)) {
+	if (index < 0 || (size_t)index > xylo_dlist_length(dlist)) {
 		return -1;
 	}
-	gbuf_erase(&list->elements, index*DLIST_ELEM_SIZE, DLIST_ELEM_SIZE);
+	gbuf_erase(&dlist->elements, index*DLIST_ELEM_SIZE, DLIST_ELEM_SIZE);
 	return 0;
 }
 
-ptrdiff_t xylo_dlist_indexof(struct xylo_dlist *list, struct xylo_draw *needle)
+ptrdiff_t xylo_dlist_indexof(struct xylo_dlist *dlist, struct xylo_draw *needle)
 {
 	ptrdiff_t i, j;
 	struct xylo_draw *p, *q;
 
 	for (i = j = 0; i < 2; i++) {
-		p = list->elements.begin[i];
-		q = list->elements.end[i];
+		p = dlist->elements.begin[i];
+		q = dlist->elements.end[i];
 		for (; p < q; p++, j++) {
 			if (p == needle) { return j; }
 		}
@@ -397,41 +423,44 @@ ptrdiff_t xylo_dlist_indexof(struct xylo_dlist *list, struct xylo_draw *needle)
 	return -1;
 }
 
-void xylo_init_dshape(
-	struct xylo_dshape *shape,
-	float const color[4],
+void xylo_init_doutline(
+	struct xylo_doutline *doutline,
 	struct xylo_outline const *outline)
 {
-	shape->draw.type = xylo_dshape;
-	shape->id = 0;
-	shape->pos[0] = shape->pos[1] = 0.f;
-	shape->m22[0] = shape->m22[3] = 1.f;
-	shape->m22[1] = shape->m22[2] = 0.f;
-	shape->outline = outline;
-	(void)memcpy(shape->color, color, sizeof shape->color);
+	doutline->draw.type = xylo_doutline;
+	doutline->id = 0;
+
+	init_transform(&doutline->transform);
+	init_style(&doutline->style);
+	doutline->outline = outline;
 }
 
-void xylo_init_dshape_id(
-	struct xylo_dshape *shape,
-	unsigned id,
-	float const color[4],
-	struct xylo_outline const *outline)
+void xylo_term_doutline(struct xylo_doutline *doutline)
 {
-	shape->draw.type = xylo_dshape;
-	shape->id = id;
-	shape->pos[0] = shape->pos[1] = 0.f;
-	shape->m22[0] = shape->m22[3] = 1.f;
-	shape->m22[1] = shape->m22[2] = 0.f;
-	shape->outline = outline;
-	(void)memcpy(shape->color, color, sizeof shape->color);
+	doutline->outline = NULL;
 }
 
-void xylo_term_dshape(struct xylo_dshape *shape)
+struct xylo_doutline *xylo_doutline_cast(struct xylo_draw *d)
 {
-	shape->outline = NULL;
+	return container_of(d, struct xylo_doutline, draw);
 }
 
-struct xylo_dshape *xylo_dshape_cast(struct xylo_draw *d)
+void xylo_init_dmesh(struct xylo_dmesh *dmesh, struct xylo_mesh const *mesh)
 {
-	return container_of(d, struct xylo_dshape, draw);
+	dmesh->draw.type = xylo_dmesh;
+	dmesh->id = 0;
+
+	init_transform(&dmesh->transform);
+	init_style(&dmesh->style);
+	dmesh->mesh = mesh;
+}
+
+void xylo_term_dmesh(struct xylo_dmesh *dmesh)
+{
+	dmesh->mesh = NULL;
+}
+
+struct xylo_dmesh *xylo_dmesh_cast(struct xylo_draw *d)
+{
+	return container_of(d, struct xylo_dmesh, draw);
 }
