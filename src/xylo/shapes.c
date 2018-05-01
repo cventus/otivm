@@ -66,7 +66,7 @@ static struct gl_shader_source const shapes_frag = {
 		float l = quadratic.y;
 		float m = quadratic.z;
 
-		if (k*k - l*m >= 0.0f) { discard; }
+		if (sign(m)*(k*k - l*m) >= 0.0f) { discard; }
 		fill_color = color;
 		fragment_id = object_id;
 	})

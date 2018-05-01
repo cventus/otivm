@@ -109,6 +109,11 @@ void xylo_set_outline_set(struct xylo *xylo, struct xylo_outline_set *set)
 	gl_get_core33(xylo->api)->BindVertexArray(set->vao);
 }
 
+void xylo_set_mesh_set(struct xylo *xylo, struct xylo_mesh_set *set)
+{
+	gl_get_core33(xylo->api)->BindVertexArray(set->vao);
+}
+
 GLuint xylo_get_uint(struct gl_core33 const *restrict gl, GLenum t)
 {
 	GLint v;

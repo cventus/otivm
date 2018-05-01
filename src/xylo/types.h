@@ -55,3 +55,18 @@ struct xylo_outline_set
 	GLuint vao, evbo;
 	GLsizei vertex_offset;
 };
+
+/* triangulated shape */
+struct xylo_mesh
+{
+	GLsizei count;
+	GLuint vao;
+	GLint first;
+};
+
+struct xylo_mesh_set
+{
+	size_t n;
+	struct xylo_mesh *shapes;
+	GLuint vao, vbo;
+};
