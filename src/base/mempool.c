@@ -15,6 +15,7 @@ void mempool_init(struct mempool *pool, size_t buffer_nmemb, size_t size)
 	pool->nmemb = 0;
 	pool->buffer_nmemb = buffer_nmemb;
 	pool->size = size;
+	pool->free = NULL;
 	wbuf_init(&pool->buffers);
 }
 
@@ -28,6 +29,7 @@ void mempool_term(struct mempool *pool)
 	pool->nmemb = 0;
 	pool->buffer_nmemb = 0;
 	pool->size = 0;
+	pool->free = NULL;
 }
 
 size_t mempool_capacity(struct mempool *pool)

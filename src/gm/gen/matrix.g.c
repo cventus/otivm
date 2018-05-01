@@ -111,19 +111,6 @@ T mref(T const a[static M*N], unsigned row, unsigned column)
 	return MREF(a, column, row);
 }
 
-T mmse(T const a[static M*N], T const b[static M*N])
-{
-	T e, se;
-	unsigned i;
-
-	for (se = LIT(0.0), i = 0; i < M*N; i++) {
-		e = a[i] - b[i];
-		se += e*e;
-	}
-
-	return se / (T)(M*N);
-}
-
 void mfprint(FILE *fp, T const a[static M*N])
 {
 	int i, j, w, colw[N];

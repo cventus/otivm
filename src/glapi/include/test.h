@@ -14,3 +14,5 @@ void gl_test_swap_buffers(struct gl_test *test);
 void gl_test_wait_for_key(struct gl_test *test);
 int gl_test_poll_key(struct gl_test *test);
 
+extern int gl_test_output_width;
+extern int gl_test_output_height;

@@ -39,12 +39,20 @@ T *muscale(T a[static M*N], T s);
 /* Multiply the two 4x4 matrices b and c and store in and return a */
 #undef mmul
 #define mmul MAT(mul)
-T *mmul(T a[static M*N], T const b [static M*N], T const c [static M*N]);
+T *mmul(T a[static M*N], T const b [restrict static M*N], T const c [restrict static M*N]);
 
-/* Rotate vector u with 4x4 matrix a and store in v and return it */
+/* Transform 4x1 vector u with 4x4 matrix a (so that a*u = v) and store in v
+   and return it */
 #undef mmulv
 #define mmulv MAT(mulv)
-T *mmulv(T v[static N], T const b [static M*N], T const u [static N]);
+T *mmulv(T v[static M*1], T const a [restrict static M*N], T const u [restrict static M*1]);
+
+/* Treat the 3x1 vectors u and v as 4x1 vectors where w = 1, with 4x4
+   matrix a, the last row of which is assumed to be [0 0 0 1], and store in v
+   and return it */
+#undef mmulv3
+#define mmulv3 MAT(mulv3)
+T *mmulv3(T v[static 3*1], T const a [restrict static M*N], T const u [restrict static 3*1]);
 
 /* Initialize a rotation matrix that looks at a certain point with some up
    direction */

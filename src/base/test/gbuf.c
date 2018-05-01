@@ -410,8 +410,8 @@ static int keep_aligned(void)
 	struct gbuf buf;
 	size_t i, nmemb, align, size;
 
-	for (align = 1; align <= alignof(max_align_t); align *= 2) {
-	for (nmemb = 1; nmemb <= 10; nmemb++)
+	for (align = 1; align <= alignof(max_align_t); align *= 2)
+	for (nmemb = 1; nmemb <= 10; nmemb++) {
 		/* defined hypothetical struct */
 		size = nmemb*align;
 		gbuf_init(&buf);

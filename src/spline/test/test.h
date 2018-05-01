@@ -13,7 +13,7 @@ static inline void assert_near_eq(
 	char const *b_exp)
 {
 	if (fabs(a - b) > 1e-6) {
-		printf("%s = %g != %g = %s\n", a_exp, a, b, b_exp);
+		printf("%s = %f != %f = %s\n", a_exp, a, b, b_exp);
 		ok = -1;
 	}
 }
