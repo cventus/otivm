@@ -45,4 +45,7 @@ static inline size_t align_to(size_t offset, size_t align)
 struct memblk { size_t offset, extent; };
 int memblk_init(struct memblk *, size_t nmemb, size_t size);
 int memblk_push(struct memblk *, size_t nmemb, size_t size, size_t align);
-#define memblk_offset(blk, field) ((void *)((char *)(blk) + (field).offset))
+static inline void *memblk_offset(void *obj, struct memblk field)
+{
+	return (void *)((char *)obj + field.offset);
+}
