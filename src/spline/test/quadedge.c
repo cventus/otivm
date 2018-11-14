@@ -4,11 +4,11 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
-#include <ok/ok.h>
 #include <assert.h>
 
-#include <base/mem.h>
-#include <base/wbuf.h>
+#include "ok/ok.h"
+#include "base/mem.h"
+#include "base/wbuf.h"
 
 #include "test.h"
 #include "../geometry.h"

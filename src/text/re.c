@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "include/re.h"
+#include "text/re.h"
 
 enum groupopt { CAPTURE = 1 };
 enum quantpol { GREEDY = 0, LAZY };

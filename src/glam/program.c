@@ -1,10 +1,9 @@
 #include <stdlib.h>
 
-#include <base/mem.h>
-#include <glapi/api.h>
-#include <glapi/core.h>
-
-#include "include/program.h"
+#include "base/mem.h"
+#include "glapi/api.h"
+#include "glapi/core.h"
+#include "glam/program.h"
 
 GLuint gl_make_program(struct gl_api *api, struct gl_program_layout const *pl)
 {

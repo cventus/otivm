@@ -1,13 +1,11 @@
-
 #include <stdio.h>
 #include <stdbool.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
-#include <ok/ok.h>
-
-#include "../include/xw.h"
-#include "../include/delegate.h"
+#include "ok/ok.h"
+#include "xw/xw.h"
+#include "xw/delegate.h"
 
 #define TEXT_BUFFER_SIZE 500
 
@@ -503,4 +501,3 @@ struct test const tests[] = {
 
 	{ NULL, NULL }
 };
-

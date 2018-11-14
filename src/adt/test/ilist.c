@@ -2,9 +2,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include <ok/ok.h>
-
-#include "../include/ilist.h"
+#include "ok/ok.h"
+#include "adt/ilist.h"
 
 static struct ilist const *const null = NULL;
 

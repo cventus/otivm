@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <stddef.h>
-#include "include/ilist.h"
+#include "adt/ilist.h"
 
 void clist_init(struct ilist *list)
 {

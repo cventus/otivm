@@ -4,8 +4,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "include/wbuf.h"
-#include "include/mem.h"
+#include "base/wbuf.h"
+#include "base/mem.h"
 #define MINSIZE sizeof(double)
 
 static size_t newsize(size_t size, size_t hint)

@@ -10,8 +10,8 @@
 #error "clock_gettime not supported!"
 #endif
 
-#include "../include/tempo.h"
-#include "../include/posix.h"
+#include "tempo/tempo.h"
+#include "tempo/posix.h"
 
 static int try_clock(clockid_t clk_id, struct pfclock *c)
 {

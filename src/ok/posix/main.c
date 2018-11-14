@@ -1,4 +1,3 @@
-
 #define _XOPEN_SOURCE 500
 
 #include <stdlib.h>
@@ -11,7 +10,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <ok/ok.h>
+
+#include "ok/ok.h"
 #include "private.h"
 #include "check.h"
 

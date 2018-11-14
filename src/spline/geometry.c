@@ -2,7 +2,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
-#include <gm/vector.h>
+
+#include "gm/vector.h"
 #include "geometry.h"
 
 double line2d_det(float2 a, float2 b, float2 c)

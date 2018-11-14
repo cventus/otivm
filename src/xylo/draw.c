@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <base/mem.h>
-#include <base/gbuf.h>
-#include <gm/matrix.h>
-#include <glapi/core.h>
-#include <glapi/api.h>
+#include "base/mem.h"
+#include "base/gbuf.h"
+#include "gm/matrix.h"
+#include "glapi/core.h"
+#include "glapi/api.h"
 
 #include "private.h"
 #include "types.h"
@@ -18,10 +18,10 @@
 #include "shapes.h"
 #include "aa.h"
 
-#include "include/xylo.h"
-#include "include/draw.h"
-#include "include/types.h"
-#include "include/aa.h"
+#include "xylo/xylo.h"
+#include "xylo/draw.h"
+#include "xylo/types.h"
+#include "xylo/aa.h"
 
 #define ALL_BUFFERS \
 	(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)

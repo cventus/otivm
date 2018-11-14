@@ -1,4 +1,4 @@
-#include "include/core.h"
+#include "glapi/core.h"
 
 void (*gl_get_proc(struct gl_api *api, char const *))(void);
 

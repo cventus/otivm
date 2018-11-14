@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <setjmp.h>
@@ -6,24 +5,22 @@
 #include <limits.h>
 #include <string.h>
 
-#include <gm/vector.h>
-#include <base/mem.h>
-#include <base/wbuf.h>
-#include <base/tstack.h>
-#include <text/str.h>
-#include <fs/file.h>
-#include <wf/wf.h>
-#include <adt/hmap.h>
+#include "gm/vector.h"
+#include "base/mem.h"
+#include "base/wbuf.h"
+#include "base/tstack.h"
+#include "text/str.h"
+#include "fs/file.h"
+#include "wf/wf.h"
+#include "adt/hmap.h"
+#include "glapi/api.h"
+#include "glapi/core.h"
+#include "glcache/types.h"
+#include "glcache/cache.h"
 
-#include <glapi/api.h>
-#include <glapi/core.h>
-
-#include "include/types.h"
-#include "include/cache.h"
 #include "private.h"
 #include "decl.h"
 #include "geometry.h"
-
 
 static void set_gl_attrib_pointer(
 	struct gl_core30 const *restrict gl,
@@ -466,4 +463,3 @@ void gl_draw_geometries(struct gl_api *api, struct gl_geometries const *geos)
 		gl_draw_geometry(api, geos->geo + i);
 	}
 }
-

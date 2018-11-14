@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,16 +5,15 @@
 #include <assert.h>
 #include <stdalign.h>
 #include <setjmp.h>
-#include "include/wf.h"
 
-#include <text/token.h>
-#include <text/re.h>
-#include <base/wbuf.h>
-#include <base/list.h>
-#include <base/mem.h>
-
-#include <gm/vector.h>
-#include <gm/plane.h>
+#include "wf/wf.h"
+#include "text/token.h"
+#include "text/re.h"
+#include "base/wbuf.h"
+#include "base/list.h"
+#include "base/mem.h"
+#include "gm/vector.h"
+#include "gm/plane.h"
 
 #include "private.h"
 
@@ -651,4 +649,3 @@ void wf_free_object(struct wf_object const *obj)
 	/* Every object is allocated into a single block. */
 	free((void*)obj);
 }
-

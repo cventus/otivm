@@ -3,11 +3,10 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include <ok/ok.h>
-#include <base/mem.h>
-
-#include "../include/ilist.h"
-#include "../include/itree.h"
+#include "ok/ok.h"
+#include "base/mem.h"
+#include "adt/ilist.h"
+#include "adt/itree.h"
 
 static char const *strcpbrk(char const *str, char const *reject)
 {

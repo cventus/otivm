@@ -1,11 +1,10 @@
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <base/wbuf.h>
-#include <base/mem.h>
-#include <text/token.h>
+#include "base/wbuf.h"
+#include "base/mem.h"
+#include "text/token.h"
 
 #include "private.h"
 
@@ -110,4 +109,3 @@ int wf_parse_filename(struct wbuf *buffer, FILE *fp)
 	if (!wbuf_write(buffer, filename, len + 1)) { return -1; }
 	return len + 1;
 }
-

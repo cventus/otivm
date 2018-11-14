@@ -2,11 +2,10 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#include <text/vstr.h>
-
-#include "include/api.h"
-#include "include/core.h"
-#include "include/test.h"
+#include "text/vstr.h"
+#include "glapi/api.h"
+#include "glapi/core.h"
+#include "glapi/test.h"
 
 #include "fwd.h"
 

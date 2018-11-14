@@ -1,7 +1,6 @@
-#include <glapi/core.h>
-
+#include "glapi/core.h"
 #include "types.h"
-#include "include/aa.h"
+#include "xylo/aa.h"
 
 enum xylo_aa xylo_get_aa(struct xylo *xylo)
 {

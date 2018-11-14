@@ -4,8 +4,8 @@
 #include <setjmp.h>
 #include <assert.h>
 
-#include "include/wbuf.h"
-#include "include/tstack.h"
+#include "base/wbuf.h"
+#include "base/tstack.h"
 
 struct entry
 {

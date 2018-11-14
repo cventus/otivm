@@ -3,24 +3,23 @@
 #include <math.h>
 #include <time.h>
 
-#include <ok/ok.h>
-#include <glapi/api.h>
-#include <glapi/core.h>
-#include <glapi/test.h>
-#include <gm/matrix.h>
-#include <base/gbuf.h>
-#include <base/mem.h>
-#include <spline/shape.h>
-
-#include <tempo/tempo.h>
+#include "ok/ok.h"
+#include "glapi/api.h"
+#include "glapi/core.h"
+#include "glapi/test.h"
+#include "gm/matrix.h"
+#include "base/gbuf.h"
+#include "base/mem.h"
+#include "spline/shape.h"
+#include "tempo/tempo.h"
+#include "xylo/types.h"
+#include "xylo/draw.h"
+#include "xylo/tgraph.h"
+#include "xylo/shape.h"
+#include "xylo/aa.h"
 
 #include "../xylo.h"
 #include "../draw.h"
-#include "../include/types.h"
-#include "../include/draw.h"
-#include "../include/tgraph.h"
-#include "../include/shape.h"
-#include "../include/aa.h"
 #include "../private.h"
 
 #define run(fn) gl_run_test(is_test_interactive() ? __func__ : NULL, fn)

@@ -2,7 +2,7 @@
 #include <string.h>
 #include <math.h>
 
-#include "include/bezier2.h"
+#include "spline/bezier2.h"
 
 /* get the berstein polynomial terms evaluated at t */
 static void bernstein2(double dest[3], double t)

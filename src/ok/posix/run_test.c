@@ -1,4 +1,3 @@
-
 #define _XOPEN_SOURCE 500
 
 #include <stdio.h>
@@ -12,7 +11,7 @@
 #include <errno.h>
 #include <setjmp.h>
 
-#include <ok/ok.h>
+#include "ok/ok.h"
 
 #include "private.h"
 #include "check.h"

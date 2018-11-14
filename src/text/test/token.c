@@ -1,10 +1,10 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <ok/ok.h>
-#include <text/token.h>
+
+#include "ok/ok.h"
+#include "text/token.h"
 
 static int assert_tokens(const char *line, int n, ...)
 {

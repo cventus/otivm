@@ -1,12 +1,12 @@
 #include <stddef.h>
 #include <stdalign.h>
 
-#include <rescache/rescache.h>
-#include <glapi/core.h>
-#include <wf/wf.h>
+#include "rescache/rescache.h"
+#include "glapi/core.h"
+#include "wf/wf.h"
+#include "glcache/types.h"
+#include "glcache/cache.h"
 
-#include "include/types.h"
-#include "include/cache.h"
 #include "private.h"
 #include "geometry.h"
 #include "caches.h"

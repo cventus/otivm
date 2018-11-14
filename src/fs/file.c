@@ -1,9 +1,8 @@
-
 #include <stdio.h>
 #include <string.h>
-#include <base/wbuf.h>
 
-#include "include/file.h"
+#include "base/wbuf.h"
+#include "fs/file.h"
 
 char *relpath(char const *base, char const *path)
 {

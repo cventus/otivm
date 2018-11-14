@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include <string.h>
-#include <ok/ok.h>
 
-#include <base/mem.h>
-#include <base/wbuf.h>
-#include <base/mempool.h>
-#include <adt/ilist.h>
-#include <adt/itree.h>
-
-#include "../include/tgraph.h"
+#include "ok/ok.h"
+#include "base/mem.h"
+#include "base/wbuf.h"
+#include "base/mempool.h"
+#include "adt/ilist.h"
+#include "adt/itree.h"
+#include "xylo/tgraph.h"
 
 static void path_concat(void *dest, void const *child, void const *parent)
 {

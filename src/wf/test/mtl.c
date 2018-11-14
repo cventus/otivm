@@ -1,17 +1,16 @@
-
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdarg.h>
 
-#include <ok/ok.h>
-#include <ok/io.h>
-#include <gm/misc.h>
-#include <gm/vector.h>
-#include <base/fwd.h>
-#include <base/mem.h>
+#include "ok/ok.h"
+#include "ok/io.h"
+#include "gm/misc.h"
+#include "gm/vector.h"
+#include "base/fwd.h"
+#include "base/mem.h"
+#include "wf/wf.h"
 
-#include "../include/wf.h"
 #include "../private.h"
 
 #define material_field(name) { offsetof(struct wf_material, name), #name }
@@ -288,4 +287,3 @@ struct test const tests[] = {
 	{ parse_many,	"several plausible materials in one file" },
 	{ NULL, NULL }
 };
-

@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <stdalign.h>
 #include <assert.h>
-#include "include/fixpool.h"
+#include "base/fixpool.h"
 
 void fixpool_init(struct fixpool *pool, void *buffer, size_t nmemb, size_t size)
 {

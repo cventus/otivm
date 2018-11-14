@@ -1,4 +1,3 @@
-
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -8,9 +7,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include <base/mem.h>
-
-#include "include/hmap.h"
+#include "base/mem.h"
+#include "adt/hmap.h"
 
 #define MIN_CAP 16
 #define MIN_OFFSET 4

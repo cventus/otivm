@@ -1,6 +1,6 @@
 
 #include <X11/Xlib.h>
-#include <base/mem.h>
+#include "base/mem.h"
 
 #define E(x) { x, #x }
 static struct {

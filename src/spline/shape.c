@@ -8,14 +8,14 @@
 
 #include <stdio.h>
 
-#include <base/gbuf.h>
-#include <base/wbuf.h>
-#include <base/mem.h>
-#include <base/mempool.h>
-#include <adt/ilist.h>
+#include "base/gbuf.h"
+#include "base/wbuf.h"
+#include "base/mem.h"
+#include "base/mempool.h"
+#include "adt/ilist.h"
+#include "spline/shape.h"
+#include "spline/bezier2.h"
 
-#include "include/shape.h"
-#include "include/bezier2.h"
 #include "geometry.h"
 
 #define MAX_SPLIT 10

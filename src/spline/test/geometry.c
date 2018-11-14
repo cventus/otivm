@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
-#include <ok/ok.h>
 
+#include "ok/ok.h"
 #include "test.h"
 #include "../geometry.h"
 

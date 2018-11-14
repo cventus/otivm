@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdarg.h>
-#include <ok/ok.h>
-#include <gm/matrix.h>
 #include <float.h>
 #include <math.h>
 #include <stdlib.h>
 
+#include "ok/ok.h"
+#include "gm/matrix.h"
 #include "../gen/generic.h"
 #include "../gen/matrix.g.h"
 #include "../gen/square-matrix.g.h"
