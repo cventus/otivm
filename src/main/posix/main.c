@@ -1,6 +1,3 @@
-
-#define _XOPEN_SOURCE 500
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -72,7 +69,6 @@ int main(void)
 	if (sigaction(SIGQUIT, &sa, NULL)) {
 		die("sigaction: %s\n", strerror(errno));
 	}
-
 	if (display = XOpenDisplay(NULL), !display) {
 		die("XOpenDisplay");
 	}
@@ -147,4 +143,3 @@ int main(void)
 
 	return 0;
 }
-
