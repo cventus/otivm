@@ -213,7 +213,7 @@ build_makefile_header() {
 
 build_list_tests_target() {
   target_generic list-tests
-    sh_cmd printf '"%s\\n"' $(for MODULE_DIR in $MODULES; do
+    sh_cmd @printf '"%s\\n"' $(for MODULE_DIR in $MODULES; do
       printf ' $(TESTS.%s)' "$(basename $MODULE_DIR)"
     done)
   end_target

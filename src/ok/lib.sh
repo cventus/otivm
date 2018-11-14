@@ -10,7 +10,7 @@ define_ok_test()
 
   local object_="\$(TARGET)/test/$MODULE/obj/$name_.ok.o"
   local binary_="\$(TARGET)/test/$MODULE/bin/$name_"
-  local depend_="\$(TARGET)/make/$MODULE/check/make$name_.d"
+  local depend_="\$(TARGET)/make/$MODULE/ok/make$name_.d"
 
   TESTS="$TESTS $binary_"
 
@@ -20,8 +20,8 @@ define_ok_test()
 
   target_ld "$binary_" "$object_" \
     "\$(TARGET)/lib/lib$MODULE.a" \
-    "\$(TARGET)/lib/libcheck.a" \
-    "\$(TARGET)/make/$MODULE/check\$D"
+    "\$(TARGET)/lib/libok.a" \
+    "\$(TARGET)/make/$MODULE/ok\$D"
 
     ar_cmd "$depend_" "${object_%.o}.d"
     ld_cmd -o "\"$binary_"\" "\"$object_"\" -lok -l$MODULE
