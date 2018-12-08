@@ -1,3 +1,3 @@
 if contains "$TAGS" posix; then
-  SOURCES="$SOURCES $(echo posix/*.c)"
+  define_source posix/*.c
 fi

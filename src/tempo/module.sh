@@ -1,8 +1,8 @@
 # time keeping functionality
-SOURCES=*.c
+define_source *.c
 
 if contains "$TAGS" posix; then
-  SOURCES="$SOURCES $(echo posix/*.c)"
+  define_source posix/*.c
   LDLIBS=-lrt
 fi
 

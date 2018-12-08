@@ -14,16 +14,14 @@ define_ok_test()
 
   TESTS="$TESTS $binary_"
 
-  target_cc "$object_" "$source_"
-    object_cmd "$object_" "$source_" "$@"
-  end_target
+  cc_target "$object_" "$source_"
+    CC_object "$object_" "$source_" "$@"
 
-  target_ld "$binary_" "$object_" \
+  ld_target "$binary_" "$object_" \
     "\$(TARGET)/lib/lib$MODULE.a" \
     "\$(TARGET)/lib/libok.a" \
     "\$(TARGET)/make/$MODULE/ok\$D"
 
-    ar_cmd "$depend_" "${object_%.o}.d"
-    ld_cmd -o "\"$binary_"\" "\"$object_"\" -lok -l$MODULE
-  end_target
+    AR "$depend_" "${object_%.o}.d"
+    LD -o "\"$binary_"\" "\"$object_"\" -lok -l$MODULE
 }

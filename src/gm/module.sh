@@ -5,9 +5,8 @@ define_header() {
   local name_=$1
   local source_="\$(SOURCE)/$MODULE_DIR/$2"
   shift 2
-  target_source $name_ "$source_"
-  cc_cmd -E -C "$@" "$source_" '>$@'
-  end_target
+  new_target "\$(TARGET)/src/$MODULE/$name_" "$source_"
+    CC -E -C "$@" "$source_" '>$@'
 }
 
 define_generic() {
@@ -30,15 +29,14 @@ joined_header() {
       printf " %s$S.h" $pathed_sources
     done
   )
-  target_include gm/$name_.h $suffixed_sources
-  sh_cmd \
+  new_target "\$(TARGET)/include/gm/$name_.h" $suffixed_sources
+  SH \
     "sed -n '/begin gm header/,/end gm header/p' $suffixed_sources | " \
     "sed '/gm header/d' | " \
     "cat \$(SOURCE)/src/$MODULE/${name_}_prefix.h" \
     " - \$(SOURCE)/src/$MODULE/${name_}_suffix.h | " \
     "uniq " \
     '>$@'
-  end_target
 }
 
 # Specialize math functions for the following types 

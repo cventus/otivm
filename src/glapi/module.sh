@@ -2,11 +2,11 @@
 require base adt text gm
 
 LDLIBS="-lGL"
-SOURCES=*.c
+define_source *.c
 
 if contains "$TAGS" glx; then
   LDLIBS="$LDLIBS -lX11"
-  SOURCES="$SOURCES $(echo glx/*.c)"
+  define_source glx/*.c
 fi
 
 define_ok_test test/context.c
