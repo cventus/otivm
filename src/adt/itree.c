@@ -1,9 +1,9 @@
 #include <stddef.h>
 #include <assert.h>
 
-#include <base/mem.h>
-#include "include/ilist.h"
-#include "include/itree.h"
+#include "base/mem.h"
+#include "adt/ilist.h"
+#include "adt/itree.h"
 
 static struct itree *to_sibling(struct ilist *sibling)
 {

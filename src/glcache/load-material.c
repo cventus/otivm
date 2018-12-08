@@ -3,12 +3,12 @@
 #include <stdalign.h>
 #include <assert.h>
 
-#include <wf/wf.h>
-#include <rescache/rescache.h>
+#include "wf/wf.h"
+#include "rescache/rescache.h"
+#include "glapi/core.h"
+#include "glcache/types.h"
+#include "glcache/cache.h"
 
-#include <glapi/core.h>
-#include "include/types.h"
-#include "include/cache.h"
 #include "private.h"
 #include "caches.h"
 #include "decl.h"

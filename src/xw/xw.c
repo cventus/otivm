@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -9,11 +8,10 @@
 #include <X11/XKBlib.h>
 #include <X11/Xutil.h>
 
-#include <base/mem.h>
-#include <base/wbuf.h>
-
-#include "include/xw.h"
-#include "include/delegate.h"
+#include "base/mem.h"
+#include "base/wbuf.h"
+#include "xw/xw.h"
+#include "xw/delegate.h"
 
 #define BASIC_XIM_STYLES (XIMPreeditNothing | XIMStatusNothing )
 

@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "include/token.h"
+#include "text/token.h"
 
 /* Try to read a single token, return zero if no token was found. */
 static int next_token(char **to, char const **scan, int sep)

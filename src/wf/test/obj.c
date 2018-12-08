@@ -1,10 +1,10 @@
-
 #include <stdio.h>
-#include <ok/ok.h>
-#include <ok/io.h>
-#include <gm/misc.h>
-#include <gm/vector.h>
-#include "../include/wf.h"
+
+#include "ok/ok.h"
+#include "ok/io.h"
+#include "gm/misc.h"
+#include "gm/vector.h"
+#include "wf/wf.h"
 
 static void chkidx(unsigned idx, size_t max, size_t group, size_t triangle,
                    size_t vertex, char const *part)
@@ -296,4 +296,3 @@ struct test const tests[] = {
 	{ parse_cube,	"object with materials, vertices, normals, etc." },
 	{ NULL, NULL }
 };
-

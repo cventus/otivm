@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <stdalign.h>
 
-#include <wf/wf.h>
-#include <rescache/rescache.h>
-#include <glapi/core.h>
+#include "wf/wf.h"
+#include "rescache/rescache.h"
+#include "glapi/core.h"
+#include "glcache/types.h"
 
-#include "include/types.h"
 #include "private.h"
 #include "caches.h"
 #include "decl.h"

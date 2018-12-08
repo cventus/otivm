@@ -3,14 +3,14 @@
 #include <stdio.h>
 #include <stdalign.h>
 #include <string.h>
-#include <base/mem.h>
 
-#include <glapi/api.h>
-#include <glapi/core.h>
-#include <glam/program.h>
-#include <gm/matrix.h>
+#include "base/mem.h"
+#include "glapi/api.h"
+#include "glapi/core.h"
+#include "glam/program.h"
+#include "gm/matrix.h"
+#include "xylo/types.h"
 
-#include "include/types.h"
 #include "xylo.h"
 #include "shapes.h"
 #include "private.h"

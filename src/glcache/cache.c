@@ -4,18 +4,17 @@
 #include <assert.h>
 #include <string.h>
 
-#include <base/mem.h>
-#include <text/re.h>
-#include <text/str.h>
-#include <rescache/rescache.h>
-#include <wf/wf.h>
-#include <glapi/core.h>
+#include "base/mem.h"
+#include "text/re.h"
+#include "text/str.h"
+#include "rescache/rescache.h"
+#include "wf/wf.h"
+#include "glapi/core.h"
+#include "glcache/types.h"
 
-#include "include/types.h"
 #include "private.h"
 #include "decl.h"
 #include "shader.h"
-
 #include "caches.h"
 
 #define cache_field(name) \

@@ -1,5 +1,6 @@
 #include <stdint.h>
-#include "include/tempo.h"
+
+#include "tempo/tempo.h"
 
 #define UNPAUSED (~(usec64)0)
 

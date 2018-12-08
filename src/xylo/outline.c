@@ -6,14 +6,13 @@
 #include <string.h>
 #include <math.h>
 
-#include <base/mem.h>
-#include <glapi/api.h>
-#include <glapi/core.h>
+#include "base/mem.h"
+#include "glapi/api.h"
+#include "glapi/core.h"
+#include "spline/shape.h"
+#include "xylo/types.h"
+#include "xylo/shape.h"
 
-#include <spline/shape.h>
-
-#include "include/types.h"
-#include "include/shape.h"
 #include "outline.h"
 #include "private.h"
 #include "types.h"

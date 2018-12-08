@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
-#include <ok/ok.h>
-#include "../include/fixpool.h"
+#include "ok/ok.h"
+#include "base/fixpool.h"
 
 struct person
 {

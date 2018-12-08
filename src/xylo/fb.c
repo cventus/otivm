@@ -1,8 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include <glapi/core.h>
-
+#include "glapi/core.h"
 #include "types.h"
 #include "fb.h"
 

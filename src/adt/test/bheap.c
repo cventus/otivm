@@ -4,11 +4,10 @@
 #include <stdalign.h>
 #include <string.h>
 
-#include <base/mem.h>
-#include <base/wbuf.h>
-#include <ok/ok.h>
-
-#include "../include/bheap.h"
+#include "base/mem.h"
+#include "base/wbuf.h"
+#include "ok/ok.h"
+#include "adt/bheap.h"
 
 static int intcmp(void const *a, void const *b)
 {

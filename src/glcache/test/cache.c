@@ -1,16 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <ok/ok.h>
-#include <base/mem.h>
-#include <rescache/rescache.h>
+#include "ok/ok.h"
+#include "base/mem.h"
+#include "rescache/rescache.h"
+#include "glapi/api.h"
+#include "glapi/core.h"
+#include "glapi/test.h"
+#include "glcache/cache.h"
+#include "glcache/types.h"
 
-#include <glapi/api.h>
-#include <glapi/core.h>
-#include <glapi/test.h>
-
-#include "../include/cache.h"
-#include "../include/types.h"
 #include "../private.h"
 #include "../decl.h"
 #include "../shader.h"

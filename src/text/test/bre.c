@@ -1,12 +1,12 @@
-
 /* Functional tests of re.c */
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ok/ok.h>
-#include "../include/re.h"
+
+#include "ok/ok.h"
+#include "text/re.h"
 
 static void check(char const *re, int matches, char const *text)
 {

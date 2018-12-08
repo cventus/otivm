@@ -6,8 +6,8 @@
 #include <string.h>
 #include <assert.h>
 
-#include "include/gbuf.h"
-#include "include/mem.h"
+#include "base/gbuf.h"
+#include "base/mem.h"
 #define MINSIZE (sizeof(double) * 10)
 #define MINALIGN alignof(max_align_t)
 

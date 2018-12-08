@@ -9,18 +9,16 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 
-#include <adt/hmap.h>
-#include <base/mem.h>
-
-#include "../include/api.h"
-#include "../include/core.h"
+#include "adt/hmap.h"
+#include "base/mem.h"
+#include "glapi/api.h"
+#include "glapi/core.h"
 #include <GL/glx.h>
+#include "glapi/xtypes.h"
+#include "glapi/x.h"
 
-#include "../include/xtypes.h"
-#include "../include/x.h"
 #include "../fwd.h"
 #include "../types.h"
-
 #include "private.h"
 
 static struct glx_config const default_config = {

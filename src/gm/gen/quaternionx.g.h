@@ -18,39 +18,40 @@
 #define qeqe veqe
 #define qeq veq
 
-/* Initialize with identity Identity */
+/* begin gm header */
 #undef qid
 #define qid Q(id)
+/* Initialize with identity Identity */
 T *qid(T dest[static 4]);
 
-/* Create quaternion from axis and angle */
 #undef qaxisangle
 #define qaxisangle Q(axisangle)
+/* Create quaternion from axis and angle */
 T *qaxisangle(T dest[static 4], T angle, T const normal_axis[static 3]);
 
-/* Spherical linear interpolation for time t, with a given angle omega */
 #undef qslerpw
 #define qslerpw Q(slerpw)
+/* Spherical linear interpolation for time t, with a given angle omega */
 T *qslerpw(T dest[static 4], T const q0[static 4], T const q1[static 4],
              T omega, T t);
 
-/* Spherical linear interpolation for time t */
 #undef qslerp
 #define qslerp Q(slerp)
+/* Spherical linear interpolation for time t */
 T *qslerp(T dest[static 4], T const q0[static 4], T const q1[static 4], T t);
 
-/* Quaternion multiplication */
 #undef qmul
 #define qmul Q(mul)
+/* Quaternion multiplication */
 T *qmul(T dest[static 4], T const q0[static 4], T const q1[static 4]);
 
-/* Quaternion conjugate */
 #undef qconj
 #define qconj Q(conj)
+/* Quaternion conjugate */
 T *qconj(T dest[static 4], T const q[static 4]);
 
-/* Rotate 3-vector u with a rotation defined by quaternion q */
 #undef qrot
 #define qrot Q(rot)
+/* Rotate 3-vector u with a rotation defined by quaternion q */
 T *qrot(T dest[static 3], T const u[static 3], T const q[static 4]);
-
+/* end gm header */

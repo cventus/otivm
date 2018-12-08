@@ -1,9 +1,8 @@
-
 #include <stdio.h>
-#include <ok/ok.h>
-#include <gm/matrix.h>
 #include <float.h>
 
+#include "ok/ok.h"
+#include "gm/matrix.h"
 #include "../gen/generic.h"
 #include "../gen/misc.g.h"
 #include "../gen/matrix.g.h"

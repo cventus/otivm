@@ -10,17 +10,15 @@
 #define WIDTH 600
 #define HEIGHT WIDTH
 
-#include <adt/hmap.h>
-
-#include "../include/api.h"
-#include "../include/core.h"
+#include "adt/hmap.h"
+#include "glapi/api.h"
+#include "glapi/core.h"
 #include <GL/glx.h>
+#include "glapi/xtypes.h"
+#include "glapi/x.h"
 
-#include "../include/xtypes.h"
 #include "../fwd.h"
 #include "../types.h"
-#include "../include/x.h"
-
 #include "private.h"
 
 struct gl_test

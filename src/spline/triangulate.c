@@ -10,14 +10,13 @@
 #include <math.h>
 #include <stdalign.h>
 
-#include <base/wbuf.h>
-#include <base/mem.h>
+#include "base/wbuf.h"
+#include "base/mem.h"
+#include "spline/triangulate.h"
 
 #include "geometry.h"
 #include "quadedge.h"
 #include "bits.h"
-
-#include "include/triangulate.h"
 
 typedef unsigned triangle_indices[3];
 

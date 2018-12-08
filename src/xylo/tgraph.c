@@ -5,13 +5,12 @@
 #include <assert.h>
 #include <string.h>
 
-#include <base/mem.h>
-#include <base/wbuf.h>
-#include <base/mempool.h>
-#include <adt/ilist.h>
-#include <adt/itree.h>
-
-#include "include/tgraph.h"
+#include "base/mem.h"
+#include "base/wbuf.h"
+#include "base/mempool.h"
+#include "adt/ilist.h"
+#include "adt/itree.h"
+#include "xylo/tgraph.h"
 
 #define NODE_BLOCK_SIZE 100
 #define TRANSFORM_SPACE_SIZE 200

@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "include/bheap.h"
+#include "adt/bheap.h"
 
 /* return index of the parent (non-root) node `i` */
 static size_t parent(size_t i)

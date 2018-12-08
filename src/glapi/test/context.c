@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <GL/gl.h>
-#include <ok/ok.h>
 
-#include "../include/test.h"
+#include "ok/ok.h"
+#include "glapi/test.h"
 #include "../fwd.h"
 
 int info(void)

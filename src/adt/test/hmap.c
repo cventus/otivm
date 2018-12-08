@@ -1,15 +1,13 @@
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdalign.h>
 #include <string.h>
 
-#include <base/mem.h>
-#include <base/wbuf.h>
-#include <ok/ok.h>
-
-#include "../include/hmap.h"
+#include "base/mem.h"
+#include "base/wbuf.h"
+#include "ok/ok.h"
+#include "adt/hmap.h"
 
 static void make_key(char *buf, size_t size, int i)
 {

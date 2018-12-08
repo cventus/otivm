@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "../include/ok.h"
+#include "ok/ok.h"
 
 FILE *open_str(char const *string)
 {

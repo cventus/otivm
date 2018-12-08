@@ -1,12 +1,10 @@
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdalign.h>
 #include <assert.h>
 
-#include <base/mem.h>
-
-#include "include/rescache.h"
+#include "base/mem.h"
+#include "rescache/rescache.h"
 
 typedef int ctor(void const *key, size_t key_size, void *data, void *link);
 typedef void dtor(void const *key, size_t key_size, void *data, void *link);
@@ -277,4 +275,3 @@ void rescache_unload(struct rescache *cache, void const *data)
 		free_res(cache, res);
 	}
 }
-

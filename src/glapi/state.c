@@ -3,10 +3,9 @@
 #include <setjmp.h>
 #include <stdlib.h>
 
-#include <gm/vector.h>
-
-#include "include/api.h"
-#include "include/core.h"
+#include "gm/vector.h"
+#include "glapi/api.h"
+#include "glapi/core.h"
 #include "types.h"
 #include "fwd.h"
 

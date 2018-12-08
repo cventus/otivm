@@ -1,4 +1,4 @@
-#include "include/core.h"
+#include "glapi/core.h"
 
 struct gl_api;
 

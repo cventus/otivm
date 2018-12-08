@@ -1,6 +1,3 @@
-
-#define _XOPEN_SOURCE 500
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -18,14 +15,14 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 
-#include <xw/xw.h>
-#include <xw/delegate.h>
-#include <glapi/x.h>
-#include <glapi/xtypes.h>
+#include "xw/xw.h"
+#include "xw/delegate.h"
+#include "glapi/x.h"
+#include "glapi/xtypes.h"
+#include "text/token.h"
 
 #include "window.h"
 
-#include <text/token.h>
 
 sig_atomic_t signum;
 sig_atomic_t has_signal = 0;
@@ -72,7 +69,6 @@ int main(void)
 	if (sigaction(SIGQUIT, &sa, NULL)) {
 		die("sigaction: %s\n", strerror(errno));
 	}
-
 	if (display = XOpenDisplay(NULL), !display) {
 		die("XOpenDisplay");
 	}
@@ -147,4 +143,3 @@ int main(void)
 
 	return 0;
 }
-

@@ -4,9 +4,9 @@
 #include <stdalign.h>
 #include <stddef.h>
 
-#include <ok/ok.h>
-#include <base/gbuf.h>
-#include <base/mem.h>
+#include "ok/ok.h"
+#include "base/gbuf.h"
+#include "base/mem.h"
 
 #define assert_streq(a, b) assert_streq_(a, b, strlen(b))
 static void assert_streq_(char const *a, char const *b, size_t n)

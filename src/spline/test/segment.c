@@ -2,10 +2,11 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <math.h>
-#include <ok/ok.h>
-#include <gm/misc.h>
-#include <gm/vector.h>
-#include <base/mem.h>
+
+#include "ok/ok.h"
+#include "gm/misc.h"
+#include "gm/vector.h"
+#include "base/mem.h"
 
 #include "test.h"
 #include "../geometry.h"

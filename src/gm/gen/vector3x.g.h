@@ -8,8 +8,9 @@
 #include "vector.h"
 #endif
 
-/* Cross-product w = u x v */
+/* begin gm header */
 #undef vcross
 #define vcross V(cross)
+/* Cross-product w = u x v */
 T *vcross(T w[static L], T const u[static L], T const v[static L]);
-
+/* end gm header */

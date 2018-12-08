@@ -1,4 +1,3 @@
-
 #define _XOPEN_SOURCE 500
 
 #include <stdlib.h>
@@ -11,7 +10,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <ok/ok.h>
+
+#include "ok/ok.h"
 #include "private.h"
 #include "check.h"
 
@@ -65,7 +65,7 @@ static int is_listed(int id, char *ids[], int n_ids, int invert, size_t m)
 
 	for (i = 0; i < n_ids; i++) {
 		val = strtol(ids[i], &end, 0);
-		if (ids[i] == '\0' || *end != '\0') {
+		if (*ids[i] == '\0' || *end != '\0') {
 			val = match_description(ids[i]);
 			if (val < 0) {
 				die("no such test: \"%s\"\n", ids[i]);

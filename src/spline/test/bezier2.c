@@ -1,12 +1,10 @@
-
 #include <stdio.h>
 #include <stddef.h>
 #include <math.h>
 
-#include <ok/ok.h>
-#include <gm/misc.h>
-
-#include "../include/bezier2.h"
+#include "ok/ok.h"
+#include "gm/misc.h"
+#include "spline/bezier2.h"
 
 static int endpoints(void)
 {

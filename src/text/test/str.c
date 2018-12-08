@@ -1,9 +1,9 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ok/ok.h>
-#include "../include/str.h"
+
+#include "ok/ok.h"
+#include "text/str.h"
 
 void check_prefix(char *str, char const *example)
 {

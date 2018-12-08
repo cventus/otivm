@@ -2,11 +2,11 @@
 #include <string.h>
 #include <stdalign.h>
 
-#include <rescache/rescache.h>
-#include <glapi/core.h>
+#include "rescache/rescache.h"
+#include "glapi/core.h"
+#include "glcache/types.h"
+#include "glcache/cache.h"
 
-#include "include/types.h"
-#include "include/cache.h"
 #include "caches.h"
 #include "private.h"
 #include "shader.h"

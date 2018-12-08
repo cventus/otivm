@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "include/wbuf.h"
-#include "include/fixpool.h"
-#include "include/mempool.h"
+#include "base/wbuf.h"
+#include "base/fixpool.h"
+#include "base/mempool.h"
 
 void mempool_init(struct mempool *pool, size_t buffer_nmemb, size_t size)
 {

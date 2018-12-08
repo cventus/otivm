@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <fs/file.h>
+#include "fs/file.h"
+#include "glapi/api.h"
+#include "glapi/core.h"
+#include "glcache/types.h"
 
-#include <glapi/api.h>
-#include <glapi/core.h>
-#include "include/types.h"
 #include "private.h"
 #include "decl.h"
 #include "shader.h"

@@ -1,8 +1,8 @@
 #include <stdlib.h>
 
-#include <ok/ok.h>
-#include "../include/wbuf.h"
-#include "../include/mempool.h"
+#include "ok/ok.h"
+#include "base/wbuf.h"
+#include "base/mempool.h"
 
 struct person
 {

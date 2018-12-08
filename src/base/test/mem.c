@@ -1,11 +1,10 @@
-
 #include <stdio.h>
 #include <assert.h>
 #include <stdalign.h>
 #include <stdbool.h>
 
-#include <ok/ok.h>
-#include <base/mem.h>
+#include "ok/ok.h"
+#include "base/mem.h"
 
 static void check_po2(size_t val, bool expect)
 {
@@ -75,4 +74,3 @@ struct test const tests[] = {
 
 	{ NULL, NULL }
 };
-

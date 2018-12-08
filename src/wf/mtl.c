@@ -6,11 +6,11 @@
 #include <stddef.h>
 #include <assert.h>
 
-#include <base/list.h>
-#include <base/wbuf.h>
-#include <base/mem.h>
+#include "base/list.h"
+#include "base/wbuf.h"
+#include "base/mem.h"
 
-#include "include/wf.h"
+#include "wf/wf.h"
 #include "private.h"
 
 /*

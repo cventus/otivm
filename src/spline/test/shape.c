@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <math.h>
-#include <ok/ok.h>
 
+#include "ok/ok.h"
+#include "spline/shape.h"
 #include "test.h"
-#include "../include/shape.h"
 
 #define check(cond) do { if (!(cond)) fail_test(#cond " failed\n"); } while (0)
 

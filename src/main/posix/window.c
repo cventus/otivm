@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <X11/Xlib.h>
@@ -6,10 +5,10 @@
 #include <GL/glx.h>
 #include <assert.h>
 
-#include <glapi/x.h>
-#include <xw/xw.h>
-#include <xw/delegate.h>
-#include <base/mem.h>
+#include "glapi/x.h"
+#include "xw/xw.h"
+#include "xw/delegate.h"
+#include "base/mem.h"
 
 #include "window.h"
 
@@ -95,4 +94,3 @@ static void destroy(void *context)
 {
 	free(context);
 }
-

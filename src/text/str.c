@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stdarg.h>
 
-#include "include/str.h"
-#include "include/vstr.h"
+#include "text/str.h"
+#include "text/vstr.h"
 
 /* Return a `malloc`'d copy of the first `len` characters from `src`. If the
    length of `src` is less than `len`, `src` is simply copied (possibly wasting

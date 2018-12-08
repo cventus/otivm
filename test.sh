@@ -37,9 +37,9 @@ TEST_PATTERN="$@"
 PATTERNS=
 if [ "$#" -ge 1 ]; then
   for PAT in "$@"; do PATTERNS="$PATTERNS -e $PAT"; done
-  TESTS=$(make list-tests | grep $PATTERNS)
+  TESTS=$(./ms target:test/**/bin | grep $PATTERNS)
 else
-  TESTS=$(make list-tests)
+  TESTS=$(./ms target:test/**/bin)
 fi
 
 parsetest() {
@@ -49,7 +49,7 @@ parsetest() {
 
 compile() {
   COMPILE_TESTS=$(echo "$TESTS" | while read TEST; do
-    if ! make -q "$TEST"; then
+    if ! ./ms -q "$TEST"; then
       echo $TEST
     fi
   done)
@@ -63,7 +63,7 @@ compile() {
       do
         BUILD_OUT=$TEST.build
         mkdir -p $(dirname "$BUILD_OUT")
-        if make "$TEST" >"$BUILD_OUT" 2>&1; then
+        if ./ms "$TEST" >"$BUILD_OUT" 2>&1; then
           echo "ok $ID $TEST"
         else
           echo "not ok $ID $TEST"

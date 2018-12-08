@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-#include <base/wbuf.h>
+#include "base/wbuf.h"
 
 #include "geometry.h"
 #include "quadedge.h"

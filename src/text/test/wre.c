@@ -1,11 +1,11 @@
-
 /* Internal tests for re.c */
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ok/ok.h>
+
+#include "ok/ok.h"
 
 /* Include source to insert static functions into this translation unit. When
    building this test the module should be linked against on the library level

@@ -1,12 +1,12 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include <glapi/api.h>
-#include <glapi/core.h>
-#include <glam/program.h>
+#include "glapi/api.h"
+#include "glapi/core.h"
+#include "glam/program.h"
+#include "xylo/types.h"
+#include "xylo/xylo.h"
 
-#include "include/types.h"
-#include "include/xylo.h"
 #include "private.h"
 #include "types.h"
 #include "xylo.h"
