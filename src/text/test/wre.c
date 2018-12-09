@@ -77,7 +77,7 @@ static void assert_quantifier_error(char const *p)
 	assert_quantifier(p, -1, 0, 0, 0, 0);
 }
 
-static int test_quant(void)
+int test_parse_quantifiers(void)
 {
 	/* Missing quantifier */
 	assert_quantifier("abc", 0, 1, 1, 0, GREEDY);
@@ -117,7 +117,7 @@ static int test_quant(void)
 	return ok;
 }
 
-static int test_class(void)
+int test_character_classes(void)
 {
 	int res;
 	matchfn *match;
@@ -146,7 +146,7 @@ static void assert_no_end_anchor(char const *str)
 	if (has_end_anchor(str)) { ok = -1; }
 }
 
-static int test_dollar(void)
+int test_end_of_string(void)
 {
 	assert_end_anchor("$");
 	assert_end_anchor("abc$");
@@ -158,11 +158,3 @@ static int test_dollar(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ test_quant, "parse quantifiers" },
-	{ test_class, "character classes" },
-	{ test_dollar, "test end of string" },
-	{ NULL, NULL }
-};
-

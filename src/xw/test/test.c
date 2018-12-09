@@ -432,7 +432,7 @@ static int create_window_(struct xw_state *state, Display *display)
 	return ok;
 }
 
-static int create_window(void)
+int test_create_a_window(void)
 {
 	return test_common(create_window_);
 }
@@ -469,7 +469,7 @@ static int close_window_(struct xw_state *state, Display *display)
 
 }
 
-static int close_window(void)
+int test_close_a_window_through_WM_messages(void)
 {
 	return test_common(close_window_);
 }
@@ -488,16 +488,8 @@ static int interactive_(struct xw_state *state, Display *display)
 	return ok;
 }
 
-static int interactive(void)
+int test_key_presses(void)
 {
 	interactive_test(NULL);
 	return test_common(interactive_);
 }
-
-struct test const tests[] = {
-	{ create_window, "create a window" },
-	{ close_window, "close a window through WM messages" },
-	{ interactive, "key presses" },
-
-	{ NULL, NULL }
-};

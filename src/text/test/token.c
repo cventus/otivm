@@ -46,13 +46,13 @@ static int assert_tokens(const char *line, int n, ...)
 	return result;
 }
 
-static int empty(void)
+int test_empty_strings(void)
 {
 	assert_tokens("", 0);
 	return ok;
 }
 
-static int space(void)
+int test_nothing_but_whitespace(void)
 {
 	assert_tokens(" ", 0);
 	assert_tokens("\t", 0);
@@ -61,7 +61,7 @@ static int space(void)
 	return ok;
 }
 
-static int single(void)
+int test_single_token(void)
 {
 	assert_tokens("a", 1, "a");
 	assert_tokens("abc", 1, "abc");
@@ -73,7 +73,7 @@ static int single(void)
 	return ok;
 }
 
-static int several(void)
+int test_several_tokens(void)
 {
 	assert_tokens("a b", 2, "a", "b");
 	assert_tokens("abc def ghi", 3, "abc", "def", "ghi");
@@ -81,7 +81,7 @@ static int several(void)
 	return ok;
 }
 
-static int quotes(void)
+int test_strings_with_quotes(void)
 {
 	assert_tokens("\"", 0);
 	assert_tokens("   \"", 0);
@@ -97,7 +97,7 @@ static int quotes(void)
 	return ok;
 }
 
-static int escape(void)
+int test_strings_with_escaped_quotes_and_spaces(void)
 {
 	assert_tokens("\\", 0);
 	assert_tokens("  \\", 0);
@@ -110,14 +110,3 @@ static int escape(void)
 	              "foo\"bar\"", "\"hello", "world\"");
 	return ok;
 }
-
-struct test const tests[] = {
-	{ empty,	"empty strings" },
-	{ space,	"nothing but whitespace" },
-	{ single,	"single token" },
-	{ several,	"several tokens" },
-	{ quotes,	"strings with quotes" },
-	{ escape,	"strings with escaped quotes and spaces" },
-	{ NULL,	NULL }
-};
-

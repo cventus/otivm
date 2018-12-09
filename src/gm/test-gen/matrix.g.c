@@ -43,7 +43,7 @@ static int assert_unequal(T const a[static M*N], T const b[static M*N])
 	}
 }
 
-static int test_id(void)
+int test_id_should_produce_the_identity_matrix(void)
 {
 	int i, j;
 	T mat[M*N], *p;
@@ -57,7 +57,7 @@ static int test_id(void)
 	return ok;
 }
 
-static int test_zero(void)
+int test_zero_should_produce_a_zero_matrix(void)
 {
 	int i;
 	T mat[M*N];
@@ -70,7 +70,7 @@ static int test_zero(void)
 	return ok;
 }
 
-static int test_eq(void)
+int test_matrix_equality_and_inequality(void)
 {
 	T mat[M*N], eps[M*N], rel[M*N], fuzzy[M*N];
 	T const factor[] = { LIT(1.5), LIT(-1.5) };
@@ -114,7 +114,7 @@ static int test_eq(void)
 	return ok;
 }
 
-static int test_copy(void)
+int test_copy_a_matrix(void)
 {
 	int i;
 	T a[M*N], b[M*N], c[M*N];
@@ -136,7 +136,7 @@ static int test_copy(void)
 	return ok;
 }
 
-static int test_transp(void)
+int test_matrix_transpose(void)
 {
 	int i, j;
 	T mat[M*N], t[M*N], tt[M*N];
@@ -157,13 +157,3 @@ static int test_transp(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ test_id,	"produces the identity matrix" },
-	{ test_zero,	"produces a zero matrix" },
-	{ test_eq,	"matrix equality and inequality" },
-	{ test_copy,	"copy a matrix" },
-	{ test_transp,	"matrix transpose" },
-	{ NULL, NULL }
-};
-

@@ -6,7 +6,7 @@
 #include "test.h"
 #include "../geometry.h"
 
-static int winding_order(void)
+int test_winding_order_of_points(void)
 {
 	typedef float xy[XY];
 
@@ -20,7 +20,7 @@ static int winding_order(void)
 	return ok;
 }
 
-static int test_in_circle(void)
+int test_points_inside_and_outside_a_circle(void)
 {
 	typedef float xy[XY];
 
@@ -45,7 +45,7 @@ static int test_in_circle(void)
 	return ok;
 }
 
-static int signed_distance(void)
+int test_signed_distance_from_point_to_line(void)
 {
 	/* ascending line y = x - 4 */
 	float2 p0 = { 2.0f, -2.0f };
@@ -64,11 +64,3 @@ static int signed_distance(void)
 #undef dist
 	return ok;
 }
-
-struct test const tests[] = {
-	{ winding_order, "winding order of points" },
-	{ test_in_circle, "points inside and outside a circle" },
-	{ signed_distance, "signed distance from point to line" },
-
-	{ NULL, NULL }
-};

@@ -100,7 +100,7 @@ static const T scale[2*2] = {
 	LIT(0.0), LIT(5.0)
 };
 
-static int test_det(void)
+int test_determinant(void)
 {
 	static const T dmat[2*2] = {
 		LIT(6.0), LIT(4.0),
@@ -163,7 +163,7 @@ static int test_det(void)
 	return ok;
 }
 
-static int test_trace(void)
+int test_trace(void)
 {
 	static struct { const T (*matrix)[2*2], tr; } const examples[] = {
 		{ &identity, LIT(2.0) },
@@ -188,7 +188,7 @@ static int test_trace(void)
 	return ok;
 }
 
-static int test_inv(void)
+int test_invert_matrix(void)
 {
 	static const T (*invertible_matrices[])[2*2] = {
 		&identity,
@@ -212,7 +212,7 @@ static int test_inv(void)
 	return ok;
 }
 
-static int test_rot(void)
+int test_rotation_matrix(void)
 {
 	T mat[2*2];
 	mrot(mat, acosM(LIT(-1.0))/4);
@@ -220,7 +220,7 @@ static int test_rot(void)
 	return ok;
 }
 
-static int test_mul(void)
+int test_matrix_multiplication(void)
 {
 	T rot22[2*2], rot45[2*2];
 	mrot(rot22, acosM(LIT(-1.0))/8);
@@ -228,13 +228,3 @@ static int test_mul(void)
 	assert_equal(rot45, rot_45, 0);
 	return ok;
 }
-
-struct test const tests[] = {
-	{ test_det,	"determinant" },
-	{ test_trace,	"trace" },
-	{ test_inv,	"inverse" },
-	{ test_rot,	"make x-axis rotation matrix" },
-	{ test_mul,	"matrix multiplication" },
-
-	{ NULL, NULL }
-};

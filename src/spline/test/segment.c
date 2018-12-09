@@ -11,7 +11,7 @@
 #include "test.h"
 #include "../geometry.h"
 
-static int test_create(void)
+int test_create(void)
 {
 	struct lseg2d s;
 
@@ -107,25 +107,25 @@ static void intersect(
 	}
 }
 
-static int test_intersect_short_segments(void)
+int test_intersect_short_segments(void)
 {
 	intersect(600, 1e-3, 1e-4f, 1e-4f, 0.103f, 0.103f);
 	return ok;
 }
 
-static int test_intersect_short_and_long_segments(void)
+int test_intersect_short_and_long_segments(void)
 {
 	intersect(600, 1e-3, 1e-3f, 1e3f, 2.f, -2.f);
 	return ok;
 }
 
-static int test_intersect_long_segments(void)
+int test_intersect_long_segments(void)
 {
 	intersect(600, 1e-3, 1e4f, 1e4f, 42.f, 42.f);
 	return ok;
 }
 
-static int test_nonintersecting_end_points(void)
+int test_nonintersecting_end_points(void)
 {
 	struct lseg2d s0, s1;
 	float p[2];
@@ -151,13 +151,3 @@ static int test_nonintersecting_end_points(void)
 	}
 	return ok;
 }
-
-struct test const tests[] = {
-	{ test_create, "create" },
-	{ test_intersect_short_segments, "test intersect short segments" },
-	{ test_intersect_short_and_long_segments, "intersect short and long segments" },
-	{ test_intersect_long_segments, "test intersect long segments" },
-	{ test_nonintersecting_end_points, "nonintersecting end points" },
-
-	{ NULL, NULL }
-};

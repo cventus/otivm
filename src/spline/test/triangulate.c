@@ -105,7 +105,7 @@ nomem:		fail_test("memory allocation failed");
 	return a;
 }
 
-static int test_triangulate(void)
+int test_triangulate_points(void)
 {
 	size_t i;
 	struct triangle_set *t;
@@ -163,7 +163,7 @@ static int test_triangulate(void)
 	return ok;
 }
 
-static int test_triangulate_polygon(void)
+int test_triangulate_polygon(void)
 {
 	struct eset set;
 	eref edge;
@@ -286,7 +286,7 @@ static int test_triangulate_polygon(void)
 	return ok;
 }
 
-static int test_apply_constraints(void)
+int test_apply_constraints(void)
 {
 	enum { A, B, C, D, E, F, G, H, I, J };
 
@@ -348,11 +348,3 @@ static int test_apply_constraints(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ test_triangulate, "triangulate points" },
-	{ test_triangulate_polygon, "triangulate polygons" },
-	{ test_apply_constraints, "apply constraints" },
-
-	{ NULL, NULL }
-};
