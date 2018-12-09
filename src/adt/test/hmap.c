@@ -15,7 +15,7 @@ static void make_key(char *buf, size_t size, int i)
 	buf[size - 1] = '\0';
 }
 
-static int make(void)
+int test_make_create_and_destroy_various_hash_maps(void)
 {
 	struct hmap hm;
 
@@ -31,7 +31,7 @@ static int make(void)
 	return ok;
 }
 
-static int addval(void)
+int test_make_insert_a_value(void)
 {
 	struct hmap hm;
 	int *p, *q;
@@ -50,7 +50,7 @@ static int addval(void)
 	return ok;
 }
 
-static int addvals(void)
+int test_make_insert_several_values(void)
 {
 	char key[100];
 	struct hmap hm;
@@ -85,7 +85,7 @@ static int addvals(void)
 	return ok;
 }
 
-static int remval(void)
+int test_make_insert_and_remove_a_value(void)
 {
 	struct hmap hm;
 
@@ -98,7 +98,7 @@ static int remval(void)
 	return ok;
 }
 
-static int remvals(void)
+int test_make_add_and_remove_many_values(void)
 {
 	char key[100];
 	struct hmap hm;
@@ -125,7 +125,7 @@ static int remvals(void)
 	return ok;
 }
 
-static int simulation(void)
+int test_make_insertions_lookups_and_removals_in_random_order(void)
 {
 	struct hmap hm;
 	size_t i, n_values;
@@ -202,7 +202,7 @@ static int simulation(void)
 	return ok;
 }
 
-static int traverse(void)
+int test_make_insert_values_and_traverse_over_them(void)
 {
 	struct hmap hm;
 	struct hmap_bucket *p;
@@ -269,7 +269,7 @@ static int traverse(void)
 	return ok;
 }
 
-static int load_factor(void)
+int test_make_average_load_factor_before_rehashing(void)
 {
 	long i, max;
 	size_t cap, newcap, j, n;
@@ -309,17 +309,3 @@ static int load_factor(void)
 	wbuf_term(&results);
 	return ok;
 }
-
-struct test const tests[] = {
-	{ make, "create and destroy various hash maps" },
-	{ addval, "insert a value" },
-	{ addvals, "insert several values" },
-	{ remval, "insert and remove a value" },
-	{ remvals, "add and remove many values" },
-	{ simulation, "insertions, lookups and removals in random order" },
-	{ traverse, "insert values and traverse over them" },
-	{ load_factor, "average load factor before rehashing" },
-
-	{ NULL, NULL }
-};
-

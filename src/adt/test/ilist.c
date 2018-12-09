@@ -35,7 +35,7 @@ e0null:		if (right == null) { break; }
 	return result;
 }
 
-static int test_check_fail(void)
+int test_check_fail(void)
 {
 	struct ilist a, b, c, d;
 
@@ -52,14 +52,14 @@ static int test_check_fail(void)
 	return 0;
 }
 
-static int linit(void)
+int test_initialize_linear_lists(void)
 {
 	struct ilist node;
 	llist_init(&node);
 	return check_linkage(null, &node, null);
 }
 
-static int linsert_next(void)
+int test_insert_a_linear_node_after_another(void)
 {
 	struct ilist a, b, c;
 	llist_init(&a);
@@ -68,7 +68,7 @@ static int linsert_next(void)
 	return check_linkage(null, &a, &b, &c, null);
 }
 
-static int lsingleton(void)
+int test_a_single_element_linear_list_is_a_singleton(void)
 {
 	struct ilist a, b;
 	llist_init(&a);
@@ -79,7 +79,7 @@ static int lsingleton(void)
 	return 0;
 }
 
-static int linsert_prev(void)
+int test_insert_a_linear_node_before_another(void)
 {
 	struct ilist a, b, c;
 	llist_init(&a);
@@ -88,7 +88,7 @@ static int linsert_prev(void)
 	return check_linkage(null, &c, &b, &a, null);
 }
 
-static int lcreate_list(void)
+int test_create_a_linear_lists(void)
 {
 	struct ilist a, b, c, d, e;
 	llist_init(&b);
@@ -99,7 +99,7 @@ static int lcreate_list(void)
 	return check_linkage(null, &a, &b, &c, &d, &e, null);
 }
 
-static int llength(void)
+int test_length_of_linear_list(void)
 {
 	struct ilist a, b, c;
 
@@ -115,7 +115,7 @@ static int llength(void)
 	return 0;
 }
 
-static int lswap_order(void)
+int test_swap_order_of_elements_within_a_linear_list(void)
 {
 	struct ilist a, b, c, d;
 
@@ -144,7 +144,7 @@ static int lswap_order(void)
 	return 0;
 }
 
-static int lswap_lists(void)
+int test_swap_elements_between_linear_lists(void)
 {
 	struct ilist a0, a1, a2;
 	struct ilist b0, b1, b2;
@@ -168,7 +168,7 @@ static int lswap_lists(void)
 	return 0;
 }
 
-static int lremove(void)
+int test_remove_elements_from_linear_lists(void)
 {
 	struct ilist a, b, c;
 
@@ -204,14 +204,14 @@ static int lremove(void)
 }
 
 
-static int cinit(void)
+int test_initialize_circular_lists(void)
 {
 	struct ilist node;
 	clist_init(&node);
 	return check_linkage(&node, &node);
 }
 
-static int cinsert_next(void)
+int test_insert_a_circular_node_after_another(void)
 {
 	struct ilist a, b;
 	clist_init(&a);
@@ -219,7 +219,7 @@ static int cinsert_next(void)
 	return check_linkage(&a, &b, &a);
 }
 
-static int csingleton(void)
+int test_a_single_element_circular_list_is_a_singleton(void)
 {
 	struct ilist a, b;
 	clist_init(&a);
@@ -230,7 +230,7 @@ static int csingleton(void)
 	return 0;
 }
 
-static int cinsert_prev(void)
+int test_insert_a_circular_node_before_another(void)
 {
 	struct ilist a, b;
 	clist_init(&a);
@@ -238,7 +238,7 @@ static int cinsert_prev(void)
 	return check_linkage(&a, &b, &a);
 }
 
-static int ccreate_list(void)
+int test_create_a_circular_lists(void)
 {
 	struct ilist a, b, c, d, e;
 	clist_init(&b);
@@ -249,7 +249,7 @@ static int ccreate_list(void)
 	return check_linkage(&a, &b, &c, &d, &e, &a);
 }
 
-static int clength(void)
+int test_length_of_circular_list(void)
 {
 	struct ilist a, b, c;
 
@@ -265,7 +265,7 @@ static int clength(void)
 	return 0;
 }
 
-static int cswap_order(void)
+int test_swap_order_of_elements_within_a_circular_list(void)
 {
 	struct ilist a, b, c, d;
 
@@ -286,7 +286,7 @@ static int cswap_order(void)
 	return 0;
 }
 
-static int cswap_lists(void)
+int test_swap_elements_between_circular_lists(void)
 {
 	struct ilist a0, a1, a2;
 	struct ilist b0, b1, b2;
@@ -310,7 +310,7 @@ static int cswap_lists(void)
 	return 0;
 }
 
-static int cremove(void)
+int test_remove_elements_from_circular_lists(void)
 {
 	struct ilist a, b, c;
 
@@ -327,29 +327,3 @@ static int cremove(void)
 
 	return 0;
 }
-
-struct test const tests[] = {
-	{ test_check_fail, "test function" },
-
-	{ linit, "initialize linear lists" },
-	{ linsert_next, "insert a linear node after another" },
-	{ lsingleton, "a single element linear list is a singleton" },
-	{ linsert_prev, "insert a linear node before another" },
-	{ lcreate_list, "create a linear lists" },
-	{ llength, "length of linear list" },
-	{ lswap_order, "swap order of elements within a linear list" },
-	{ lswap_lists, "swap elements between linear lists" },
-	{ lremove, "remove elements from linear lists" },
-
-	{ cinit, "initialize circular lists" },
-	{ cinsert_next, "insert a circular node after another" },
-	{ csingleton, "a single element circular list is a singleton" },
-	{ cinsert_prev, "insert a circular node before another" },
-	{ ccreate_list, "create a circular lists" },
-	{ clength, "length of circular list" },
-	{ cswap_order, "swap order of elements within a circular list" },
-	{ cswap_lists, "swap elements between circular lists" },
-	{ cremove, "remove elements from circular lists" },
-
-	{ NULL, NULL }
-};
