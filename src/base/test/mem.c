@@ -29,7 +29,7 @@ static void check_align(size_t o, size_t a, size_t e)
 	}
 }
 
-static int power_of_two(void)
+int test_power_of_two(void)
 {
 	check_po2( 0, false);
 	check_po2( 1, true);
@@ -53,7 +53,7 @@ static int power_of_two(void)
 	return ok;
 }
 
-static int align(void)
+int test_align(void)
 {
 	check_align(0, 4, 0);
 	check_align(1, 4, 4);
@@ -67,10 +67,3 @@ static int align(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ power_of_two,	"power of two" },
-	{ align, 	"align byte offset" },
-
-	{ NULL, NULL }
-};

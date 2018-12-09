@@ -5,6 +5,8 @@
 #include "ok/ok.h"
 #include "base/wbuf.h"
 
+static struct wbuf buf;
+
 static void assert_sizes(struct wbuf const *buf)
 {
 	size_t capacity, used, available;
@@ -96,25 +98,27 @@ static void *try_write(struct wbuf *buf, void const *data, size_t size)
 	return result;
 }
 
-static int init(void)
+void before_each_test(void)
 {
-	struct wbuf buf;
-
 	wbuf_init(&buf);
+}
+
+void after_each_test(void)
+{
+	wbuf_term(&buf);
+}
+
+int test_initial_conditions(void)
+{
 	assert_used(&buf, 0);
 	assert_available(&buf, 0);
 	assert_capacity(&buf, 0);
-	wbuf_term(&buf);
 
 	return ok;
 }
 
-static int reserve(void)
+int test_reserve_memory(void)
 {
-	struct wbuf buf;
-
-	wbuf_init(&buf);
-	
 	assert_capacity(&buf, 0);
 	assert_sizes(&buf);
 	try_reserve(&buf, 100);
@@ -135,12 +139,9 @@ static int reserve(void)
 	return ok;
 }
 
-static int alloc(void)
+int test_memory_allocation(void)
 {
-	struct wbuf buf;
 	size_t i;
-
-	wbuf_init(&buf);
 	
 	for (i = 1; i <= 100; i++) {
 		try_alloc(&buf, 100);
@@ -155,14 +156,11 @@ static int alloc(void)
 	return ok;
 }
 
-static int write(void)
+int test_write(void)
 {
-	struct wbuf buf;
 	size_t i, len;
 
 	char const *data = "hello, world";
-
-	wbuf_init(&buf);
 	
 	for (i = 0, len = strlen(data); i < len; i++) {
 		try_write(&buf, data + i, 1);
@@ -185,14 +183,11 @@ static int write(void)
 	return ok;
 }
 
-static int copy(void)
+int test_copy(void)
 {
-	struct wbuf buf;
 	size_t i;
 	int const data[6] = { -1, 0, 1, 2, 3, 4 };
 	int target[6];
-
-	wbuf_init(&buf);
 	
 	for (i = 0; i < 6; i++) {
 		try_write(&buf, data + i, sizeof(data[i]));
@@ -221,19 +216,16 @@ static int copy(void)
 	return ok;
 }
 
-static int align(void)
+int test_align_the_next_allocation(void)
 {
 	/* This test might end with a unaligned memory access error on some
 	   systems, if the implementaiton is faulty. Otherwise at least
 	   valgrind should notice if something's wrong. */
-	struct wbuf buf;
 	char c = 1;
 	short int s = 2;
 	int i = 3;
 	long int l = 4;
 	double d = 5;
-
-	wbuf_init(&buf);
 
 	if (wbuf_align(&buf, alignof(c))) { fail_test("out of memory\n"); }
 	wbuf_write(&buf, &c, sizeof c);
@@ -250,18 +242,5 @@ static int align(void)
 	if (wbuf_align(&buf, alignof(d))) { fail_test("out of memory\n"); }
 	wbuf_write(&buf, &d, sizeof d);
 
-	wbuf_term(&buf);
-
 	return ok;
 }
-
-struct test const tests[] = {
-	{ init, 	"Initialization" },
-	{ reserve, 	"Memory reservation" },
-	{ alloc, 	"Memory allocation" },
-	{ write, 	"Writing data" },
-	{ copy, 	"Copying data" },
-	{ align, 	"Align write pointer" },
-	{ NULL, NULL }
-};
-

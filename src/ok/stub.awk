@@ -4,14 +4,14 @@ function on_symbol(name) { return $2 ~ name && $3 == "T"; }
 
 function stub_unless(name, state) {
   if (!state) {
-    printf("int %s(void) { return 0; }\n", name);
+    printf("void %s(void) { return; }\n", name);
   }
 }
 
-on_symbol("^before_all$") { before = 1; }
-on_symbol("^after_all$") { after = 1; }
-on_symbol("^before_each$") { before_each = 1; }
-on_symbol("^after_each$") { after_each = 1; }
+on_symbol("^before_tests$") { before = 1; }
+on_symbol("^after_tests$") { after = 1; }
+on_symbol("^before_each_test$") { before_each = 1; }
+on_symbol("^after_each_test$") { after_each = 1; }
 on_symbol("^test_") { tests[n++] = $2; }
 
 END {
@@ -31,8 +31,8 @@ END {
     printf("\t{ %s, \"%s\" },\n", name, desc);
   }
   printf("\t{ 0, 0 }\n};\n\n");
-  stub_unless("before_all", before);
-  stub_unless("after_all", after);
-  stub_unless("before_each", before_each);
-  stub_unless("after_each", after_each);
+  stub_unless("before_tests", before);
+  stub_unless("after_tests", after);
+  stub_unless("before_each_test", before_each);
+  stub_unless("after_each_test", after_each);
 }

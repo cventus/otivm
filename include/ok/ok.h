@@ -20,6 +20,11 @@ void interactive_test(char const *fmt, ...);
    command line flag). */
 int is_test_interactive(void);
 
+void before_tests(void);
+void after_tests(void);
+void before_each_test(void);
+void after_each_test(void);
+
 /* Test structure, and test array. Define this in your tests and terminate it
    with { NULL, NULL }. */
 extern struct test {
