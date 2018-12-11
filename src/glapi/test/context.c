@@ -5,21 +5,6 @@
 #include "glapi/test.h"
 #include "../fwd.h"
 
-int test_display_opengl_context_information(void)
-{
-	struct gl_test *test = gl_test_make(0);
-
-#define print_gl_string(name) printf(#name ": %s\n", (char *)glGetString(name))
-	print_gl_string(GL_VERSION);
-	print_gl_string(GL_SHADING_LANGUAGE_VERSION);
-	print_gl_string(GL_RENDERER);
-	print_gl_string(GL_VENDOR);
-#undef print_gl_string
-
-	gl_test_free(test);
-	return 0;
-}
-
 int test_make_and_ensure_context_is_current(void)
 {
 	struct gl_test *test = gl_test_make(0);
