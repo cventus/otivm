@@ -166,7 +166,7 @@ static void assert_success(struct wf_mtllib const *mtllib, char const *msg)
 #define assert_field(msg, o, field, expected) \
 	assert_size(msg, #field, (o)->field, expected)
 
-static int empty(void)
+int test_empty_file(void)
 {
 	struct { char const *contents, *message; } examples[] = {
 		{ "", "empty file" },
@@ -198,7 +198,7 @@ static int empty(void)
 	return ok;
 }
 
-static int open_mtllib(void)
+int test_open_and_parse_a_material(void)
 {
 	struct wf_mtllib const *mtllib;
 
@@ -231,7 +231,7 @@ static int open_mtllib(void)
 
 #define PREFIX "newmtl my_mtl\n"
 
-static int colors(void)
+int test_color_validation(void)
 {
 	check_success(PREFIX "Ka 0.5 0.5 0.5", "Simple ambient color");
 	check_failure(PREFIX "Ka a 0.5 0.5", "non-numerical color component");
@@ -241,7 +241,7 @@ static int colors(void)
 	return ok;
 }
 
-static int parse_many(void)
+int test_several_plausible_materials_in_one_file(void)
 {
 	struct wf_mtllib const *mtllib;
 
@@ -279,11 +279,3 @@ static int parse_many(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ empty,	"empty files" },
-	{ open_mtllib,	"open and parse a material" },
-	{ colors,	"color validation" },
-	{ parse_many,	"several plausible materials in one file" },
-	{ NULL, NULL }
-};

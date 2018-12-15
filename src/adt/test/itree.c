@@ -88,7 +88,7 @@ void assert_shape(struct itree *tree, char const *desc, ...)
 	}
 }
 
-static int init(void)
+int test_initialize_an_intrusive_tree_node(void)
 {
 	struct itree node;
 	itree_init(&node);
@@ -102,7 +102,7 @@ static int init(void)
 	return 0;
 }
 
-static int parent(void)
+int test_get_parent_of_tree_node(void)
 {
 	struct itree root, child1, child2, grandchild;
 
@@ -130,7 +130,7 @@ static int parent(void)
 	return 0;
 }
 
-static int first_child(void)
+int test_fetch_the_first_child_of_a_tree_node(void)
 {
 	struct itree root, child1, child2;
 
@@ -151,7 +151,7 @@ static int first_child(void)
 	return 0;
 }
 
-static int last_child(void)
+int test_fetch_the_last_child_of_a_tree_node(void)
 {
 	struct itree root, child1, child2;
 
@@ -172,7 +172,7 @@ static int last_child(void)
 	return 0;
 }
 
-static int next_sibling(void)
+int test_get_next_sibling(void)
 {
 	struct itree root, child1, child2;
 
@@ -194,7 +194,7 @@ static int next_sibling(void)
 	return 0;
 }
 
-static int prev_sibling(void)
+int test_get_previous_sibling(void)
 {
 	struct itree root, child1, child2;
 
@@ -218,7 +218,7 @@ static int prev_sibling(void)
 	return 0;
 }
 
-static int node_depth(void)
+int test_node_depth(void)
 {
 	struct itree a, b, c;
 
@@ -236,7 +236,7 @@ static int node_depth(void)
 	return 0;
 }
 
-static int child_count(void)
+int test_number_of_children(void)
 {
 	struct itree a, b, c;
 
@@ -255,7 +255,7 @@ static int child_count(void)
 	return 0;
 }
 
-static int test_check_shape(void)
+int test_test_function(void)
 {
 	struct itree n[4], *a, *b, *c, *d;
 
@@ -289,7 +289,7 @@ static int test_check_shape(void)
 	return 0;
 }
 
-static int graft_and_prune(void)
+int test_graft_and_prune_nodes(void)
 {
 	struct itree n[7], *a, *b, *c, *d, *e, *f, *g;
 
@@ -325,19 +325,3 @@ static int graft_and_prune(void)
 
 	return 0;
 }
-
-struct test const tests[] = {
-	{ init, "initialize an intrusive tree node" },
-	{ parent, "get parent of tree node" },
-	{ first_child, "fetch the first child of a tree node" },
-	{ last_child, "fetch the last child of a tree node" },
-	{ next_sibling, "get next sibling" },
-	{ prev_sibling, "get previous sibling" },
-	{ node_depth, "node depth" },
-	{ child_count, "number of children" },
-
-	{ test_check_shape, "test function" },
-	{ graft_and_prune, "graft and prune nodes" },
-
-	{ NULL, NULL }
-};

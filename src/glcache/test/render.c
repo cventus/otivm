@@ -59,10 +59,4 @@ static int draw_triangle_(struct gl_api *api, struct gl_test *test)
 
 	return ok;
 }
-static int draw_triangle(void) { return run(draw_triangle_); }
-
-struct test const tests[] = {
-	{ draw_triangle, "Draw a triangle" },
-
-	{ NULL, NULL }
-};
+int test_draw_a_triangle(void) { return run(draw_triangle_); }

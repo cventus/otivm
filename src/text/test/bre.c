@@ -132,7 +132,7 @@ end:	free(cap);
 	cap = NULL;
 }
 
-static int simple(void)
+int test_simple_regular_expressions(void)
 {
 	/* Empty regular expression always matches */
 	check_match("", "");
@@ -155,7 +155,7 @@ static int simple(void)
 	return ok;
 }
 
-static int caret(void)
+int test_start_of_string_anchor(void)
 {
 	check_match("^", "");
 	check_match("^", "abc");
@@ -167,7 +167,7 @@ static int caret(void)
 	return ok;
 }
 
-static int dollar(void)
+int test_end_of_string_anchor(void)
 {
 	check_match("$", "");
 	check_match("^", "abc");
@@ -179,7 +179,7 @@ static int dollar(void)
 	return ok;
 }
 
-static int whole(void)
+int test_match_whole_string(void)
 {
 	check_match("^$", "");
 	check_mismatch("^$", "x");
@@ -195,7 +195,7 @@ static int whole(void)
 	return ok;
 }
 
-static int quantify(void)
+int test_simply_quantified_expressions(void)
 {
 	check_matchn("a{0}", 2, "", "x"); 
 
@@ -218,7 +218,7 @@ static int quantify(void)
 	return ok;
 }
 
-static int dot(void)
+int test_match_any_characer(void)
 {
 	check_matchn(".", 8, "a", "b", "c", "d", "e", "f", "g", "h");
 	check_mismatch(".", "");
@@ -232,7 +232,7 @@ static int dot(void)
 	return ok;
 }
 
-static int backslash(void)
+int test_built_in_character_classes(void)
 {
 	check_mismatchn("\\.", 8, "a", "b", "c", "d", "e", "f", "g", "h");
 	check_match("\\.", ".");
@@ -256,7 +256,7 @@ static int backslash(void)
 	return ok;
 }
 
-static int classes(void)
+int test_custom_character_classes(void)
 {
 	check_matchn("[abc]", 3, "axy", "xby", "xyc");
 	check_matchn("[0-9]", 5, "0", "a1", "2b", "x8y", "9");
@@ -264,7 +264,7 @@ static int classes(void)
 	return ok;
 }
 
-static int group(void)
+int test_groups_and_quantified_groups(void)
 {
 	/* Empty group */
 	check_match("()", "hello");
@@ -301,7 +301,7 @@ static int group(void)
 	return ok;
 }
 
-static int count(void)
+int test_group_count_and_validation(void)
 {
 	check_invalid("{");
 	check_count("((((x){0}y{0}((ll)z{0}))*)*)*", 7);
@@ -331,7 +331,7 @@ static int count(void)
 	return ok;
 }
 
-static int alternate(void)
+int test_alternation(void)
 {
 	/* Basic alternations */
 	check_matchn("a|b", 2, "a", "b");
@@ -349,7 +349,7 @@ static int alternate(void)
 	return ok;
 }
 
-static int useful(void)
+int test_useful_expressions(void)
 {
 	char const *fp = "^[+-]?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)([eE]-?[0-9]+)?$";
 	char const *bin = "^[01]?(10|01)*|(10|01)*[01]$";
@@ -375,7 +375,7 @@ static int useful(void)
 	return ok;
 }
 
-static int capture(void)
+int test_text_captures(void)
 {
 	check_captures("needle", "there is a needle in here", 11, 6);
 	check_captures("(\\d+)(.)", "abc 123x abc", 4, 4,/**/4, 3,/**/7, 1);
@@ -397,7 +397,7 @@ static int capture(void)
 	return ok;
 }
 
-static int lazy(void)
+int test_lazy_quantifiers(void)
 {
 	check_captures("\\d{2,}.", "123456789", 0,9);
 	check_captures("\\d{2,}?.", "123456789", 0,3);
@@ -406,22 +406,3 @@ static int lazy(void)
 	check_captures("((\\d){2})*?[^0-9]", "12345678y", 0,9, 0,2, 0,1);
 	return ok;
 }
-
-struct test const tests[] = {
-	{ &simple,	"Simple regular expressions" },
-	{ &caret,	"Start of string anchor" },
-	{ &dollar,	"End of string anchor" },
-	{ &whole,	"Match whole string" },
-	{ &quantify,	"Simply quantified expressions" },
-	{ &dot,		"Match any characer" },
-	{ &backslash,	"Built-in character classes" },
-	{ &classes,	"Custom character classes" },
-	{ &group,	"Groups and quantified groups" },
-	{ &count,	"Group count and validation" },
-	{ &alternate,	"Alternation" },
-	{ &useful,	"Useful expressions" },
-	{ &capture,	"Text captures" },
-	{ &lazy,	"Lazy quantifiers" },
-	{ NULL, NULL }
-};
-

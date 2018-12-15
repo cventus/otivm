@@ -185,7 +185,7 @@ static int creation_(struct gl_api *api, struct gl_test *test)
 	(void)test;
 	return 0;
 }
-static int creation(void) { return run(creation_); }
+int test_create_xylo_renderer(void) { return run(creation_); }
 
 static int dlist_(struct gl_api *api, struct gl_test *test)
 {
@@ -243,7 +243,7 @@ static int dlist_(struct gl_api *api, struct gl_test *test)
 	free_xylo(xylo);
 	return 0;
 }
-static int dlist(void) { return run(dlist_); }
+int test_render_draw_list(void) { return run(dlist_); }
 
 static int aa_(struct gl_api *api, struct gl_test *test)
 {
@@ -313,7 +313,7 @@ static int aa_(struct gl_api *api, struct gl_test *test)
 	free_xylo(xylo);
 	return 0;
 }
-static int aa(void) { return run(aa_); }
+int test_render_using_anti_aliasing(void) { return run(aa_); }
 
 static void copy_transform(struct xylo_tnode *tnode, struct xylo_doutline *shape)
 {
@@ -454,7 +454,7 @@ static int transformed_(struct gl_api *api, struct gl_test *test)
 	pfclock_free(clk);
 	return 0;
 }
-static int transformed(void) { return run(transformed_); }
+int test_render_items_with_tgraph(void) { return run(transformed_); }
 
 static void update_transform(size_t i, double t, struct xylo_draw_transform *tfm)
 {
@@ -594,7 +594,7 @@ static int rain_(struct gl_api *api, struct gl_test *test)
 	pfclock_free(clk);
 	return 0;
 }
-static int rain(void) { return run(rain_); }
+int test_one_hundred_shapes(void) { return run(rain_); }
 
 static int object_id_(struct gl_api *api, struct gl_test *test)
 {
@@ -681,7 +681,7 @@ static int object_id_(struct gl_api *api, struct gl_test *test)
 	free_xylo(xylo);
 	return 0;
 }
-static int object_id(void) { return run(object_id_); }
+int test_read_object_ID_at_pixel(void) { return run(object_id_); }
 
 static int dmesh_(struct gl_api *api, struct gl_test *test)
 {
@@ -739,7 +739,7 @@ static int dmesh_(struct gl_api *api, struct gl_test *test)
 	free_xylo(xylo);
 	return 0;
 }
-static int dmesh(void) { return run(dmesh_); }
+int test_draw_rigid_shapes(void) { return run(dmesh_); }
 
 static int rigid_rain_(struct gl_api *api, struct gl_test *test)
 {
@@ -827,7 +827,7 @@ static int rigid_rain_(struct gl_api *api, struct gl_test *test)
 	pfclock_free(clk);
 	return 0;
 }
-static int rigid_rain(void) { return run(rigid_rain_); }
+int test_one_hundred_shapes_again(void) { return run(rigid_rain_); }
 
 static int aa2_(struct gl_api *api, struct gl_test *test)
 {
@@ -926,18 +926,4 @@ static int aa2_(struct gl_api *api, struct gl_test *test)
 	free_xylo(xylo);
 	return 0;
 }
-static int aa2(void) { return run(aa2_); }
-
-struct test const tests[] = {
-	{ creation, "create xylo renderer" },
-	{ dlist, "render draw list" },
-	{ transformed, "render items with tgraph" },
-	{ rain, "one hundred shapes" },
-	{ object_id, "read object ID at pixel" },
-	{ aa, "render using anti-aliasing" },
-	{ dmesh, "draw rigid shapes" },
-	{ rigid_rain, "one hundred shapes again" },
-	{ aa2, "render using anti-aliasing" },
-
-	{ NULL, NULL }
-};
+int test_render_more_using_anti_aliasing(void) { return run(aa2_); }

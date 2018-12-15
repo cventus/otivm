@@ -12,37 +12,29 @@
 
 struct stopwatch sw;
 
-static int zero_elapsed_time(void)
+int test_zero_elapsed_time(void)
 {
 	stopwatch_start(&sw, T0);
 	return statusof(stopwatch_elapsed(&sw, T0) == 0);
 }
 
-static int some_elapsed_time(void)
+int test_some_elapsed_time(void)
 {
 	stopwatch_start(&sw, T0);
 	return statusof(stopwatch_elapsed(&sw, T2) == T2 - T0);
 }
 
-static int pauses(void)
+int test_pauses(void)
 {
 	stopwatch_start(&sw, T0);
 	stopwatch_pause(&sw, T1);
 	return statusof(stopwatch_elapsed(&sw, T2) == T1 - T0);
 }
 
-static int resumes(void)
+int test_resumes(void)
 {
 	stopwatch_start(&sw, T0);
 	stopwatch_pause(&sw, T1);
 	stopwatch_resume(&sw, T2);
 	return statusof(stopwatch_elapsed(&sw, T3) == (T1 - T0) + (T3 - T2));
 }
-
-struct test const tests[] = {
-	testfn(zero_elapsed_time),
-	testfn(some_elapsed_time),
-	testfn(pauses),
-	testfn(resumes),
-	{ 0, 0 }
-};

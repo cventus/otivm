@@ -5,22 +5,7 @@
 #include "glapi/test.h"
 #include "../fwd.h"
 
-int info(void)
-{
-	struct gl_test *test = gl_test_make(0);
-
-#define print_gl_string(name) printf(#name ": %s\n", (char *)glGetString(name))
-	print_gl_string(GL_VERSION);
-	print_gl_string(GL_SHADING_LANGUAGE_VERSION);
-	print_gl_string(GL_RENDERER);
-	print_gl_string(GL_VENDOR);
-#undef print_gl_string
-
-	gl_test_free(test);
-	return 0;
-}
-
-int iscurrent(void)
+int test_make_and_ensure_context_is_current(void)
 {
 	struct gl_test *test = gl_test_make(0);
 	struct gl_api *api = gl_test_api(test);
@@ -33,7 +18,7 @@ int iscurrent(void)
 	}
 }
 
-int swap_buffers(void)
+int test_create_a_simple_context_and_swap_buffers(void)
 {
 	struct gl_test *test = gl_test_make(0);
 
@@ -46,7 +31,7 @@ int swap_buffers(void)
 	return ok;
 }
 
-int extensions(void)
+int test_extension_lookup_functions(void)
 {
 	char const *extensions = "abc defg hjklm";
 	char const *weird_extensions = " abc   defg  hjklm ";
@@ -71,12 +56,3 @@ int extensions(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ info, "display opengl context information" },
-	{ iscurrent, "make and ensure context is current" },
-	{ swap_buffers, "create a simple context and swap bufffers" },
-	{ extensions, "is extension supported" },
-
-	{ NULL, NULL }
-};

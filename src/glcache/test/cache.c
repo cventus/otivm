@@ -30,7 +30,7 @@ static int init_cache_(struct gl_api *gl, struct gl_test *test)
 	if (is_test_interactive()) { gl_test_wait_for_key(test); }
 	return 0;
 }
-static int init_cache(void) { return run(init_cache_); }
+int test_create_a_cache(void) { return run(init_cache_); }
 
 static void check_shader(
 	struct gl_api *api,
@@ -87,7 +87,7 @@ static int load_material_(struct gl_api *api, struct gl_test *test)
 
 	return ok;
 }
-static int load_material(void) { return run(load_material_); }
+int test_load_material_files(void) { return run(load_material_); }
 
 static int load_shader_(struct gl_api *api, struct gl_test *test)
 {
@@ -118,7 +118,7 @@ static int load_shader_(struct gl_api *api, struct gl_test *test)
 
 	return ok;
 }
-static int load_shader(void) { return run(load_shader_); }
+int test_load_shaders(void) { return run(load_shader_); }
 
 static int load_program_(struct gl_api *api, struct gl_test *test)
 {
@@ -158,13 +158,4 @@ static int load_program_(struct gl_api *api, struct gl_test *test)
 
 	return ok;
 }
-static int load_program(void) { return run(load_program_); }
-
-struct test const tests[] = {
-	{ init_cache, "Create the cache" },
-	{ load_material, "Load material files" },
-	{ load_shader, "Load shaders" },
-	{ load_program, "Load and link a program" },
-
-	{ NULL, NULL }
-};
+int test_load_and_link_a_program(void) { return run(load_program_); }

@@ -7,7 +7,7 @@
 
 #define check(cond) do { if (!(cond)) fail_test(#cond " failed\n"); } while (0)
 
-static int test_already_simple(void)
+int test_no_simplification_needed(void)
 {
 	struct spline_shape s = {
 		.n = 1,
@@ -34,7 +34,7 @@ static int test_already_simple(void)
 	return ok;
 }
 
-static int test_crescent(void)
+int test_simplify_simple_concave_shape(void)
 {
 	struct spline_shape s = {
 		.n = 1,
@@ -58,11 +58,3 @@ static int test_crescent(void)
 
 	return ok;
 }
-
-
-struct test const tests[] = {
-	{ test_already_simple, "no simplification needed" },
-	{ test_crescent, "simplify simple concave shape" },
-
-	{ NULL, NULL }
-};

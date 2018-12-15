@@ -14,7 +14,7 @@ void check_prefix(char *str, char const *example)
 	free(str);
 }
 
-static int prefix(void)
+int test_strdup_prefix(void)
 {
 	check_prefix(strdup_prefix("abc", 0), "");
 	check_prefix(strdup_prefix("abc", 1), "a");
@@ -46,7 +46,7 @@ void check_fmt(char *str, char const *example, char *buf, int is_buf)
 	}
 }
 
-static int format(void)
+int test_strfmt(void)
 {
 	char b[10];
 	size_t z = sizeof b;
@@ -59,11 +59,3 @@ static int format(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ prefix, "strdup_prefix" },
-	{ format, "strfmt" },
-
-	{ NULL, NULL }
-};
-

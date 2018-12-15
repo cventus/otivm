@@ -55,7 +55,7 @@ static char *make_path(char *buf, int i)
 	return buf;
 }
 
-static int transform(void)
+int test_world_transforms_update_from_the_root_to_leaves(void)
 {
 	struct xylo_tgraph *graph;
 	struct xylo_tnode *nodes[2 + 4 + 16 + 1024];
@@ -88,7 +88,7 @@ static int transform(void)
 	return 0;
 }
 
-static int locality(void)
+int test_check_transformation_locality_after_compaction(void)
 {
 	struct xylo_tgraph *graph;
 	struct xylo_tnode *nodes[2 + 4 + 16 + 1024];
@@ -130,10 +130,3 @@ static int locality(void)
 
 	return 0;
 }
-
-struct test const tests[] = {
-	{ transform, "world transforms update from the root to leaves" },
-	{ locality, "check transformation locality after compaction" },
-
-	{ NULL, NULL }
-};

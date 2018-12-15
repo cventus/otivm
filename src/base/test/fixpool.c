@@ -20,7 +20,7 @@ static void free_person_fixpool(struct fixpool *pool)
 	free(pool->buffer);
 }
 
-static int alloc(void)
+int test_allocate_until_exhaustion(void)
 {
 	struct fixpool pool;
 
@@ -32,7 +32,7 @@ static int alloc(void)
 	return ok;
 }
 
-static int dealloc(void)
+int test_deallocated_items_can_be_allocated_again(void)
 {
 	struct fixpool pool;
 	struct person *p, *q;
@@ -49,7 +49,7 @@ static int dealloc(void)
 	return ok;
 }
 
-static int is_empty(void)
+int test_fixpool_is_empty_initially_and_after_deallocation(void)
 {
 	struct fixpool pool;
 	struct person *p;
@@ -65,10 +65,3 @@ static int is_empty(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ alloc, 	"allocate element" },
-	{ dealloc, 	"free allocation" },
-	{ is_empty, 	"is empty" },
-	{ NULL, NULL }
-};

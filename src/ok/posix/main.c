@@ -179,6 +179,7 @@ int main(int argc, char **argv)
 	CHECK(fd = open_temp_file(), fd >= 0);
 	n_fail = 0;
 	printf("1..%zd\n", n_tests);
+	before_tests();
 	for (i = 0; i < n_tests; i++) {
 		if (!is_listed(i + 1, ids, n_ids, o.invert, n_tests)) {
 			printf("ok %zd %s # SKIPPED\n", i + 1, tests[i].desc);
@@ -190,6 +191,7 @@ int main(int argc, char **argv)
 		err = (o.can_fork ? fork_test : run_test)(i, fd, o.prefix);
 		if (err || ok) { n_fail++; }
 	}
+	after_tests();
 	exit(n_fail);
 } 
 

@@ -16,7 +16,7 @@ static void make_person_mempool(struct mempool *pool, size_t n)
 	mempool_init(pool, n, size);
 }
 
-static int alloc(void)
+int test_allocate_element(void)
 {
 	struct mempool pool;
 
@@ -28,7 +28,7 @@ static int alloc(void)
 	return ok;
 }
 
-static int dealloc(void)
+int test_deallocate_elements(void)
 {
 	struct mempool pool;
 	struct person *p, *q;
@@ -45,7 +45,7 @@ static int dealloc(void)
 	return ok;
 }
 
-static int reuse(void)
+int test_freed_blocks_should_be_reused_in_fifo_order(void)
 {
 	struct mempool pool;
 	struct person *p, *q;
@@ -63,10 +63,3 @@ static int reuse(void)
 	mempool_term(&pool);
 	return ok;
 }
-
-struct test const tests[] = {
-	{ alloc, 	"allocate element" },
-	{ dealloc, 	"free allocation" },
-	{ reuse, 	"freed blocks are reused in FIFO order" },
-	{ NULL, NULL }
-};

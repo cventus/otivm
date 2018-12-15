@@ -32,7 +32,7 @@ void expect_ints(int const *heap, int const *expected, size_t n)
 	}
 }
 
-static int insert_one(void)
+int test_insert_a_new_minimum_integer(void)
 {
 	int const expected[3] = { 1, 3, 2 };
 	int heap[3] = { 2, 3 };
@@ -42,7 +42,7 @@ static int insert_one(void)
 	return ok;
 }
 
-static int insert_min(void)
+int test_minimum_item_added_at_index_0(void)
 {
 	int heap[10];
 	size_t nmemb = 0;
@@ -60,7 +60,7 @@ static int insert_min(void)
 	return ok;
 }
 
-static int remove_one(void)
+int test_remove_minimum_element(void)
 {
 	int heap[] = {
 		6,
@@ -80,7 +80,7 @@ static int remove_one(void)
 	return ok;
 }
 
-static int remove_inner(void)
+int test_remove_element_inside_heap(void)
 {
 	int heap[] = {
 		6,
@@ -129,7 +129,7 @@ static int check_int_heap(int *heap, int const *exp, size_t n)
 	return 0;
 }
 
-static int init_int_heap(void)
+int test_heapify_array_of_integers(void)
 {
 #define N length_of(exp)
 	static int const exp[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
@@ -140,7 +140,7 @@ static int init_int_heap(void)
 #undef N
 }
 
-static int init_int_heap_reverse(void)
+int test_heapify_array_of_descending_integers(void)
 {
 #define N length_of(exp)
 	static int const exp[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
@@ -151,7 +151,7 @@ static int init_int_heap_reverse(void)
 #undef N
 }
 
-static int make_int_heap(void)
+int test_insert_integers_into_heap(void)
 {
 #define N length_of(exp)
 	static int const exp[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
@@ -164,7 +164,7 @@ static int make_int_heap(void)
 	return ok;
 }
 
-static int make_int_heap_reverse(void)
+int test_insert_descending_integers_into_heap(void)
 {
 #define N length_of(exp)
 	static int const exp[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
@@ -175,18 +175,3 @@ static int make_int_heap_reverse(void)
 	return check_int_heap(heap, exp, N);
 #undef N
 }
-
-struct test const tests[] = {
-	{ insert_one, "insert a new minimum integer" },
-	{ insert_min, "minimum item added at index 0" },
-	{ remove_one, "remove minimum element" },
-	{ remove_inner, "remove element inside heap" },
-
-	{ init_int_heap, "heapify array of integers" },
-	{ init_int_heap_reverse, "heapify array of descending integers" },
-
-	{ make_int_heap, "insert integers into heap" },
-	{ make_int_heap_reverse, "insert descending integers into heap" },
-
-	{ NULL, NULL }
-};

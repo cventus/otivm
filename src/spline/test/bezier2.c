@@ -6,7 +6,7 @@
 #include "gm/misc.h"
 #include "spline/bezier2.h"
 
-static int endpoints(void)
+int test_interpolate_endpoints_at_t0_and_t1(void)
 {
 	float points[] = {
 		13.0f, 37.0f,
@@ -32,7 +32,7 @@ static int endpoints(void)
 	return ok;
 }
 
-static int parabola(void)
+int test_compare_bezier_evaluation_function_to_parabola(void)
 {
 	/* these points define a bézier spline where <P0,P1> and <P1,P2> are
 	   tangent to the curve y = x^2 and x also goes linearly from 0 to 1 as
@@ -64,7 +64,7 @@ static int parabola(void)
 	return ok;
 }
 
-static int conic_circle(void)
+int test_quarter_circle_segment_with_rational_bezier_curve(void)
 {
 	/* Quadratic rational Bézier splines can represent any conic section,
 	   for instance circles. The following points represent a 90 degree
@@ -102,7 +102,7 @@ static int conic_circle(void)
 	return ok;
 }
 
-static int split(void)
+int test_subdivide_a_quadratic_bezier_curve(void)
 {
 	float points[] = {
 		1.0f, 1.0f,
@@ -131,13 +131,3 @@ static int split(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ endpoints, "interpolate endpoints at t=0 and t=1" },
-	{ parabola, "compare bezier evaluation function to parabola" },
-	{ conic_circle, "quarter circle segment with rational bezier curve" },
-	{ split, "subdivide a quadratic Bézier curve" },
-
-	{ NULL, NULL }
-};
-

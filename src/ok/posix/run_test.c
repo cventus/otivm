@@ -153,6 +153,7 @@ static int read_all(int fd, void *buf, int sz)
 
 static void exec_test(int (*fn)(void), struct test_result *result)
 {
+	before_each_test();
 	switch (setjmp(g_state.skip)) {
 	case TEST:
 		/* Initialize state */
@@ -186,6 +187,7 @@ static void exec_test(int (*fn)(void), struct test_result *result)
 		/* Unkown case */
 		abort();
 	}
+	after_each_test();
 
 	g_state.result = 0;
 	g_state.init = 0;

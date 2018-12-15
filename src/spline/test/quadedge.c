@@ -68,7 +68,7 @@ static eref ref(eref e, unsigned r) {
 	return mkref(e*4, r);
 }
 
-static int test_make_edge(void)
+int test_check_properties_of_a_new_subdivision(void)
 {
 	struct eset set;
 	eref e;
@@ -92,7 +92,7 @@ static int test_make_edge(void)
 	return ok;
 }
 
-static int traverse(void)
+int test_traverse_edges_connected_to_a_vertex_or_around_a_face(void)
 {
 	enum { a, b, c, d, e, f, g, h };
 
@@ -129,7 +129,7 @@ static int traverse(void)
 	return ok;
 }
 
-static int test_connect(void)
+int test_connect_points(void)
 {
 	struct eset set;
 	eref a, b, c, d, e, f, g, h;
@@ -193,11 +193,3 @@ static int test_connect(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ test_make_edge, "properties of new subdivision" },
-	{ traverse, "traverse edges connected to a vertex/around a face" },
-	{ test_connect, "connect points" },
-
-	{ NULL, NULL }
-};

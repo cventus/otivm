@@ -9,4 +9,6 @@ if contains "$TAGS" glx; then
   define_source glx/*.c
 fi
 
+define_utility util/info.c
+
 define_ok_test test/context.c

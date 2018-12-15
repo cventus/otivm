@@ -1,4 +1,3 @@
-
 /* Skip the currently executing test */
 void skip_test(char const *fmt, ...);
 
@@ -21,6 +20,11 @@ void interactive_test(char const *fmt, ...);
    command line flag). */
 int is_test_interactive(void);
 
+void before_tests(void);
+void after_tests(void);
+void before_each_test(void);
+void after_each_test(void);
+
 /* Test structure, and test array. Define this in your tests and terminate it
    with { NULL, NULL }. */
 extern struct test {
@@ -31,4 +35,3 @@ extern struct test {
 /* Global flag that can override the result of a function. Always initialized
    to zero before a test is run. */
 extern int ok;
-

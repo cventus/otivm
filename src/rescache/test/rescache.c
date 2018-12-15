@@ -79,7 +79,7 @@ static void unload_doc(void const *key, size_t key_size, void *data, void *link)
 	}
 }
 
-static int empty(void)
+int test_create_and_free_empty_cache(void)
 {
 	struct rescache *r;
 
@@ -100,7 +100,7 @@ static int empty(void)
 	return ok;
 }
 
-static int create(void)
+int test_create_and_recreate_a_single_resource(void)
 {
 	struct rescache *r;
 	struct tally counts = { 0, 0 };
@@ -168,11 +168,3 @@ static int create(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ empty, "create and free empty cache" },
-	{ create, "create and recreate a single resource" },
-
-	{ NULL, NULL }
-};
-

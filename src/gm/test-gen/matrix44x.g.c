@@ -117,7 +117,7 @@ static const T scale[4*4] = {
 	LIT(0.0), LIT(0.0), LIT(0.0), LIT(1.0),
 };
 
-static int test_det(void)
+int test_determinant(void)
 {
 	static const T dmat[4*4] = {
 		LIT(6.0), LIT(4.0), LIT(-1.0), LIT(8.0),
@@ -182,7 +182,7 @@ static int test_det(void)
 	return ok;
 }
 
-static int test_trace(void)
+int test_trace(void)
 {
 	static struct { const T (*matrix)[4*4], tr; } const examples[] = {
 		{ &identity, LIT(4.0) },
@@ -208,7 +208,7 @@ static int test_trace(void)
 	return ok;
 }
 
-static int test_inv(void)
+int test_inverse(void)
 {
 	static const T (*invertible_matrices[])[4*4] = {
 		&identity,
@@ -233,19 +233,19 @@ static int test_inv(void)
 	return ok;
 }
 
-static int test_pinv(void)
+int test_pseudo_inverse(void)
 {
 	todo_test(0);
 	return -1;
 }
 
-static int test_rotx(void)
+int test_make_x_axis_rotation_matrix(void)
 {
 	todo_test(0);
 	return -1;
 }
 
-static int test_roty(void)
+int test_make_y_axis_rotation_matrix(void)
 {
 	T mat[4*4];
 	mroty(mat, acosM(LIT(-1.0))/4);
@@ -253,7 +253,7 @@ static int test_roty(void)
 	return ok;
 }
 
-static int test_rotz(void)
+int test_make_z_axis_rotation_matrix(void)
 {
 	T mat[4*4], pi = acosM(LIT(-1.0));
 	mrotz(mat, pi/4);
@@ -261,72 +261,50 @@ static int test_rotz(void)
 	return ok;
 }
 
-static int test_trans(void)
+int test_translation(void)
 {
 	todo_test(0);
 	return -1;
 }
 
-static int test_scale(void)
+int test_scale_matrix(void)
 {
 	todo_test(0);
 	return -1;
 }
 
-static int test_uscale(void)
+int test_uniform_scale_matrix(void)
 {
 	todo_test(0);
 	return -1;
 }
 
-static int test_mul(void)
+int test_matrix_multiplication(void)
 {
 	todo_test(0);
 	return -1;
 }
 
-static int test_mulv(void)
+int test_transform_a_vector(void)
 {
 	todo_test(0);
 	return -1;
 }
 
-static int test_lookat(void)
+int test_lookat_matrix(void)
 {
 	todo_test(0);
 	return -1;
 }
 
-static int test_persp(void)
+int test_perspective_matrix(void)
 {
 	todo_test(0);
 	return -1;
 }
 
-static int test_quat(void)
+int test_rotation_matrix_from_quaternion(void)
 {
 	todo_test(0);
 	return -1;
 }
-
-
-struct test const tests[] = {
-	{ test_det,	"determinant" },
-	{ test_trace,	"trace" },
-	{ test_inv,	"inverse" },
-	{ test_pinv,	"pseudo-inverse" },
-	{ test_rotx,	"make x-axis rotation matrix" },
-	{ test_roty,	"make y-axis rotation matrix" },
-	{ test_rotz,	"make z-axis rotation matrix" },
-	{ test_trans,	"translation matrix" },
-	{ test_scale,	"scale matrix" },
-	{ test_uscale,	"uniform scale matrix" },
-	{ test_mul,	"matrix multiplication" },
-	{ test_mulv,	"transform a vector" },
-	{ test_lookat,	"lookat matrix" },
-	{ test_persp,	"perspective matrix" },
-	{ test_quat,	"rotation matrix from quaternion" },
-
-	{ NULL, NULL }
-};
-

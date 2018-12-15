@@ -108,7 +108,7 @@ static void *try_write(struct gbuf *buf, void const *data, size_t size)
 	return result;
 }
 
-static int empty(void)
+int test_an_empty_gap_buffer_has_meaningful_properties(void)
 {
 	assert_used(&empty_gbuf, 0);
 	assert_available(&empty_gbuf, 0);
@@ -116,14 +116,11 @@ static int empty(void)
 	return ok;
 }
 
-static int init(void)
+int test_operate_on_empty_gap_buffer(void)
 {
 	struct gbuf buf;
 
 	gbuf_init(&buf);
-	assert_used(&buf, 0);
-	assert_available(&buf, 0);
-	assert_capacity(&buf, 0);
 	if (gbuf_trim(&buf)) { fail_test("failed to trim"); }
 	if (gbuf_move_to(&buf, 0)) { fail_test("failed to move"); }
 	if (gbuf_align(&buf, 8)) { fail_test("failed to align"); }
@@ -164,7 +161,7 @@ static void cmp(int how, struct gbuf *a, struct gbuf *b)
 	}
 }
 
-static int compare(void)
+int test_compare_gap_buffers(void)
 {
 	size_t i, j;
 	struct gbuf a[2], b[2], c[2], d[2], e[2], f[2];
@@ -219,7 +216,7 @@ static int compare(void)
 	return ok;
 }
 
-static int copy(void)
+int test_copy_data_from_one_gap_buffer_to_another(void)
 {
 	struct gbuf buf, copy;
 	size_t i, j, n;
@@ -259,7 +256,7 @@ static int copy(void)
 	return ok;
 }
 
-static int reserve(void)
+int test_reserving_memory_increases_capacity(void)
 {
 	struct gbuf buf;
 
@@ -285,7 +282,7 @@ static int reserve(void)
 	return ok;
 }
 
-static int alloc(void)
+int test_allocation_fills_buffer(void)
 {
 	struct gbuf buf;
 	size_t i;
@@ -305,7 +302,7 @@ static int alloc(void)
 	return ok;
 }
 
-static int write(void)
+int test_write_to_gap_buffer(void)
 {
 	struct gbuf buf;
 	size_t i, len;
@@ -335,7 +332,7 @@ static int write(void)
 	return ok;
 }
 
-static int array(void)
+int test_copy_data_from_array(void)
 {
 	struct gbuf buf;
 	size_t i;
@@ -371,7 +368,7 @@ static int array(void)
 	return ok;
 }
 
-static int align(void)
+int test_align_write_pointer(void)
 {
 	/* This test might end with a unaligned memory access error on some
 	   systems, if the implementaiton is faulty. Otherwise at least
@@ -405,7 +402,7 @@ static int align(void)
 	return ok;
 }
 
-static int keep_aligned(void)
+int test_buffer_should_remain_aligned_for_uniform_contents(void)
 {
 	struct gbuf buf;
 	size_t i, nmemb, align, size;
@@ -432,7 +429,7 @@ static int keep_aligned(void)
 	return ok;
 }
 
-static int edit(void)
+int test_write_retract_move_and_trim(void)
 {
 	struct gbuf buf;
 
@@ -503,7 +500,7 @@ static int find(struct gbuf *buf, int value)
 	return 0;
 }
 
-static int erase(void)
+int test_erase_elements(void)
 {
 	int i, it, values[] = { 6, 3, 4, 1, 4, 1, 2, 0, 0 };
 	struct gbuf buf;
@@ -525,19 +522,3 @@ static int erase(void)
 	gbuf_term(&buf);
 	return 0;
 }
-
-struct test const tests[] = {
-	{ empty, 	"validate the empty gap buffer" },
-	{ init, 	"initiate" },
-	{ reserve, 	"reserve memory" },
-	{ alloc, 	"allocate memory" },
-	{ write, 	"write data" },
-	{ array, 	"copy data from array" },
-	{ copy, 	"copy data from one gap buffer to another" },
-	{ align, 	"align write pointer" },
-	{ keep_aligned,	"buffer should remain aligned for uniform contents" },
-	{ edit, 	"write, retract, move, and trim" },
-	{ compare,	"compare buffers" },
-	{ erase,	"erase items" },
-	{ NULL, NULL }
-};

@@ -128,7 +128,7 @@ static void assert_success(struct wf_object const *obj, char const *msg)
 #define assert_field(msg, o, field, expected) \
 	assert_size(msg, #field, (o)->field, expected)
 
-static int empty(void)
+int test_empty_files(void)
 {
 	struct { char const *contents, *message; } examples[] = {
 		{ "", "empty file" },
@@ -166,7 +166,7 @@ static int empty(void)
 	return ok;
 }
 
-static int open_obj(void)
+int test_open_and_parse_a_simple_file(void)
 {
 	struct wf_object const *obj;
 
@@ -188,7 +188,7 @@ static int open_obj(void)
 	return ok;
 }
 
-static int incorrect(void)
+int test_incorrect_inputs(void)
 {
 	check_success("v  1  2.0  -3", "simple vertex");
 	check_failure("v  c  2.0  -3", "non-numerical vertex component");
@@ -213,7 +213,7 @@ static int incorrect(void)
 	return ok;
 }
 
-static int parse_cube(void)
+int test_object_with_materials_vertices_normals_etc(void)
 {
 	struct wf_object const *obj;
 
@@ -288,11 +288,3 @@ static int parse_cube(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ empty,	"empty files" },
-	{ open_obj,	"open and parse a simple file" },
-	{ incorrect,	"incorrect inputs" },
-	{ parse_cube,	"object with materials, vertices, normals, etc." },
-	{ NULL, NULL }
-};

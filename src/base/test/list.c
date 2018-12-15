@@ -54,7 +54,7 @@ static struct entry *cons_entry(struct entry *list, int id, char const *name)
 	return e;
 }
 
-static int example(void)
+int test_create_and_traverse_lists(void)
 {
 	static int const numbers[] = { 11, 42, 7, 13, 983 };
 
@@ -97,7 +97,7 @@ static int example(void)
 	return ok;
 }
 
-static int people(void)
+int test_use_variable_sized_elements(void)
 {
 	char const *names[] = {
 		"foo",
@@ -140,10 +140,3 @@ static int people(void)
 
 	return ok;
 }
-
-struct test const tests[] = {
-	{ example, "create and traverse lists" },
-	{ people, "variable sized elements" },
-	{ NULL, NULL }
-};
-
