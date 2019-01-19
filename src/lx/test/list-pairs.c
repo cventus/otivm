@@ -30,7 +30,7 @@ void before_each_test(void)
 	list = mklist(state, 3); /* ALPHA */
 	list_cdr = mklist(state + SPAN_LENGTH, 1); /* BETA */
 	list_cddr = mklist(state, 0); /* GAMMA */
-	list_cdddr = empty_list;
+	list_cdddr = lx_empty_list();
 }
 
 int test_car(void)

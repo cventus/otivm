@@ -1,10 +1,16 @@
 /* 32-bit cells and 4 members in a span */
 #define LX_BITS 32
-#define CELL_SPAN 4
 
-#include "../lx.c"
+#include <stdbool.h>
+#include <stdint.h>
+#include <setjmp.h>
+#include <assert.h>
 
-#define JOIN(a, b) JOIN_(a, b)
+#include "../common.h"
+#include "../lx.h"
+#include "../memory.h"
+#include "../ref.h"
+#include "../list.h"
 
 #define tag(type, cdr_code) \
 	mktag(JOIN(cdr_,cdr_code), JOIN(lx_,JOIN(type,_tag)))
@@ -24,31 +30,44 @@
 #define tag_cell(t0, t1, t2, t3) { { t0, t1, t2, t3 } }
 
 #define mklist(cell, offset) \
-	(struct lx_list) { lx_list_tag, offset, cell }
-
-#define empty_list mklist(NULL, 0)
+	ref_to_list((struct lxref) { lx_list_tag, offset, cell })
 
 static inline int assert_int_eq(lxint a, lxint b)
 {
-	if (a == b) return 0; else return ok = -1;
+	if (a != b) fail_test("assertion failed: equal\n");
+	return 0;
 }
 
 static inline int assert_eq(union lxvalue a, union lxvalue b)
 {
-	if (lx_equals(a, b)) return 0; else return ok = -1;
+	if (!lx_equals(a, b)) fail_test("assertion failed: equal\n");
+	return 0;
 }
 
 static inline int assert_neq(union lxvalue a, union lxvalue b)
 {
-	if (lx_equals(a, b)) return ok = -1; else return 0;
+	if (lx_equals(a, b)) fail_test("assertion failed: not equal\n");
+	return 0;
 }
 
-static inline int assert_list_eq(struct lx_list a, struct lx_list b)
+static inline int assert_list_eq(struct lxlist a, struct lxlist b)
 {
-	if (list_eq(a, b)) return 0; else return ok = -1;
+	if (a.tag != b.tag || a.tag != lx_list_tag) {
+		fail_test("assertion failed: tags are lists\n");
+	}
+	if (a.ref.cell != b.ref.cell || a.ref.offset != b.ref.offset) {
+		fail_test("assertion failed: equal list identity\n");
+	}
+	return 0;
 }
 
-static inline int assert_list_neq(struct lx_list a, struct lx_list b)
+static inline int assert_list_neq(struct lxlist a, struct lxlist b)
 {
-	if (list_eq(a, b)) return ok = -1; else return 0;
+	if (a.tag != b.tag || a.tag != lx_list_tag) {
+		fail_test("assertion failed: tags are lists\n");
+	}
+	if (a.ref.cell == b.ref.cell && a.ref.offset == b.ref.offset) {
+		fail_test("assertion failed: different list identity\n");
+	}
+	return 0;
 }

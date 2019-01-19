@@ -27,7 +27,7 @@ void before_each_test(void)
 	list = mklist(state, 0);
 	list_cdr = mklist(state, 1);
 	list_cddr = mklist(state, 2);
-	list_cdddr = empty_list;
+	list_cdddr = lx_empty_list();
 }
 
 int test_car(void)

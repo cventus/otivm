@@ -5,8 +5,7 @@
 #include "ok/ok.h"
 #include "lx32x4.h"
 
-#define listval(s, n) \
-	((union lxvalue) { .list = mklist(memory + s*SPAN_LENGTH, n) })
+#define listval(s, n) lx_list(mklist(memory + s*SPAN_LENGTH, n))
 
 enum symbols { LAMBDA, X, Y };
 
