@@ -17,11 +17,11 @@ define_ok_test()
   local gensrc_="\$(TARGET)/test/$MODULE/src/$name_.ok.c"
   local genobj_="\$(TARGET)/test/$MODULE/obj/$name_.ok.o"
   local binary_="\$(TARGET)/test/$MODULE/bin/$name_"
-  local depend_="\$(TARGET)/make/$MODULE/ok/make$name_.d"
+  local depend_="\$(TARGET)/make/$MODULE/ok/make$name_.a"
   local script_="\$(SOURCE)/src/ok/stub.awk"
 
   # Build test functions
-  cc_target "$object_" "$source_"
+  cc_target "$object_ ${object_%.o}.d" "$source_"
     CC_object "$object_" "$source_" "$@"
 
   # Generate stub functions based on what was defined
@@ -29,7 +29,7 @@ define_ok_test()
     NM -PA "$object_" \| awk -f "$script_" '>$@'
 
   # Build generated stub source
-  cc_target "$genobj_" "$gensrc_"
+  cc_target "$genobj_ ${genobj_%.o}.d" "$gensrc_"
     CC_object "$genobj_" "$gensrc_"
 
   new_target "$depend_" "$object_" "$genobj_"
