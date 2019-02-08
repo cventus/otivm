@@ -1,17 +1,17 @@
-static inline struct lxref backward(struct lxref ref, enum lx_tag tag)
+static inline struct lxref backward(struct lxref ref)
 {
 	union lxcell const *newc = ref.cell;
-	lxint newoff = (ref.offset - 1) & OFFSET_MASK;
+	unsigned newoff = (ref.offset - 1) & OFFSET_MASK;
 	if ((newoff ^ OFFSET_MASK) == 0) { newc -= SPAN_LENGTH; }
-	return (struct lxref) { tag, newoff, newc };
+	return (struct lxref) { ref.tag, newoff, newc };
 }
 
-static inline struct lxref forward(struct lxref ref, enum lx_tag tag)
+static inline struct lxref forward(struct lxref ref)
 {
 	union lxcell const *newc = ref.cell;
-	lxint newoff = (ref.offset + 1) & OFFSET_MASK;
+	unsigned newoff = (ref.offset + 1) & OFFSET_MASK;
 	if (newoff == 0) { newc += SPAN_LENGTH; }
-	return (struct lxref) { tag, newoff, newc };
+	return (struct lxref) { ref.tag, newoff, newc };
 }
 
 static inline lxtag *ref_tag(struct lxref ref)

@@ -37,12 +37,12 @@ static inline struct lxlist ref_to_list(struct lxref ref)
 
 static inline struct lxlist list_backward(struct lxlist list)
 {
-	return ref_to_list(backward(list.ref, lx_list_tag));
+	return ref_to_list(backward(list.ref));
 }
 
 static inline struct lxlist list_forward(struct lxlist list)
 {
-	return ref_to_list(forward(list.ref, lx_list_tag));
+	return ref_to_list(forward(list.ref));
 }
 
 static inline struct lxlist deref_list(union lxcell const *c)

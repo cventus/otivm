@@ -57,7 +57,7 @@ struct lxlist lx_cons(
 #endif
 	}
 	if (cc == cdr_link) {
-		cdr = forward(res, lx_list_tag);
+		cdr = forward(res);
 		*ref_tag(cdr) = mktag(cdr_nil, lx_list_tag);
 		setref(ref_data(cdr), list.ref);
 	}
