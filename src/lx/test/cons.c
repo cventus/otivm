@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -13,13 +14,7 @@ struct lx_list list;
 void before_each_test(void)
 {
 	mem.oom = OOM_COMPACT;
-
-	/* raw-free points to lowest address */
-	mem.raw_free = data;
-
-	/* tag-free points to highest address (multiple of CELL_SPAN+1) */
-	mem.tag_free.offset = 0;
-	mem.tag_free.cell = data + 10;
+	init_space(&mem.space, data, 10);
 }
 
 int test_cons_one_element(void)
