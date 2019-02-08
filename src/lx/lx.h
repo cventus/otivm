@@ -36,6 +36,7 @@
 
 /* list API */
 #define lx_empty_list MANGLE(empty_list)
+#define lx_is_empty_list MANGLE(is_empty_list)
 #define lx_cons MANGLE(cons)
 #define lx_car MANGLE(car)
 #define lx_cdr MANGLE(cdr)
@@ -124,6 +125,11 @@ static inline struct lxlist lx_empty_list(void)
 		.ref.offset = 0,
 		.ref.cell = 0
 	};
+}
+
+static inline bool lx_is_empty_list(struct lxlist list)
+{
+	return list.tag == lx_list_tag && list.ref.cell == 0;
 }
 
 /* get first element of list */
