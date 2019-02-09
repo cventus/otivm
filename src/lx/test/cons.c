@@ -7,14 +7,14 @@
 #include "ok/ok.h"
 #include "lx32x4.h"
 
-union lxcell data[10];
+union lxcell data[11];
 struct lxmem mem;
 struct lx_list list;
 
 void before_each_test(void)
 {
 	mem.oom = OOM_COMPACT;
-	init_space(&mem.space, data, 10);
+	init_space(&mem.space, data, 11);
 }
 
 int test_cons_one_element(void)

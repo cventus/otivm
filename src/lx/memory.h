@@ -47,9 +47,9 @@ static inline size_t cell_count(struct lxspace const *space)
 	return used_frames;
 }
 
-static inline size_t mark_cell_count(struct lxspace const *space)
+static inline size_t mark_cell_count(size_t cells)
 {
-	return (cell_count(space) * 2 + LX_BITS - 1) / LX_BITS;
+	return (cells * 2 + LX_BITS - 1) / LX_BITS;
 }
 
 static inline size_t space_available(struct lxspace const *space)
@@ -58,7 +58,7 @@ static inline size_t space_available(struct lxspace const *space)
 
 	empty_cells = space->tag_free.cell - space->raw_free;
 	/* reserve two mark-bits per cell */
-	mark_cells = mark_cell_count(space);
+	mark_cells = mark_cell_count(cell_count(space));
 
 	return empty_cells >= mark_cells ? empty_cells - mark_cells : 0;
 }

@@ -13,7 +13,7 @@
 
 static struct lxref reserve_tagged(struct lxmem *mem, size_t n)
 {
-	size_t m, spans, cells_required, free_space;
+	size_t m, span_cells, cells_required, empty_cells, mark_cells;
 
 	if (n <= mem->space.tag_free.offset) {
 		/* allocate from current span */
@@ -24,13 +24,16 @@ static struct lxref reserve_tagged(struct lxmem *mem, size_t n)
 		m = n - mem->space.tag_free.offset;
 		mem->space.tag_free.offset = 0;
 	}
+
 	cells_required = m + ceil_div(m, CELL_SPAN);
-	spans = ceil_div(cells_required, CELL_SPAN + 1);
-	free_space = space_available(&mem->space);
-	if (free_space < spans * (CELL_SPAN + 1)) {
+	span_cells = ceil_div(cells_required, CELL_SPAN + 1) * (CELL_SPAN + 1);
+	empty_cells = mem->space.tag_free.cell - mem->space.raw_free;
+	mark_cells = mark_cell_count(cell_count(&mem->space) + cells_required);
+
+	if (empty_cells - mark_cells < span_cells) {
 		longjmp(mem->escape, mem->oom);
 	}
-	mem->space.tag_free.cell -= spans * (CELL_SPAN + 1);
+	mem->space.tag_free.cell -= span_cells;
 	mem->space.tag_free.offset = (CELL_SPAN - (m % CELL_SPAN)) % CELL_SPAN;
 
 	return mem->space.tag_free;
