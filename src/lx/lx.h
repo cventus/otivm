@@ -37,6 +37,7 @@
 /* list API */
 #define lx_empty_list MANGLE(empty_list)
 #define lx_is_empty_list MANGLE(is_empty_list)
+#define lx_is_list MANGLE(is_list)
 #define lx_cons MANGLE(cons)
 #define lx_car MANGLE(car)
 #define lx_cdr MANGLE(cdr)
@@ -128,10 +129,15 @@ static inline bool lx_is_empty_list(struct lxlist list)
 	return list.tag == lx_nil_tag;
 }
 
-/* get first element of list */
+static inline bool lx_is_list(union lxvalue val)
+{
+	return val.tag <= lx_list_tag;
+}
+
+/* get first element of (non-empty) list */
 union lxvalue lx_car(struct lxlist list);
 
-/* remove first element from list */
+/* remove first element from (non-empty) list */
 struct lxlist lx_cdr(struct lxlist list);
 
 /* i repetitions of `cdr` */
