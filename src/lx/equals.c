@@ -10,11 +10,6 @@
 #include "ref.h"
 #include "list.h"
 
-static bool list_eq(struct lxlist a, struct lxlist b)
-{
-	return a.ref.cell == b.ref.cell && a.ref.offset == b.ref.offset;
-}
-
 bool lx_equals(union lxvalue a, union lxvalue b)
 {
 	struct lxlist p, q;
