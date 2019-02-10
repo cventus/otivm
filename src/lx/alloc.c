@@ -52,6 +52,7 @@ struct lxlist lx_cons(
 	*ref_tag(res) = mktag(cc, val.tag);
 	switch (val.tag) {
 	default: abort();
+	case lx_nil_tag: ref_data(res)->i = 0; break;
 	case lx_list_tag: setref(ref_data(res), val.list.ref); break;
 	case lx_bool_tag: ref_data(res)->i = val.b; break;
 	case lx_int_tag: ref_data(res)->i = val.i; break;

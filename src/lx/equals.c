@@ -17,6 +17,7 @@ bool lx_equals(union lxvalue a, union lxvalue b)
 	if (a.tag != b.tag) {
 		return false;
 	} else switch (a.tag) {
+	case lx_nil_tag: return true;
 	case lx_list_tag:
 		p = a.list;
 		q = b.list;

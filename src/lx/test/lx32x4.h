@@ -52,10 +52,10 @@ static inline int assert_neq(union lxvalue a, union lxvalue b)
 
 static inline int assert_list_eq(struct lxlist a, struct lxlist b)
 {
-	if (a.tag != b.tag || a.tag != lx_list_tag) {
+	if (a.tag != b.tag || !(a.tag == lx_list_tag || a.tag == lx_nil_tag)) {
 		fail_test("assertion failed: tags are lists\n");
 	}
-	if (a.ref.cell != b.ref.cell || a.ref.offset != b.ref.offset) {
+	if (!list_eq(a, b)) {
 		fail_test("assertion failed: equal list identity\n");
 	}
 	return 0;

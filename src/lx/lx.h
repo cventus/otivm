@@ -120,16 +120,12 @@ static inline union lxvalue lx_float(lxfloat f)
 
 static inline struct lxlist lx_empty_list(void)
 {
-	return (struct lxlist) {
-		.ref.tag = lx_list_tag,
-		.ref.offset = 0,
-		.ref.cell = 0
-	};
+	return (struct lxlist) { .ref = { lx_nil_tag, 0, 0 } };
 }
 
 static inline bool lx_is_empty_list(struct lxlist list)
 {
-	return list.tag == lx_list_tag && list.ref.cell == 0;
+	return list.tag == lx_nil_tag;
 }
 
 /* get first element of list */
