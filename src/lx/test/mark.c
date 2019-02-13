@@ -4,10 +4,16 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <limits.h>
 #include <string.h>
+#include <stdbool.h>
+#include <setjmp.h>
 
 #include <ok/ok.h>
+#include "../common.h"
+#include "../lx.h"
+#include "../memory.h"
 #include "../mark.h"
 
 unsigned char bitset[2];

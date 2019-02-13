@@ -46,6 +46,9 @@
 #define lx_length MANGLE(length)
 #define lx_equals MANGLE(equals)
 
+/* internal API */
+#define lx_count_refs MANGLE(count_refs)
+
 /* Make an integer constant representing a tag with two cdr-code bits and
    six type tag bits: CCTTTTTT */
 #define mktag(cdr, type) ((lxtag)(((lxtag)(cdr) << 6)|((lxtag)(type) & 0x3f)))

@@ -72,3 +72,11 @@ static inline size_t ref_offset(struct lxspace const *space, struct lxref ref)
 	/* don't count tag cells in bitmap offset */
 	return i - (i + CELL_SPAN) / (CELL_SPAN + 1) + ref.offset;
 }
+
+/* Recursively mark reachable nodes with two bits to find shared list
+   structure. */
+void lx_count_refs(
+	union lxvalue root,
+	struct lxspace const *from,
+	union lxcell *stack_max,
+	void *bitset);
