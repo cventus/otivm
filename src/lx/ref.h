@@ -35,6 +35,16 @@ static inline struct lxref forward(struct lxref ref)
 	return (struct lxref) { ref.tag, newoff, newc };
 }
 
+static inline bool ref_lt(struct lxref a, struct lxref b)
+{
+        return a.cell < b.cell || (a.cell == b.cell && a.offset < b.offset);
+}
+
+static inline bool ref_eq(struct lxref a, struct lxref b)
+{
+        return a.cell == b.cell && a.offset == b.offset;
+}
+
 static inline lxtag *ref_tag(struct lxref ref)
 {
 	return (lxtag *)ref.cell->t + ref.offset;

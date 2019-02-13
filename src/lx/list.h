@@ -52,5 +52,5 @@ static inline struct lxlist deref_list(union lxcell const *c)
 
 static inline bool list_eq(struct lxlist a, struct lxlist b)
 {
-	return a.ref.cell == b.ref.cell && a.ref.offset == b.ref.offset;
+	return ref_eq(a.ref, b.ref);
 }
