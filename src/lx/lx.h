@@ -1,4 +1,4 @@
-#ifndef LX_BITS 
+#ifndef LX_BITS
 #define LX_BITS 32
 #endif
 
@@ -94,45 +94,11 @@ union lxvalue
 	};
 };
 
+/* recursively compare values for equality */
 bool lx_equals(union lxvalue a, union lxvalue b);
+
+/* prepend an element to a list */
 struct lxlist lx_cons(struct lxmem *, union lxvalue, struct lxlist);
-
-static inline union lxvalue lx_list(struct lxlist list)
-{
-	return (union lxvalue) { .list = list };
-}
-
-static inline union lxvalue lx_bool(bool b)
-{
-	return (union lxvalue) { .tag = lx_bool_tag, .b = b };
-}
-
-static inline union lxvalue lx_int(lxint i)
-{
-	return (union lxvalue) { .tag = lx_int_tag, .i = i };
-}
-#ifdef lxfloat
-
-static inline union lxvalue lx_float(lxfloat f)
-{
-	return (union lxvalue) { .tag = lx_float_tag, .f = f };
-}
-#endif
-
-static inline struct lxlist lx_empty_list(void)
-{
-	return (struct lxlist) { .ref = { lx_nil_tag, 0, 0 } };
-}
-
-static inline bool lx_is_empty_list(struct lxlist list)
-{
-	return list.tag == lx_nil_tag;
-}
-
-static inline bool lx_is_list(union lxvalue val)
-{
-	return val.tag <= lx_list_tag;
-}
 
 /* get first element of (non-empty) list */
 union lxvalue lx_car(struct lxlist list);
@@ -148,3 +114,47 @@ union lxvalue lx_nth(struct lxlist list, lxint i);
 
 /* number of elements in list */
 lxint lx_length(struct lxlist list);
+
+/* wrap a list in a tagged union */
+static inline union lxvalue lx_list(struct lxlist list)
+{
+	return (union lxvalue) { .list = list };
+}
+
+/* wrap a boolean in a tagged union */
+static inline union lxvalue lx_bool(bool b)
+{
+	return (union lxvalue) { .tag = lx_bool_tag, .b = b };
+}
+
+/* wrap an integer in a tagged union */
+static inline union lxvalue lx_int(lxint i)
+{
+	return (union lxvalue) { .tag = lx_int_tag, .i = i };
+}
+#ifdef lxfloat
+
+/* wrap a floating point number in a tagged union */
+static inline union lxvalue lx_float(lxfloat f)
+{
+	return (union lxvalue) { .tag = lx_float_tag, .f = f };
+}
+#endif
+
+/* create an empty list value */
+static inline struct lxlist lx_empty_list(void)
+{
+	return (struct lxlist) { .ref = { lx_nil_tag, 0, 0 } };
+}
+
+/* compare a list against the empty list */
+static inline bool lx_is_empty_list(struct lxlist list)
+{
+	return list.tag == lx_nil_tag;
+}
+
+/* check if a value is a list (i.e. of type list or empty list) */
+static inline bool lx_is_list(union lxvalue val)
+{
+	return val.tag <= lx_list_tag;
+}
