@@ -38,6 +38,14 @@ static inline int assert_int_eq(lxint a, lxint b)
 	return 0;
 }
 
+static inline int assert_ref_eq(struct lxref a, struct lxref b)
+{
+	if (a.cell != b.cell || a.offset != b.offset) {
+		fail_test("assertion failed: equal\n");
+	}
+	return 0;
+}
+
 static inline int assert_eq(union lxvalue a, union lxvalue b)
 {
 	if (!lx_equals(a, b)) fail_test("assertion failed: equal\n");

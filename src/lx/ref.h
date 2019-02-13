@@ -1,3 +1,24 @@
+static inline struct lxref ref_advance(struct lxref ref, lxuint n)
+{
+	size_t cells, offset;
+
+	offset = ref.offset + n;
+	cells = offset / CELL_SIZE;
+	ref.cell += cells * (CELL_SIZE + 1);
+	ref.offset = offset % CELL_SIZE;
+	return ref;
+}
+
+static inline lxint ref_diff(struct lxref a, struct lxref b)
+{
+	ptrdiff_t cells, offset;
+
+	cells = a.cell - b.cell;
+	cells -= cells / (CELL_SIZE + 1); /* cells * 4/5 */
+	offset = (ptrdiff_t)a.offset - (ptrdiff_t)b.offset;
+	return cells + offset;
+}
+
 static inline struct lxref backward(struct lxref ref)
 {
 	union lxcell const *newc = ref.cell;
