@@ -10,7 +10,8 @@
 
 union lxcell data[11];
 struct lxmem mem;
-struct lx_list list;
+struct lx_list list, list_tail;
+lxtag const *t;
 
 void before_each_test(void)
 {
@@ -21,7 +22,7 @@ void before_each_test(void)
 int test_cons_one_element(void)
 {
 	/* we should not run out of memory */
-	if (setjmp(mem.escape)) return -1;
+	if (setjmp(mem.escape)) { fail_test(0); }
 
 	list = lx_cons(&mem, lx_int(42), lx_empty_list());
 
@@ -30,6 +31,62 @@ int test_cons_one_element(void)
 
 	return ok;
 }
+
+int test_cons_should_make_two_subsequent_allocations_adjacent(void)
+{
+	/* we should not run out of memory */
+	if (setjmp(mem.escape)) { fail_test(0); }
+
+	list_tail = lx_cons(&mem, lx_int(2), lx_empty_list());
+	list = lx_cons(&mem, lx_int(1), list_tail);
+
+	/* assert logical structure */
+	assert_eq(lx_car(list), lx_int(1));
+	assert_eq(lx_car(list_tail), lx_int(2));
+	assert_eq(lx_list(lx_cdr(list)), lx_list(list_tail));
+	assert_eq(lx_list(lx_cdr(list_tail)), lx_list(lx_empty_list()));
+
+	/* assert physical structure */
+	assert_int_eq(mem.space.tag_free.offset, 2);
+
+	t = mem.space.tag_free.cell->t;
+	assert_int_eq(t[2], mktag(cdr_adjacent, lx_int_tag));
+	assert_int_eq(t[3], mktag(cdr_nil, lx_int_tag));
+
+	return ok;
+}
+
+int test_cons_should_link_two_non_adjacent_allocations(void)
+{
+	/* we should not run out of memory */
+	if (setjmp(mem.escape)) { fail_test(0); }
+
+	list_tail = lx_cons(&mem, lx_int(2), lx_empty_list());
+
+	/* garbage allocation makes list segments to be non-adjacent */
+	lx_cons(&mem, lx_list(lx_empty_list()), lx_empty_list());
+
+	list = lx_cons(&mem, lx_int(1), list_tail);
+
+	/* assert logical structure */
+	assert_eq(lx_car(list), lx_int(1));
+	assert_eq(lx_car(list_tail), lx_int(2));
+	assert_eq(lx_list(lx_cdr(list)), lx_list(list_tail));
+	assert_eq(lx_list(lx_cdr(list_tail)), lx_list(lx_empty_list()));
+
+	/* assert physical structure */
+	assert_int_eq(mem.space.tag_free.offset, 0);
+
+	t = mem.space.tag_free.cell->t;
+	assert_int_eq(t[0], mktag(cdr_link, lx_int_tag));
+	assert_int_eq(t[1], mktag(cdr_nil, lx_list_tag));
+	assert_int_eq(t[2], mktag(cdr_nil, lx_nil_tag));
+	assert_int_eq(t[3], mktag(cdr_nil, lx_int_tag));
+
+	return ok;
+}
+
+
 
 int test_cons_calls_longjmp_when_it_runs_out_of_memory(void)
 {
@@ -57,7 +114,7 @@ int test_cons_calls_longjmp_when_it_runs_out_of_memory(void)
 int test_cons_five_elements(void)
 {
 	/* we should not run out of memory */
-	if (setjmp(mem.escape)) return -1;
+	if (setjmp(mem.escape)) { fail_test(0); }
 
 	list = lx_cons(&mem, lx_int(4), lx_empty_list());
 	list = lx_cons(&mem, lx_int(3), list);

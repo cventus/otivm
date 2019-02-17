@@ -54,7 +54,13 @@ struct lxlist lx_cons(
 	struct lxref res, cdr;
 	enum cdr_code cc;
 
-	cc = list.ref.cell ? cdr_link : cdr_nil;
+	if (lx_is_empty_list(list)) {
+		cc = cdr_nil;
+	} else if (ref_eq(list.ref, mem->space.tag_free)) {
+		cc = cdr_adjacent;
+	} else {
+		cc = cdr_link;
+	}
 	res = reserve_tagged(mem, cc == cdr_link ? 2 : 1);
 	*ref_tag(res) = mktag(cc, val.tag);
 	switch (val.tag) {

@@ -30,6 +30,9 @@ struct lxmem
 	enum out_of_memory oom;
 };
 
+/* In an empty space, tagged cells are allocated at the highest address so
+   that e.g. cons can create compact lists directly in case the tail was
+   allocated immediately prior. */
 static inline void init_space(struct lxspace *space, union lxcell *p, size_t n)
 {
 	space->begin = p;
