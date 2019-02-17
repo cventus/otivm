@@ -13,28 +13,35 @@
 
 static struct lxref reserve_tagged(struct lxmem *mem, size_t n)
 {
-	size_t m, span_cells, cells_required, empty_cells, mark_cells;
+	size_t new_cells, new_offset, new_spans;
+	size_t new_cell_total;
+	size_t tag_cells_max, mark_cells, span_cells;
 
 	if (n <= mem->space.tag_free.offset) {
 		/* allocate from current span */
 		mem->space.tag_free.offset -= n;
 		return mem->space.tag_free;
 	} else {
-		/* allocate the rest from the current span and more */
-		m = n - mem->space.tag_free.offset;
+		/* allocate the rest from the current span and more from new
+		   ones */
+		new_cells = n - mem->space.tag_free.offset;
 		mem->space.tag_free.offset = 0;
 	}
 
-	cells_required = m + ceil_div(m, CELL_SPAN);
-	span_cells = ceil_div(cells_required, CELL_SPAN + 1) * (CELL_SPAN + 1);
-	empty_cells = mem->space.tag_free.cell - mem->space.raw_free;
-	mark_cells = mark_cell_count(cell_count(&mem->space) + cells_required);
-
-	if (empty_cells - mark_cells < span_cells) {
+	/* Ensure there's enough room for the new cells */
+	new_cell_total = space_spans(&mem->space)*CELL_SPAN + new_cells;
+	mark_cells = mark_cell_count(new_cell_total);
+	span_cells = ceil_div(new_cell_total, CELL_SPAN) * SPAN_LENGTH;
+	tag_cells_max = mem->space.end - mem->space.raw_free;
+	if (tag_cells_max - mark_cells < span_cells) {
 		longjmp(mem->escape, mem->oom);
 	}
-	mem->space.tag_free.cell -= span_cells;
-	mem->space.tag_free.offset = (CELL_SPAN - (m % CELL_SPAN)) % CELL_SPAN;
+
+	/* Move free pointer */
+	new_spans = ceil_div(new_cells, CELL_SPAN) * SPAN_LENGTH;
+	new_offset = CELL_SPAN - (new_cells % CELL_SPAN);
+	mem->space.tag_free.cell -= new_spans;
+	mem->space.tag_free.offset = new_offset % CELL_SPAN;
 
 	return mem->space.tag_free;
 }

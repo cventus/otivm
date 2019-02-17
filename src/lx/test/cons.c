@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <setjmp.h>
+#include <string.h>
 
 #include "ok/ok.h"
 #include "lx32x4.h"

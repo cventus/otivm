@@ -73,6 +73,11 @@ static inline size_t ref_offset(struct lxspace const *space, struct lxref ref)
 	return i - (i + CELL_SPAN) / (CELL_SPAN + 1) + ref.offset;
 }
 
+struct lxlist lx_shared_head(
+	struct lxlist list,
+	struct lxspace const *from,
+	void const *bitset);
+
 /* Recursively mark reachable nodes with two bits to find shared list
    structure. */
 void lx_count_refs(

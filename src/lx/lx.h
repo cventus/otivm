@@ -47,7 +47,9 @@
 #define lx_equals MANGLE(equals)
 
 /* internal API */
+#define lx_shared_head MANGLE(shared_head)
 #define lx_count_refs MANGLE(count_refs)
+#define lx_compact MANGLE(compact)
 
 /* Make an integer constant representing a tag with two cdr-code bits and
    six type tag bits: CCTTTTTT */

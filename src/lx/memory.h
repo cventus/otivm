@@ -40,25 +40,78 @@ static inline void init_space(struct lxspace *space, union lxcell *p, size_t n)
 	space->tag_free.cell = space->end;
 }
 
-static inline size_t cell_count(struct lxspace const *space)
+/* A to-space is a space used during garbage collection where tagged cells are
+   allocated from low addresses to high */
+static inline void make_tospace(struct lxspace *space)
 {
-	size_t used_cells = space->end - space->tag_free.cell;
-	size_t used_frames = ceil_div(used_cells, CELL_SIZE + 1);
-	return used_frames;
+	space->tag_free.offset = 0;
+	space->tag_free.cell = space->begin;
+	space->raw_free = space->end;
 }
 
-static inline size_t mark_cell_count(size_t cells)
+static inline bool is_tospace(struct lxspace *space)
 {
-	return (cells * 2 + LX_BITS - 1) / LX_BITS;
+	return space->raw_free >= space->tag_free.cell;
 }
 
-static inline size_t space_available(struct lxspace const *space)
+/* Turn a to-space into the normal arrangement, where tagged cells are
+   allocated from high addresses. */
+static inline void tospace_to_alloc(struct lxspace *space)
 {
-	size_t empty_cells, mark_cells;
+	union lxcell *cell;
 
-	empty_cells = space->tag_free.cell - space->raw_free;
-	/* reserve two mark-bits per cell */
-	mark_cells = mark_cell_count(cell_count(space));
-
-	return empty_cells >= mark_cells ? empty_cells - mark_cells : 0;
+	cell = space->raw_free;
+	space->raw_free = (union lxcell *)space->tag_free.cell;
+	if (space->tag_free.offset) {
+		space->raw_free += 1 + space->tag_free.offset;
+	}
+	space->tag_free.offset = 0;
+	space->tag_free.cell = cell;
 }
+
+static inline size_t mark_cell_count(size_t tagged_cells)
+{
+	return (tagged_cells * 2 + LX_BITS - 1) / LX_BITS;
+}
+
+static inline size_t space_size(struct lxspace const *space)
+{
+	return space->end - space->begin;
+}
+
+static inline size_t space_span_cells(struct lxspace const *space)
+{
+	return space->end - space->tag_free.cell;
+}
+
+static inline size_t space_spans(struct lxspace const *space)
+{
+	return space_span_cells(space) / SPAN_LENGTH;
+}
+
+static inline size_t space_tagged_cells(struct lxspace const *space)
+{
+	return space_spans(space) * CELL_SPAN;
+}
+
+static inline size_t space_raw_cells(struct lxspace const *space)
+{
+	return space->raw_free - space->begin;
+}
+
+/* total amount of cells used (including garbage and mark bits) */
+static inline size_t space_used(struct lxspace const *space)
+{
+	size_t raw_cells, spans, mark_cells;
+
+	raw_cells = space->raw_free - space->begin;
+	spans = space_spans(space);
+	mark_cells = mark_cell_count(spans * CELL_SPAN);
+
+	return raw_cells + spans*SPAN_LENGTH + mark_cells;
+}
+
+union lxvalue lx_compact(
+	union lxvalue root,
+	struct lxspace *from,
+	struct lxspace *to);
