@@ -54,6 +54,27 @@ static inline int _assert_int_eq(
 	 #value,  #expected, \
 	 __FILE__, __LINE__, __func__)
 
+static inline void _assert_tag_eq(
+	enum lx_tag value,
+	enum lx_tag expected,
+	char const *value_exp,
+	char const *expected_exp,
+	char const *file,
+	unsigned int line,
+	char const *func)
+{
+	if (value == expected) { return; }
+	printf("%s:%s:%u: Assertion %s == %s failed!\n",
+		file, func, line, value_exp, expected_exp);
+	printf("Got: %d\nExpected: %d\n", value, expected);
+	fail_test(0);
+}
+
+#define assert_tag_eq(value, expected) \
+	_assert_tag_eq(value, expected, \
+	 #value,  #expected, \
+	 __FILE__, __LINE__, __func__)
+
 static inline int assert_ptr_eq(union lxcell const *a, union lxcell const *b)
 {
 	if (a != b) { fail_test("assertion failed: equal\n"); }

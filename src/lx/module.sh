@@ -5,5 +5,6 @@ define_ok_test test/cons.c
 define_ok_test test/compact.c
 define_ok_test test/compact-tree.c
 define_ok_test test/compact-shared.c
+define_ok_test test/compact-rec.c
 define_ok_test test/mark.c
 define_ok_test test/ref.c

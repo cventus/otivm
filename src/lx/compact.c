@@ -212,7 +212,7 @@ union lxvalue lx_compact(
 	switch (root.tag) {
 	case lx_list_tag:
 		/* Non-trivial case: copy a list structure */
-		assert(get_bits(bitset, ref_offset(from, root.list.ref)) == 1);
+		assert(get_bits(bitset, ref_offset(from, root.list.ref)) != 0);
 		return lx_list(cheney70(root.list, from, to, bitset));
 
 	case lx_nil_tag:
