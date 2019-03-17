@@ -22,6 +22,7 @@
 #define lxuint JOIN(uint, JOIN(LX_BITS, _t))
 
 /* primitive types */
+#define lxstate MANGLE(state)
 #define lxcell MANGLE(cell)
 #define lxmem MANGLE(mem)
 #define lxvalue MANGLE(value)
@@ -33,6 +34,11 @@
 #define lx_bool MANGLE(bool)
 #define lx_int MANGLE(int)
 #define lx_float MANGLE(float)
+
+/* state API */
+#define lx_make MANGLE(make)
+#define lx_free MANGLE(free)
+#define lx_root MANGLE(root)
 
 /* list API */
 #define lx_empty_list MANGLE(empty_list)
@@ -69,6 +75,12 @@
 
 union lxcell;
 struct lxmem;
+struct lxstate;
+
+struct lx_config
+{
+	size_t init_size, max_size;
+};
 
 struct lxref
 {
@@ -98,6 +110,11 @@ union lxvalue
 		};
 	};
 };
+
+struct lxstate *lx_make(struct lx_config const *config);
+void lx_free(struct lxstate *state);
+
+union lxvalue lx_root(struct lxstate const *state);
 
 /* recursively compare values for equality */
 bool lx_equals(union lxvalue a, union lxvalue b);
