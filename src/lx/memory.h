@@ -17,6 +17,12 @@ union lxcell
 #endif
 };
 
+/* An lxspace is a memory region from which you can allocate memory from both
+   ends. There are three types of spaces: 1) the allocation space used by cons,
+   2) the from-space which contains live and garbage objects during garbage
+   collection, and 3) to-space into which live objects are copied during
+   garbage collection. There is no explicit type information stored with
+   spaces, but the type of space known inplicitly from the code path. */
 struct lxspace
 {
 	struct lxref tag_free;
@@ -30,10 +36,13 @@ struct lxmem
 	enum out_of_memory oom;
 };
 
-/* In an empty space, tagged cells are allocated at the highest address so
-   that e.g. cons can create compact lists directly in case the tail was
-   allocated immediately prior. */
-static inline void init_space(struct lxspace *space, union lxcell *p, size_t n)
+/* Tagged cells are allocated from high addresses towards low addresses in an
+   allocation space, so that cons can create compact lists directly when the
+   tail was allocated immediately prior. */
+static inline void init_allocspace(
+	struct lxspace *space,
+	union lxcell *p,
+	size_t n)
 {
 	space->begin = p;
 	space->end = p + n;
@@ -43,23 +52,28 @@ static inline void init_space(struct lxspace *space, union lxcell *p, size_t n)
 	space->tag_free.cell = space->end;
 }
 
-/* A to-space is a space used during garbage collection where tagged cells are
-   allocated from low addresses to high */
-static inline void make_tospace(struct lxspace *space)
+static inline void set_tospace(struct lxspace *space)
 {
 	space->tag_free.offset = 0;
 	space->tag_free.cell = space->begin;
 	space->raw_free = space->end;
 }
 
-static inline bool is_tospace(struct lxspace *space)
+/* In a to-space, tagged cells are allocated from low addresses to high so that
+   lists can be copied from front to back without knowing the length of the
+   list. */
+static inline void init_tospace(
+	struct lxspace *space,
+	union lxcell *p,
+	size_t n)
 {
-	return space->raw_free >= space->tag_free.cell;
+	space->begin = p;
+	space->end = p + n;
+
+	set_tospace(space);
 }
 
-/* Turn a to-space into the normal arrangement, where tagged cells are
-   allocated from high addresses. */
-static inline void tospace_to_alloc(struct lxspace *space)
+static inline void tospace_to_allocspace(struct lxspace *space)
 {
 	union lxcell *cell;
 

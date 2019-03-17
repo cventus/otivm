@@ -196,7 +196,6 @@ union lxvalue lx_compact(
 	size_t mark_cells, raw_cells;
 	union lxcell *bitset;
 
-	assert(is_tospace(to));
 	assert(space_size(to) >= space_used(from));
 
 	/* Allocate the bitset for marking shared structure at the end of

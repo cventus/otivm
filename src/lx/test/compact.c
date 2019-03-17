@@ -32,9 +32,8 @@ union lxvalue root, nil;
 void before_each_test(void)
 {
 	memcpy(from_buf, state, sizeof state);
-	init_space(&from, from_buf, 10);
-	init_space(&to, to_buf, 11);
-	make_tospace(&to);
+	init_allocspace(&from, from_buf, 10);
+	init_tospace(&to, to_buf, 11);
 	from.tag_free.cell = from_buf;
 	root = lx_list(mklist(from_buf, 3));
 	nil = lx_list(lx_empty_list());

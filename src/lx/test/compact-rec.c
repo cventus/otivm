@@ -23,9 +23,8 @@ union lxvalue root;
 void before_each_test(void)
 {
 	memcpy(from_buf, state, sizeof state);
-	init_space(&from, from_buf, 5);
-	init_space(&to, to_buf, 6);
-	make_tospace(&to);
+	init_allocspace(&from, from_buf, 5);
+	init_tospace(&to, to_buf, 6);
 	from.tag_free.cell = from_buf;
 	root = lx_list(mklist(from_buf, 0));
 }

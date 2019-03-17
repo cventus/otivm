@@ -103,11 +103,10 @@ union lxvalue root;
 void before_each_test(void)
 {
 	memcpy(from_buf, state, sizeof state);
-	init_space(&from, from_buf, 50);
+	init_allocspace(&from, from_buf, 50);
 	from.tag_free.cell = from.begin;
 	from.tag_free.offset = 0;
-	init_space(&to, to_buf, 53);
-	make_tospace(&to);
+	init_tospace(&to, to_buf, 53);
 	root = lx_list(mklist(from_buf, 0));
 }
 
@@ -153,7 +152,7 @@ int test_expected_tospace_structure(void)
 int test_compacted_tree_is_smaller(void)
 {
 	lx_compact(root, &from, &to);
-	tospace_to_alloc(&to);
+	tospace_to_allocspace(&to);
 	assert(space_raw_cells(&to) == 38);
 	return ok;
 }

@@ -16,7 +16,7 @@ lxtag const *t;
 void before_each_test(void)
 {
 	mem.oom = OOM_COMPACT;
-	init_space(&mem.space, data, 11);
+	init_allocspace(&mem.space, data, 11);
 }
 
 int test_cons_one_element(void)

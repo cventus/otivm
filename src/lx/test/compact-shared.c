@@ -60,11 +60,9 @@ union lxcell stack_buf[50], *stack;
 void before_each_test(void)
 {
 	memcpy(from_buf, state, sizeof state);
-	init_space(&from, from_buf, 25);
+	init_allocspace(&from, from_buf, 25);
 	from.tag_free.cell = from.begin;
-	from.tag_free.offset = 0;
-	init_space(&to, to_buf, 27);
-	make_tospace(&to);
+	init_tospace(&to, to_buf, 27);
 
 	stack = stack_buf + 50;
 	root_A = lx_list(mklist(from_buf + 5, 0));
@@ -115,7 +113,7 @@ int test_A_expected_tospace_structure(void)
 int test_A_compacted_tree_is_smaller(void)
 {
 	lx_compact(root_A, &from, &to);
-	tospace_to_alloc(&to);
+	tospace_to_allocspace(&to);
 	assert_int_eq(space_raw_cells(&to), compacted_size_A);
 	return ok;
 }
@@ -162,7 +160,7 @@ int test_B_expected_tospace_structure(void)
 int test_B_compacted_tree_is_smaller(void)
 {
 	lx_compact(root_B, &from, &to);
-	tospace_to_alloc(&to);
+	tospace_to_allocspace(&to);
 	assert_int_eq(space_raw_cells(&to), compacted_size_B);
 	return ok;
 }
@@ -211,7 +209,7 @@ int test_C_expected_tospace_structure(void)
 int test_C_compacted_tree_is_smaller(void)
 {
 	lx_compact(root_C, &from, &to);
-	tospace_to_alloc(&to);
+	tospace_to_allocspace(&to);
 	assert_int_eq(space_raw_cells(&to), compacted_size_C);
 	return ok;
 }
@@ -258,7 +256,7 @@ int test_D_expected_tospace_structure(void)
 int test_D_compacted_tree_is_smaller(void)
 {
 	lx_compact(root_D, &from, &to);
-	tospace_to_alloc(&to);
+	tospace_to_allocspace(&to);
 	assert_int_eq(space_raw_cells(&to), compacted_size_D);
 	return ok;
 }
