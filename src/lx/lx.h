@@ -56,6 +56,8 @@
 #define lx_shared_head MANGLE(shared_head)
 #define lx_count_refs MANGLE(count_refs)
 #define lx_compact MANGLE(compact)
+#define lx_resize_heap MANGLE(resize_heap)
+#define lx_gc MANGLE(gc)
 
 /* Make an integer constant representing a tag with two cdr-code bits and
    six type tag bits: CCTTTTTT */
