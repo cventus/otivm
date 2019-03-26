@@ -36,7 +36,7 @@ struct lxstate *lx_make(struct lx_config const *config)
 	heap_size = c->init_size;
 	heap_size = c->init_size & ~(size_t)(2*CELL_SIZE - 1);
 	if (heap_size < MIN_SIZE) { heap_size = MIN_SIZE; }
-	space_cells = heap_size / 2*CELL_SIZE;
+	space_cells = heap_size / (2*CELL_SIZE);
 	heap = malloc(heap_size);
 	if (!heap) {
 		free(state);
@@ -95,7 +95,7 @@ int lx_resize_heap(struct lxstate *state, size_t new_size)
 
 	new_heap = realloc(state->heap, new_size);
 	if (!new_heap) { return -1; }
-	space_cells = new_size / 2*CELL_SIZE;
+	space_cells = new_size / (2*CELL_SIZE);
 	state->heap = new_heap;
 	state->size = new_size;
 	if (state->root.tag == lx_list_tag) {
