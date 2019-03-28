@@ -36,6 +36,7 @@ static void copy_car(
 {
 	struct lxref car;
 	switch (list_car_tag(list)) {
+	default: abort();
 	case lx_list_tag:
 		/* Copy cross reference into to-space which will be upated as
 		   the "scan" pointer advances. */
@@ -49,8 +50,6 @@ static void copy_car(
 		/* Immediate values can be copied right away */
 		*ref_data(dest) = *list_car(list);
 		break;
-	default:
-		abort();
 	}
 }
 
@@ -65,7 +64,7 @@ static struct lxref copy_list(
 	struct lxref dest, result;
 	struct lxlist src;
 	size_t i;
-	lxtag tag;
+	enum lx_tag tag;
 	bool shared;
 	lxint diff;
 
@@ -96,9 +95,10 @@ static struct lxref copy_list(
 			clear_bits(bitset, i);
 			setxref(set_car(src), to->begin, dest);
 		}
-		/* The tag depends on the cdr code. If possible,
-		   compact a link into an adjacent cell. Then advance src. */
+		/* The tag depends on the cdr code. If possible, compact a link
+		   into an adjacent cell. Then advance src. */
 		switch (list_cdr_code(src)) {
+		default: abort();
 		case cdr_nil:
 			/* entire list copied */
 			*ref_tag(dest) = mktag(cdr_nil, tag);
@@ -122,8 +122,6 @@ static struct lxref copy_list(
 			src = list_forward(src);
 			i++;
 			break;
-		default:
-			abort();
 		}
 		*ref_tag(dest) = mktag(cdr_adjacent, tag);
 		dest = forward(dest);
@@ -151,6 +149,7 @@ static struct lxlist cheney70(
 	/* update references until the free pointer has been reached */
 	while (ref_lt(scan, to->tag_free)) {
 		switch (lxtag_tag(*ref_tag(scan))) {
+		default: abort();
 		case lx_list_tag:
 			/* Data of element contains cross-reference to source
 			   in from-space */
@@ -173,9 +172,6 @@ static struct lxlist cheney70(
 		case lx_int_tag:
 		case lx_float_tag:
 			/* small data has already been copied */
-			break;
-		default:
-			abort();
 			break;
 		}
 		scan = forward(scan);
@@ -209,18 +205,16 @@ union lxvalue lx_compact(
 	lx_count_refs(root, from, bitset, bitset);
 
 	switch (root.tag) {
-	case lx_list_tag:
-		/* Non-trivial case: copy a list structure */
-		assert(get_bits(bitset, ref_offset(from, root.list.ref)) != 0);
-		return lx_list(cheney70(root.list, from, to, bitset));
-
+	default: abort();
 	case lx_nil_tag:
 	case lx_bool_tag:
 	case lx_int_tag:
 	case lx_float_tag:
 		return root;
 
-	default:
-		abort();
+	case lx_list_tag:
+		/* Non-trivial case: copy a list structure */
+		assert(get_bits(bitset, ref_offset(from, root.list.ref)) != 0);
+		return lx_list(cheney70(root.list, from, to, bitset));
 	}
 }
