@@ -8,3 +8,4 @@ define_ok_test test/compact-shared.c
 define_ok_test test/compact-rec.c
 define_ok_test test/mark.c
 define_ok_test test/ref.c
+define_ok_test test/modify.c

@@ -28,6 +28,7 @@
 #define lxvalue MANGLE(value)
 #define lxref MANGLE(ref)
 #define lxlist MANGLE(list)
+#define lxresult MANGLE(result)
 #define lxalloc MANGLE(alloc)
 
 /* converter functions */
@@ -41,6 +42,7 @@
 #define lx_size MANGLE(size)
 #define lx_free MANGLE(free)
 #define lx_root MANGLE(root)
+#define lx_modify MANGLE(modify)
 
 /* list API */
 #define lx_empty_list MANGLE(empty_list)
@@ -115,11 +117,22 @@ union lxvalue
 	};
 };
 
+struct lxresult
+{
+	int status;
+	union lxvalue value;
+};
+
 struct lxstate *lx_make(size_t init_size, struct lx_config const *config);
 size_t lx_size(struct lxstate const *state);
 void lx_free(struct lxstate *state);
 
 union lxvalue lx_root(struct lxstate const *state);
+
+struct lxresult lx_modify(
+	struct lxstate *state,
+	union lxvalue modify(struct lxmem *, union lxvalue, void *),
+	void *param);
 
 /* recursively compare values for equality */
 bool lx_equals(union lxvalue a, union lxvalue b);
