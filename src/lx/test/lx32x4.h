@@ -12,6 +12,9 @@
 #include "../ref.h"
 #include "../list.h"
 
+#define QUOTE_(x) #x
+#define QUOTE(x) QUOTE_(x)
+
 #define tag(type, cdr_code) \
 	mktag(JOIN(cdr_,cdr_code), JOIN(lx_,JOIN(type,_tag)))
 
@@ -32,96 +35,235 @@
 #define mklist(cell, offset) \
 	ref_to_list((struct lxref) { lx_list_tag, offset, cell })
 
+struct assert_ctx
+{
+	char const *value, *expected, *size, *file, *func;
+	unsigned line;
+};
+
+#define assert_ctx(val, exp) \
+
+#define _call_assert(name, val, exp) \
+	name(val, exp, (struct assert_ctx){ \
+		#val, #exp, "", __FILE__, __func__, __LINE__ \
+	})
+
+#define _call_assert_sz(name, val, exp, size) \
+	name(val, exp, size, (struct assert_ctx){ \
+		#val, #exp, #size, __FILE__, __func__, __LINE__ \
+	})
+
+#define assertion_failed(ctx) \
+	printf("%s:%s:%u: Assertion %s == %s failed!\n", \
+		ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected)
+
 static inline int _assert_int_eq(
 	lxint value,
 	lxint expected,
-	char const *value_exp,
-	char const *expected_exp,
-	char const *file,
-	unsigned int line,
-	char const *func)
+	struct assert_ctx ctx)
 {
 	if (value == expected) { return 0; }
-	printf("%s:%s:%u: Assertion %s == %s failed!\n",
-		file, func, line, value_exp, expected_exp);
+	assertion_failed(ctx);
 	printf("Got: %d\nExpected: %d\n", value, expected);
 	fail_test(0);
 	return -1;
 }
 
 #define assert_int_eq(value, expected) \
-	_assert_int_eq(value, expected, \
-	 #value,  #expected, \
-	 __FILE__, __LINE__, __func__)
+	_call_assert(_assert_int_eq, value, expected)
 
 static inline void _assert_tag_eq(
 	enum lx_tag value,
 	enum lx_tag expected,
-	char const *value_exp,
-	char const *expected_exp,
-	char const *file,
-	unsigned int line,
-	char const *func)
+	struct assert_ctx ctx)
 {
 	if (value == expected) { return; }
-	printf("%s:%s:%u: Assertion %s == %s failed!\n",
-		file, func, line, value_exp, expected_exp);
+	assertion_failed(ctx);
 	printf("Got: %d\nExpected: %d\n", value, expected);
 	fail_test(0);
 }
 
 #define assert_tag_eq(value, expected) \
-	_assert_tag_eq(value, expected, \
-	 #value,  #expected, \
-	 __FILE__, __LINE__, __func__)
+	_call_assert(_assert_tag_eq, value, expected)
 
-static inline int assert_ptr_eq(union lxcell const *a, union lxcell const *b)
+static inline void _assert_status_eq(
+	int value,
+	int expected,
+	struct assert_ctx ctx)
 {
-	if (a != b) { fail_test("assertion failed: equal\n"); }
-	return 0;
+	if (value == expected) { return; }
+	assertion_failed(ctx);
+	printf("Got: %d\nExpected: %d\n", value, expected);
+	fail_test(0);
 }
 
-static inline int assert_ref_eq(struct lxref a, struct lxref b)
+#define assert_status_eq(value, expected) \
+	_call_assert(_assert_status_eq, value, expected)
+
+static inline int _assert_ptr_eq(
+	union lxcell const *a,
+	union lxcell const *b,
+	struct assert_ctx ctx)
 {
-	if (a.cell != b.cell || a.offset != b.offset) {
-		fail_test("assertion failed: equal\n");
+	if (a == b) { return 0; }
+	assertion_failed(ctx);
+	printf("Got: %p\nExpected: %p\n", (void *)a, (void *)b);
+	fail_test(0);
+	return -1;
+}
+
+#define assert_ptr_eq(value, expected) \
+	_call_assert(_assert_ptr_eq, value, expected)
+
+static inline int _assert_ref_eq(
+	struct lxref a,
+	struct lxref b,
+	struct assert_ctx ctx)
+{
+	if (a.cell == b.cell && a.offset == b.offset) {
+		return 0;
 	}
-	return 0;
+	assertion_failed(ctx);
+	printf("Got: (%p, %d)\nExpected: (%p, %d)\n",
+		(void *)a.cell, a.offset,
+		(void *)b.cell, b.offset);
+	fail_test(0);
+	return -1;
 }
 
-static inline int assert_eq(union lxvalue a, union lxvalue b)
+#define assert_ref_eq(value, expected) \
+	_call_assert(_assert_ref_eq, value, expected)
+
+static void _print_value(union lxvalue val)
 {
-	if (!lx_equals(a, b)) { fail_test("assertion failed: equal\n"); }
-	return 0;
+	struct lxlist l;
+	switch (val.tag) {
+	default: abort();
+	case lx_nil_tag: printf("()"); break;
+	case lx_list_tag:
+		printf("(");
+		while (true) {
+			_print_value(lx_car(val.list));
+			l = lx_cdr(val.list);
+			if (l.tag == lx_nil_tag) { break; }
+			printf(" ");
+		}
+		printf(")");
+		break;
+	case lx_bool_tag:
+		if (val.i) {
+			printf("#t");
+		} else {
+			printf("#f");
+		}
+		break;
+	case lx_int_tag:
+		printf("%d", val.i);
+		break;
+	case lx_float_tag:
+		printf("%f", val.f);
+		break;
+	}
 }
 
-static inline int assert_neq(union lxvalue a, union lxvalue b)
+static inline int _assert_eq(
+	union lxvalue a,
+	union lxvalue b,
+	struct assert_ctx ctx)
 {
-	if (lx_equals(a, b)) { fail_test("assertion failed: not equal\n"); }
-	return 0;
+	if (lx_equals(a, b)) {
+		return 0;
+	}
+	printf("%s:%s:%u: Assertion " QUOTE(lx_equals) "(%s, %s) failed!\n", \
+		ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected);
+	printf("Got: ");
+	_print_value(a);
+	printf("\nExpected: ");
+	_print_value(b);
+	printf("\n");
+	fail_test(0);
+	return -1;
 }
 
-static inline int assert_list_eq(struct lxlist a, struct lxlist b)
+#define assert_eq(value, expected) \
+	_call_assert(_assert_eq, value, expected)
+
+static inline int _assert_neq(
+	union lxvalue a,
+	union lxvalue b,
+	struct assert_ctx ctx)
 {
-	if (a.tag != b.tag || !(a.tag == lx_list_tag || a.tag == lx_nil_tag)) {
-		fail_test("assertion failed: tags are lists\n");
+	if (!lx_equals(a, b)) {
+		return 0;
+	}
+	printf("%s:%s:%u: Assertion !" QUOTE(lx_equals) "(%s, %s) failed!\n", \
+		ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected);
+	printf("Got: ");
+	_print_value(a);
+	printf("\n");
+	fail_test(0);
+	return -1;
+
+}
+
+#define assert_neq(value, expected) \
+	_call_assert(_assert_neq, value, expected)
+
+static inline int _assert_list_eq(
+	struct lxlist a,
+	struct lxlist b,
+	struct assert_ctx ctx)
+{
+	if (a.tag != lx_list_tag && a.tag != lx_nil_tag) {
+		assertion_failed(ctx);
+		printf("%s is not a list (got %d)\n", ctx.value, (int)a.tag);
+		fail_test(0);
+	}
+	if (b.tag != lx_list_tag && b.tag != lx_nil_tag) {
+		assertion_failed(ctx);
+		printf("%s is not a list (got %d)\n", ctx.expected, (int)b.tag);
+		fail_test(0);
 	}
 	if (!list_eq(a, b)) {
-		fail_test("assertion failed: equal list identity\n");
+		assertion_failed(ctx);
+		printf("Got: (%p, %d)\nExpected: (%p, %d)\n",
+			(void *)a.ref.cell, a.ref.offset,
+			(void *)b.ref.cell, b.ref.offset);
+		fail_test(0);
 	}
 	return 0;
 }
 
-static inline int assert_list_neq(struct lxlist a, struct lxlist b)
+#define assert_list_eq(value, expected) \
+	_call_assert(_assert_list_eq, value, expected)
+
+static inline int _assert_list_neq(
+	struct lxlist a,
+	struct lxlist b,
+	struct assert_ctx ctx)
 {
-	if (a.tag != b.tag || a.tag != lx_list_tag) {
-		fail_test("assertion failed: tags are lists\n");
+	if (a.tag != lx_list_tag) {
+		printf("%s:%s:%u: Assertion %s != %s  failed!\n",
+			ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected);
+		printf("%s is not a list (got %d)\n", ctx.value, (int)a.tag);
+		fail_test(0);
+	}
+	if (b.tag != lx_list_tag) {
+		printf("%s:%s:%u: Assertion %s != %s  failed!\n",
+			ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected);
+		printf("%s is not a list (got %d)\n", ctx.expected, (int)b.tag);
+		fail_test(0);
 	}
 	if (a.ref.cell == b.ref.cell && a.ref.offset == b.ref.offset) {
-		fail_test("assertion failed: different list identity\n");
+		printf("%s:%s:%u: Assertion %s != %s  failed!\n",
+			ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected);
+		fail_test(0);
 	}
 	return 0;
 }
+
+#define assert_list_neq(value, expected) \
+	_call_assert(_assert_list_neq, value, expected)
 
 static inline void _append_char(int ch, char **p, size_t *size)
 {
@@ -178,6 +320,24 @@ static inline void serialize(union lxvalue value, char *p, size_t size)
 	*q = '\0';
 }
 
+static inline void _assert_serialize_eq(
+	union lxvalue a,
+	char const *str,
+	struct assert_ctx ctx)
+{
+	char buf[500];
+
+	serialize(a, buf, sizeof buf);
+	if (strcmp(buf, str) == 0) { return; }
+	printf("%s:%s:%u: Assertion serialize(%s) == %s failed!\n", \
+		ctx.file, ctx.func, ctx.line, ctx.value, str);
+	printf("Got: %s\n", buf);
+	fail_test(0);
+}
+
+#define assert_serialize_eq(value, expected) \
+	_call_assert(_assert_serialize_eq, value, expected)
+
 static inline void _print_hex(FILE *fp, void const *data, size_t size)
 {
 	size_t i;
@@ -202,16 +362,11 @@ static inline void _assert_mem_eq(
 	void const *value,
 	void const *expected,
 	size_t size,
-	char const *value_exp,
-	char const *expected_exp,
-	char const *size_exp,
-	char const *file,
-	unsigned int line,
-	char const *func)
+	struct assert_ctx ac)
 {
 	if (memcmp(value, expected, size) == 0) { return; }
-	printf("%s:%s:%u: Assertion memcmp(%s, %s, %s) != 0 failed!\n",
-		file, func, line, value_exp, expected_exp, size_exp);
+	printf("%s:%s:%u: Assertion memcmp(%s, %s, %s) == 0 failed!\n",
+		ac.file, ac.func, ac.line, ac.value, ac.expected, ac.size);
 	printf("Got:\n");
 	_print_hex(stdout, value, size);
 	printf("Expected:\n");
@@ -220,27 +375,19 @@ static inline void _assert_mem_eq(
 }
 
 #define assert_mem_eq(value, expected, size) \
-	_assert_mem_eq(value, expected, size, \
-	 #value,  #expected, #size, \
-	 __FILE__, __LINE__, __func__)
+	_call_assert_sz(_assert_mem_eq, value, expected, size)
 
 static inline void _assert_str_eq(
 	char const *value,
 	char const *expected,
-	char const *value_exp,
-	char const *expected_exp,
-	char const *file,
-	unsigned int line,
-	char const *func)
+	struct assert_ctx ctx)
 {
 	if (strcmp(value, expected) == 0) { return; }
-	printf("%s:%s:%u: Assertion strcmp(%s, %s) != 0 failed!\n",
-		file, func, line, value_exp, expected_exp);
+	printf("%s:%s:%u: Assertion strcmp(%s, %s) == 0 failed!\n",
+		ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected);
 	printf("Got:\n%s\nExpected:\n%s\n", value, expected);
 	fail_test(0);
 }
 
 #define assert_str_eq(value, expected) \
-	_assert_str_eq(value, expected, \
-	 #value,  #expected, \
-	 __FILE__, __LINE__, __func__)
+	_call_assert(_assert_str_eq, value, expected)

@@ -64,24 +64,22 @@ static inline unsigned get_bits(void const *bitset, size_t i)
 }
 
 /* Get cell offset. */
-static inline size_t ref_offset(struct lxspace const *space, struct lxref ref)
+static inline size_t ref_offset(union lxcell const *space, struct lxref ref)
 {
-	/* ref points to a cell in the tagged cell region
-	   [space->ref_free.cell, space->end] */
-	size_t i = ref.cell - space->tag_free.cell;
+	size_t i = ref.cell - space;
 	/* don't count tag cells in bitmap offset */
 	return i - (i + CELL_SPAN) / (CELL_SPAN + 1) + ref.offset;
 }
 
 struct lxlist lx_shared_head(
 	struct lxlist list,
-	struct lxspace const *from,
+	union lxcell const *from,
 	void const *bitset);
 
 /* Recursively mark reachable nodes with two bits to find shared list
    structure. */
 void lx_count_refs(
 	union lxvalue root,
-	struct lxspace const *from,
+	union lxcell const *from,
 	union lxcell *stack_max,
 	void *bitset);

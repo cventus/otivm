@@ -28,6 +28,7 @@
 #define lxvalue MANGLE(value)
 #define lxref MANGLE(ref)
 #define lxlist MANGLE(list)
+#define lxalloc MANGLE(alloc)
 
 /* converter functions */
 #define lx_list MANGLE(list)
@@ -37,6 +38,7 @@
 
 /* state API */
 #define lx_make MANGLE(make)
+#define lx_size MANGLE(size)
 #define lx_free MANGLE(free)
 #define lx_root MANGLE(root)
 
@@ -47,8 +49,8 @@
 #define lx_cons MANGLE(cons)
 #define lx_car MANGLE(car)
 #define lx_cdr MANGLE(cdr)
-#define lx_tail MANGLE(tail)
-#define lx_ref MANGLE(ref)
+#define lx_drop MANGLE(drop)
+#define lx_nth MANGLE(nth)
 #define lx_length MANGLE(length)
 #define lx_equals MANGLE(equals)
 
@@ -81,7 +83,7 @@ struct lxstate;
 
 struct lx_config
 {
-	size_t init_size, max_size;
+	size_t max_size;
 };
 
 struct lxref
@@ -113,7 +115,8 @@ union lxvalue
 	};
 };
 
-struct lxstate *lx_make(struct lx_config const *config);
+struct lxstate *lx_make(size_t init_size, struct lx_config const *config);
+size_t lx_size(struct lxstate const *state);
 void lx_free(struct lxstate *state);
 
 union lxvalue lx_root(struct lxstate const *state);

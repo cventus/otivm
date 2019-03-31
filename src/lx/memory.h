@@ -17,118 +17,117 @@ union lxcell
 #endif
 };
 
-/* An lxspace is a memory region from which you can allocate memory from both
-   ends. There are three types of spaces: 1) the allocation space used by cons,
-   2) the from-space which contains live and garbage objects during garbage
-   collection, and 3) to-space into which live objects are copied during
-   garbage collection. There is no explicit type information stored with
-   spaces, but the type of space known inplicitly from the code path. */
-struct lxspace
+/* Struct lxalloc contains pointers into a memory region for allocating memory
+   from both ends. Allocation structures are used in two cases: 1) the
+   allocation space used by cons, and 2) to-space into which live objects are
+   copied during garbage collection. There is no explicit type information
+   stored in lxalloc, but the type of allocator is implied by the code path. */
+struct lxalloc
 {
+	/* minimum/maximum addresses used by allocator */
+	union lxcell *min_addr, *max_addr;
+
+	/* list allocation pointer, moves towards `raw_free` */
 	struct lxref tag_free;
-	union lxcell *begin, *end, *raw_free;
+
+	/* non-list allocation pointer, moves towards `tag_free` */
+	union lxcell *raw_free;
+
+	/* bitmap to store mark bits during garbage collection, two bits per
+	   cell (is reserved when allocator is initiated) */
+	union lxcell *mark_bits;
 };
 
 struct lxmem
 {
 	jmp_buf escape;
-	struct lxspace space;
+	struct lxalloc alloc;
 	enum out_of_memory oom;
 };
 
-/* Tagged cells are allocated from high addresses towards low addresses in an
-   allocation space, so that cons can create compact lists directly when the
-   tail was allocated immediately prior. */
-static inline void init_allocspace(
-	struct lxspace *space,
-	union lxcell *p,
-	size_t n)
+static inline void init_alloc(
+	struct lxalloc *alloc,
+	union lxcell *min_addr,
+	size_t size)
 {
-	space->begin = p;
-	space->end = p + n;
+	size_t cell_count;
 
-	space->raw_free = space->begin;
-	space->tag_free.offset = 0;
-	space->tag_free.cell = space->end;
+	cell_count = (size * LX_BITS) / (LX_BITS + 2);
+	alloc->min_addr = min_addr;
+	alloc->max_addr = min_addr + size;
+	alloc->mark_bits = min_addr + cell_count;
 }
 
-static inline void set_tospace(struct lxspace *space)
+/* Tagged cells are allocated from high addresses towards low addresses in a
+   *cons*-space, so that cons can create compact lists directly when the tail
+   was allocated just before. */
+static inline void init_cons(
+	struct lxalloc *alloc,
+	union lxcell *min_addr,
+	size_t size)
 {
-	space->tag_free.offset = 0;
-	space->tag_free.cell = space->begin;
-	space->raw_free = space->end;
+	init_alloc(alloc, min_addr, size);
+	alloc->raw_free = min_addr;
+	alloc->tag_free.tag = lx_list_tag;
+	alloc->tag_free.offset = 0;
+	alloc->tag_free.cell = alloc->mark_bits;
 }
 
-/* In a to-space, tagged cells are allocated from low addresses to high so that
-   lists can be copied from front to back without knowing the length of the
-   list. */
+/* A to-space is the target space during garbage collection. During that time
+   tagged cells are allocated from low addresses to high so that lists can be
+   copied from front to back without knowing the length of the list. */
 static inline void init_tospace(
-	struct lxspace *space,
-	union lxcell *p,
-	size_t n)
+	struct lxalloc *alloc,
+	union lxcell *min_addr,
+	size_t size)
 {
-	space->begin = p;
-	space->end = p + n;
-
-	set_tospace(space);
+	init_alloc(alloc, min_addr, size);
+	alloc->tag_free.tag = lx_list_tag;
+	alloc->tag_free.offset = 0;
+	alloc->tag_free.cell = alloc->min_addr;
+	alloc->raw_free = alloc->mark_bits;
 }
 
-static inline void tospace_to_allocspace(struct lxspace *space)
+/* swap raw_free and tag_free */
+static inline void swap_allocation_pointers(struct lxalloc *alloc)
 {
 	union lxcell *cell;
 
-	cell = space->raw_free;
-	space->raw_free = (union lxcell *)space->tag_free.cell;
-	if (space->tag_free.offset) {
-		space->raw_free += 1 + space->tag_free.offset;
+	cell = alloc->raw_free;
+	alloc->raw_free = (union lxcell *)alloc->tag_free.cell;
+	if (alloc->tag_free.offset) {
+		alloc->raw_free += 1 + alloc->tag_free.offset;
 	}
-	space->tag_free.offset = 0;
-	space->tag_free.cell = cell;
+	alloc->tag_free.offset = 0;
+	alloc->tag_free.cell = cell;
 }
 
-static inline size_t mark_cell_count(size_t tagged_cells)
+static inline size_t alloc_cell_count(struct lxalloc const *alloc)
 {
-	return (tagged_cells * 2 + LX_BITS - 1) / LX_BITS;
+	return alloc->mark_bits - alloc->min_addr;
 }
 
-static inline size_t space_size(struct lxspace const *space)
+static inline size_t alloc_free_count(struct lxalloc const *alloc)
 {
-	return space->end - space->begin;
+	return alloc->tag_free.cell - alloc->raw_free;
 }
 
-static inline size_t space_span_cells(struct lxspace const *space)
+static inline size_t alloc_low_used_count(struct lxalloc const *alloc)
 {
-	return space->end - space->tag_free.cell;
+	return alloc->raw_free - alloc->min_addr;
 }
 
-static inline size_t space_spans(struct lxspace const *space)
+static inline size_t alloc_high_used_count(struct lxalloc const *alloc)
 {
-	return space_span_cells(space) / SPAN_LENGTH;
+	return alloc->mark_bits - alloc->tag_free.cell;
 }
 
-static inline size_t space_tagged_cells(struct lxspace const *space)
+static inline size_t alloc_mark_cell_count(struct lxalloc const *alloc)
 {
-	return space_spans(space) * CELL_SPAN;
-}
-
-static inline size_t space_raw_cells(struct lxspace const *space)
-{
-	return space->raw_free - space->begin;
-}
-
-/* total amount of cells used (including garbage and mark bits) */
-static inline size_t space_used(struct lxspace const *space)
-{
-	size_t raw_cells, spans, mark_cells;
-
-	raw_cells = space->raw_free - space->begin;
-	spans = space_spans(space);
-	mark_cells = mark_cell_count(spans * CELL_SPAN);
-
-	return raw_cells + spans*SPAN_LENGTH + mark_cells;
+	return alloc->max_addr - alloc->mark_bits;
 }
 
 union lxvalue lx_compact(
 	union lxvalue root,
-	struct lxspace *from,
-	struct lxspace *to);
+	union lxcell *from,
+	struct lxalloc *to);

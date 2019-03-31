@@ -25,16 +25,14 @@ union lxcell state[] = {
 )
 }, from_buf[10], to_buf[11];
 
-struct lxspace from, to;
+struct lxalloc to;
 
 union lxvalue root, nil;
 
 void before_each_test(void)
 {
 	memcpy(from_buf, state, sizeof state);
-	init_allocspace(&from, from_buf, 10);
 	init_tospace(&to, to_buf, 11);
-	from.tag_free.cell = from_buf;
 	root = lx_list(mklist(from_buf, 3));
 	nil = lx_list(lx_empty_list());
 }
@@ -51,7 +49,7 @@ int test_expected_fromspace_structure(void)
 
 int test_expected_tospace_structure(void)
 {
-	root = lx_compact(root, &from, &to);
+	root = lx_compact(root, from_buf, &to);
 
 	assert_eq(lx_nth(root.list, 0), lx_int(ALPHA));
 	assert_eq(lx_nth(root.list, 1), lx_int(BETA));
@@ -65,7 +63,7 @@ int test_compacted_list_has_adjacent_elements(void)
 {
 	lxtag const *t;
 
-	root = lx_compact(root, &from, &to);
+	root = lx_compact(root, from_buf, &to);
 
 	/* three cells used in one span, point at next allocation */
 	assert_int_eq(to.tag_free.offset, 3);

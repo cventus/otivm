@@ -13,37 +13,31 @@
 
 static struct lxref reserve_tagged(struct lxmem *mem, size_t n)
 {
-	size_t new_cells, new_offset, new_spans;
-	size_t new_cell_total;
-	size_t tag_cells_max, mark_cells, span_cells;
+	size_t new_cells, new_span_cells, new_offset;
 
-	if (n <= mem->space.tag_free.offset) {
+	if (n <= mem->alloc.tag_free.offset) {
 		/* allocate from current span */
-		mem->space.tag_free.offset -= n;
-		return mem->space.tag_free;
+		mem->alloc.tag_free.offset -= n;
+		return mem->alloc.tag_free;
 	} else {
 		/* allocate the rest from the current span and more from new
 		   ones */
-		new_cells = n - mem->space.tag_free.offset;
-		mem->space.tag_free.offset = 0;
+		new_cells = n - mem->alloc.tag_free.offset;
+		mem->alloc.tag_free.offset = 0;
 	}
 
 	/* Ensure there's enough room for the new cells */
-	new_cell_total = space_spans(&mem->space)*CELL_SPAN + new_cells;
-	mark_cells = mark_cell_count(new_cell_total);
-	span_cells = ceil_div(new_cell_total, CELL_SPAN) * SPAN_LENGTH;
-	tag_cells_max = mem->space.end - mem->space.raw_free;
-	if (tag_cells_max - mark_cells < span_cells) {
+	new_span_cells = ceil_div(new_cells, CELL_SPAN) * SPAN_LENGTH;
+	if (alloc_free_count(&mem->alloc) < new_span_cells) {
 		longjmp(mem->escape, mem->oom);
 	}
 
 	/* Move free pointer */
-	new_spans = ceil_div(new_cells, CELL_SPAN) * SPAN_LENGTH;
-	new_offset = CELL_SPAN - (new_cells % CELL_SPAN);
-	mem->space.tag_free.cell -= new_spans;
-	mem->space.tag_free.offset = new_offset % CELL_SPAN;
+	new_offset = (CELL_SPAN - (new_span_cells % CELL_SPAN)) % CELL_SPAN;
+	mem->alloc.tag_free.cell -= new_span_cells;
+	mem->alloc.tag_free.offset = new_offset;
 
-	return mem->space.tag_free;
+	return mem->alloc.tag_free;
 }
 
 struct lxlist lx_cons(
@@ -56,7 +50,7 @@ struct lxlist lx_cons(
 
 	if (lx_is_empty_list(list)) {
 		cc = cdr_nil;
-	} else if (ref_eq(list.ref, mem->space.tag_free)) {
+	} else if (ref_eq(list.ref, mem->alloc.tag_free)) {
 		cc = cdr_adjacent;
 	} else {
 		cc = cdr_link;
@@ -64,7 +58,6 @@ struct lxlist lx_cons(
 	res = reserve_tagged(mem, cc == cdr_link ? 2 : 1);
 	*ref_tag(res) = mktag(cc, val.tag);
 	switch (val.tag) {
-	default: abort();
 	case lx_nil_tag: ref_data(res)->i = 0; break;
 	case lx_list_tag: setref(ref_data(res), val.list.ref); break;
 	case lx_bool_tag: ref_data(res)->i = val.b; break;
@@ -72,6 +65,7 @@ struct lxlist lx_cons(
 #if lxfloat
 	case lx_float_tag: ref_data(res)->f = val.f; break;
 #endif
+	default: abort();
 	}
 	if (cc == cdr_link) {
 		cdr = forward(res);

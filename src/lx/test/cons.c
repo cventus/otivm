@@ -16,7 +16,7 @@ lxtag const *t;
 void before_each_test(void)
 {
 	mem.oom = OOM_COMPACT;
-	init_allocspace(&mem.space, data, 11);
+	init_cons(&mem.alloc, data, 11);
 }
 
 int test_cons_one_element(void)
@@ -47,9 +47,9 @@ int test_cons_should_make_two_subsequent_allocations_adjacent(void)
 	assert_eq(lx_list(lx_cdr(list_tail)), lx_list(lx_empty_list()));
 
 	/* assert physical structure */
-	assert_int_eq(mem.space.tag_free.offset, 2);
+	assert_int_eq(mem.alloc.tag_free.offset, 2);
 
-	t = mem.space.tag_free.cell->t;
+	t = mem.alloc.tag_free.cell->t;
 	assert_int_eq(t[2], mktag(cdr_adjacent, lx_int_tag));
 	assert_int_eq(t[3], mktag(cdr_nil, lx_int_tag));
 
@@ -75,9 +75,9 @@ int test_cons_should_link_two_non_adjacent_allocations(void)
 	assert_eq(lx_list(lx_cdr(list_tail)), lx_list(lx_empty_list()));
 
 	/* assert physical structure */
-	assert_int_eq(mem.space.tag_free.offset, 0);
+	assert_int_eq(mem.alloc.tag_free.offset, 0);
 
-	t = mem.space.tag_free.cell->t;
+	t = mem.alloc.tag_free.cell->t;
 	assert_int_eq(t[0], mktag(cdr_link, lx_int_tag));
 	assert_int_eq(t[1], mktag(cdr_nil, lx_list_tag));
 	assert_int_eq(t[2], mktag(cdr_nil, lx_nil_tag));
@@ -85,8 +85,6 @@ int test_cons_should_link_two_non_adjacent_allocations(void)
 
 	return ok;
 }
-
-
 
 int test_cons_calls_longjmp_when_it_runs_out_of_memory(void)
 {

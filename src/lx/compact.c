@@ -32,7 +32,7 @@ static bool is_shared(void *bitset, size_t i)
 static void copy_car(
 	struct lxref dest,
 	struct lxlist list,
-	struct lxspace *from)
+	union lxcell *from)
 {
 	struct lxref car;
 	switch (list_car_tag(list)) {
@@ -41,7 +41,7 @@ static void copy_car(
 		/* Copy cross reference into to-space which will be upated as
 		   the "scan" pointer advances. */
 		car = deref(list_car(list), lx_list_tag);
-		setxref(ref_data(dest), from->begin, car);
+		setxref(ref_data(dest), from, car);
 		break;
 	case lx_nil_tag:
 	case lx_bool_tag:
@@ -57,8 +57,8 @@ static void copy_car(
    forward-pointer (the copy's offset in to-space) in the CAR. */
 static struct lxref copy_list(
 	struct lxlist list,
-	struct lxspace *from,
-	struct lxspace *to,
+	union lxcell *from,
+	struct lxalloc *to,
 	void *bitset)
 {
 	struct lxref dest, result;
@@ -93,7 +93,7 @@ static struct lxref copy_list(
 			   moved and a forwarding pointer back to to-space is
 			   stored in from-space. */
 			clear_bits(bitset, i);
-			setxref(set_car(src), to->begin, dest);
+			setxref(set_car(src), to->min_addr, dest);
 		}
 		/* The tag depends on the cdr code. If possible, compact a link
 		   into an adjacent cell. Then advance src. */
@@ -113,7 +113,7 @@ static struct lxref copy_list(
 				dest = forward(dest);
 				/* Leave forward reference to it and stop. */
 				*ref_tag(dest) = mktag(cdr_nil, lx_list_tag);
-				setxref(ref_data(dest), from->begin, src.ref);
+				setxref(ref_data(dest), from, src.ref);
 				to->tag_free = forward(dest);
 				return result;
 			}
@@ -132,8 +132,8 @@ static struct lxref copy_list(
    Algorithm", Communications of the ACM. 13 (11): 677-678. */
 static struct lxlist cheney70(
 	struct lxlist root,
-	struct lxspace *from,
-	struct lxspace *to,
+	union lxcell *from,
+	struct lxalloc *to,
 	void *bitset)
 {
 	size_t i;
@@ -154,13 +154,13 @@ static struct lxlist cheney70(
 			/* Data of element contains cross-reference to source
 			   in from-space */
 			to_car = ref_data(scan);
-			ref = dexref(to_car, from->begin, lx_list_tag);
+			ref = dexref(to_car, from, lx_list_tag);
 			i = ref_offset(from, ref);
 			if (is_forwarded(bitset, i)) {
 				/* Get pointer to already copied list from
 				   from-apace */
 				from_car = ref_data(ref);
-				ref = dexref(from_car, to->begin, lx_list_tag);
+				ref = dexref(from_car, to->min_addr, lx_list_tag);
 			} else {
 				from_list = ref_to_list(ref);
 				ref = copy_list(from_list, from, to, bitset);
@@ -186,19 +186,14 @@ static struct lxlist cheney70(
    copy lists breadth-first using Cheney's algorithm. */
 union lxvalue lx_compact(
 	union lxvalue root,
-	struct lxspace *from,
-	struct lxspace *to)
+	union lxcell *from,
+	struct lxalloc *to)
 {
-	size_t mark_cells, raw_cells;
+	size_t mark_cells;
 	union lxcell *bitset;
 
-	assert(space_size(to) >= space_used(from));
-
-	/* Allocate the bitset for marking shared structure at the end of
-	   to-space. */
-	mark_cells = mark_cell_count(space_tagged_cells(from));
-	raw_cells = space_raw_cells(from);
-	bitset = to->end - (mark_cells + raw_cells);
+	bitset = to->mark_bits;
+	mark_cells = to->max_addr - to->mark_bits;
 	memset(bitset, 0, mark_cells * sizeof *bitset);
 
 	/* Use area below bitset in to-space as a stack during for marking */

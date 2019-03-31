@@ -16,22 +16,22 @@
 
 static void push_ref(
 	union lxvalue val,
-	struct lxspace const *from,
+	union lxcell const *from,
 	union lxcell **stack)
 {
 	if (val.tag == lx_list_tag) {
-		setxref(--(*stack), from->begin, val.list.ref);
+		setxref(--(*stack), from, val.list.ref);
 	}
 }
 
-static struct lxref pop_ref(union lxcell **stack, struct lxspace const *from)
+static struct lxref pop_ref(union lxcell **stack, union lxcell const *from)
 {
-	return dexref((*stack)++, from->begin, lx_list_tag);
+	return dexref((*stack)++, from, lx_list_tag);
 }
 
 static void mark_shared_list(
 	struct lxlist list,
-	struct lxspace const *from,
+	union lxcell const *from,
 	void *bitset)
 {
 	lxint i;
@@ -54,7 +54,7 @@ static void mark_shared_list(
    adjacent list cells that is marked */
 struct lxlist lx_shared_head(
 	struct lxlist list,
-	struct lxspace const *from,
+	union lxcell const *from,
 	void const *bitset)
 {
 	struct lxlist p, q;
@@ -62,7 +62,7 @@ struct lxlist lx_shared_head(
 
 	p = list;
 	i = ref_offset(from, p.ref);
-	while (p.ref.cell != from->begin || p.ref.offset != 0) {
+	while (p.ref.cell != from || p.ref.offset != 0) {
 		q = list_backward(p);
 		i--;
 
@@ -80,7 +80,7 @@ struct lxlist lx_shared_head(
 /* Recursively mark reachable nodes to find shared list structure. */
 void lx_count_refs(
 	union lxvalue root,
-	struct lxspace const *from,
+	union lxcell const *from,
 	union lxcell *stack_max,
 	void *bitset)
 {
