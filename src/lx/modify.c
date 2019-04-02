@@ -11,7 +11,7 @@
 #include "memory.h"
 #include "ref.h"
 #include "list.h"
-#include "state.h"
+#include "heap.h"
 
 static struct lxresult err_result(int err)
 {
@@ -22,7 +22,7 @@ static struct lxresult err_result(int err)
 }
 
 struct lxresult lx_modify(
-	struct lxstate *state,
+	struct lxheap *heap,
 	union lxvalue modify(struct lxmem *, union lxvalue, void *),
 	void *param)
 {
@@ -37,20 +37,20 @@ struct lxresult lx_modify(
 
 	case OOM_GROW:
 		/* Memory ran out even though garbage was collected */
-		err = lx_resize_heap(state, lx_size(state)*2);
+		err = lx_resize_heap(heap, lx_heap_size(heap)*2);
 		if (err) { return err_result(err); }
 
 	case OOM_COMPACT:
-		err = lx_gc(state);
+		err = lx_gc(heap);
 		if (err) { return err_result(err); }
 		mem.oom = OOM_GROW;
 	}
 
-	mem.alloc = state->alloc;
-	newval = modify(&mem, state->root, param);
+	mem.alloc = heap->alloc;
+	newval = modify(&mem, heap->root, param);
 
-	state->root = newval;
-	state->alloc = mem.alloc;
+	heap->root = newval;
+	heap->alloc = mem.alloc;
 
 	return (struct lxresult) { 0, newval };
 }

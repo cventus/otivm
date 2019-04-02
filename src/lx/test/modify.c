@@ -66,16 +66,16 @@ pop_integers(struct lxmem *mem, union lxvalue root, void *param)
 
 int test_modify_should_set_nil(void)
 {
-	struct lxstate *state;
+	struct lxheap *heap;
 	struct lxresult result;
 
-	state = lx_make(0, NULL);
+	heap = lx_make_heap(0, NULL);
 
-	result = lx_modify(state, set_nil, NULL);
+	result = lx_modify(heap, set_nil, NULL);
 	assert_status_eq(result.status, 0);
 	assert_tag_eq(result.value.tag, lx_nil_tag);
 
-	lx_free(state);
+	lx_free_heap(heap);
 	return 0;
 }
 
@@ -85,13 +85,13 @@ int test_basic_list_modification(void)
 		2, 42, 0xf00
 	};
 
-	struct lxstate *state;
+	struct lxheap *heap;
 	struct lxresult result;
 	union lxvalue root;
 
-	state = lx_make(0, NULL);
+	heap = lx_make_heap(0, NULL);
 
-	result = lx_modify(state, list_integers, (void *)integers);
+	result = lx_modify(heap, list_integers, (void *)integers);
 	if (result.status) {
 		fail_test("lx_modify returned: %d\n", result.status);
 	}
@@ -101,46 +101,46 @@ int test_basic_list_modification(void)
 	assert_eq(lx_nth(root.list, 0), lx_int(42));
 	assert_eq(lx_nth(root.list, 1), lx_int(0xf00));
 
-	lx_free(state);
+	lx_free_heap(heap);
 	return 0;
 }
 
 int test_modify_should_garbage_collect(void)
 {
 	int i, j;
-	struct lxstate *state;
+	struct lxheap *heap;
 	struct lxresult result;
 	union lxvalue root;
 
 	/* room for four compact list cells (+ tag cell, mark bits) */
-	state = lx_make(sizeof (union lxcell) * 6 * 2, NULL);
+	heap = lx_make_heap(sizeof (union lxcell) * 6 * 2, NULL);
 
-	result = lx_modify(state, set_nil, NULL);
+	result = lx_modify(heap, set_nil, NULL);
 	assert_status_eq(result.status, 0);
 
 	j = 0;
 
 	/* allocate 3 */
 	for (i = 0; i < 3; i++) {
-		result = lx_modify(state, push_integer, &j);
+		result = lx_modify(heap, push_integer, &j);
 		assert_status_eq(result.status, 0);
 		j++;
 	}
 
 	/* pop two */
-	result = lx_modify(state, pop_integers, (int[]){ 2 });
+	result = lx_modify(heap, pop_integers, (int[]){ 2 });
 	assert_status_eq(result.status, 0);
 
 	/* allocate 3 more */
 	for (i = 0; i < 3; i++) {
-		result = lx_modify(state, push_integer, &j);
+		result = lx_modify(heap, push_integer, &j);
 		assert_status_eq(result.status, 0);
 		j++;
 	}
 
-	root = lx_root(state);
+	root = lx_heap_root(heap);
 	assert_serialize_eq(root, "(5 4 3 0)");
 
-	lx_free(state);
+	lx_free_heap(heap);
 	return 0;
 }

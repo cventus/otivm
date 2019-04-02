@@ -22,7 +22,7 @@
 #define lxuint JOIN(uint, JOIN(LX_BITS, _t))
 
 /* primitive types */
-#define lxstate MANGLE(state)
+#define lxheap MANGLE(heap)
 #define lxcell MANGLE(cell)
 #define lxmem MANGLE(mem)
 #define lxvalue MANGLE(value)
@@ -37,11 +37,11 @@
 #define lx_int MANGLE(int)
 #define lx_float MANGLE(float)
 
-/* state API */
-#define lx_make MANGLE(make)
-#define lx_size MANGLE(size)
-#define lx_free MANGLE(free)
-#define lx_root MANGLE(root)
+/* heap API */
+#define lx_make_heap MANGLE(make_heap)
+#define lx_free_heap MANGLE(free_heap)
+#define lx_heap_size MANGLE(heap_size)
+#define lx_heap_root MANGLE(heap_root)
 #define lx_modify MANGLE(modify)
 
 /* list API */
@@ -81,7 +81,7 @@
 
 union lxcell;
 struct lxmem;
-struct lxstate;
+struct lxheap;
 
 struct lx_config
 {
@@ -123,14 +123,14 @@ struct lxresult
 	union lxvalue value;
 };
 
-struct lxstate *lx_make(size_t init_size, struct lx_config const *config);
-size_t lx_size(struct lxstate const *state);
-void lx_free(struct lxstate *state);
+struct lxheap *lx_make_heap(size_t init_size, struct lx_config const *config);
+void lx_free_heap(struct lxheap *heap);
 
-union lxvalue lx_root(struct lxstate const *state);
+size_t lx_heap_size(struct lxheap const *heap);
+union lxvalue lx_heap_root(struct lxheap const *heap);
 
 struct lxresult lx_modify(
-	struct lxstate *state,
+	struct lxheap *heap,
 	union lxvalue modify(struct lxmem *, union lxvalue, void *),
 	void *param);
 

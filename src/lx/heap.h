@@ -1,4 +1,4 @@
-struct lxstate
+struct lxheap
 {
 	struct lx_config config;
 	union lxvalue root;
@@ -6,5 +6,5 @@ struct lxstate
 	struct lxalloc alloc;
 };
 
-int lx_resize_heap(struct lxstate *state, size_t new_size);
-int lx_gc(struct lxstate *state);
+int lx_resize_heap(struct lxheap *heap, size_t new_size);
+int lx_gc(struct lxheap *heap);
