@@ -98,7 +98,7 @@ union lxvalue lx_heap_root(struct lxheap const *heap)
 
 size_t lx_heap_size(struct lxheap const *heap)
 {
-	return heap->end - heap->begin;
+	return (unsigned char *)heap->end -(unsigned char *)heap->begin;
 }
 
 static union lxcell **ptr_at(struct lxalloc *alloc, size_t offset)
