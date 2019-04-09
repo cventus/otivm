@@ -2,6 +2,7 @@
 #undef NDEBUG
 #endif
 
+#include <stdarg.h>
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>

@@ -1,6 +1,7 @@
 /* 32-bit cells and 4 members in a span */
 #define LX_BITS 32
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <setjmp.h>

@@ -110,6 +110,7 @@ union lxvalue
 		union {
 			bool b;
 			lxint i;
+			char const *s;
 #ifdef lxfloat
 			lxfloat f;
 #endif
@@ -154,6 +155,21 @@ union lxvalue lx_nth(struct lxlist list, lxint i);
 
 /* number of elements in list */
 lxint lx_length(struct lxlist list);
+
+/* strlen(3) of string value */
+size_t lx_strlen(union lxvalue string);
+
+/* copy the first n bytes of s into a heap */
+union lxvalue lx_strndup(struct lxmem *, char const *s, size_t n);
+
+/* copy s into a heap */
+union lxvalue lx_strdup(struct lxmem *mem, char const *s);
+
+/* allocate a new formatted string in the heap */
+union lxvalue lx_sprintf(struct lxmem *, char const *fmt, ...);
+
+/* allocate a new formatted string in the heap */
+union lxvalue lx_vsprintf(struct lxmem *, char const *fmt, va_list ap);
 
 /* wrap a list in a tagged union */
 static inline union lxvalue lx_list(struct lxlist list)
