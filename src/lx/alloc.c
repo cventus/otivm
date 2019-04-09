@@ -11,33 +11,34 @@
 #include "ref.h"
 #include "list.h"
 
-static struct lxref reserve_tagged(struct lxmem *mem, size_t n)
+static int reserve_tagged(struct lxalloc *alloc, size_t n, struct lxref *ref)
 {
 	size_t new_cells, new_span_cells, new_offset;
 
-	if (n <= mem->alloc.tag_free.offset) {
+	if (n <= alloc->tag_free.offset) {
 		/* allocate from current span */
-		mem->alloc.tag_free.offset -= n;
-		return mem->alloc.tag_free;
+		alloc->tag_free.offset -= n;
+		*ref = alloc->tag_free;
+		return 0;
 	} else {
 		/* allocate the rest from the current span and more from new
 		   ones */
-		new_cells = n - mem->alloc.tag_free.offset;
-		mem->alloc.tag_free.offset = 0;
+		new_cells = n - alloc->tag_free.offset;
 	}
 
 	/* Ensure there's enough room for the new cells */
 	new_span_cells = ceil_div(new_cells, CELL_SPAN) * SPAN_LENGTH;
-	if (alloc_free_count(&mem->alloc) < new_span_cells) {
-		longjmp(mem->escape, mem->oom);
+	if (alloc_free_count(alloc) < new_span_cells) {
+		return -1;
 	}
 
 	/* Move free pointer */
 	new_offset = (CELL_SPAN - (new_span_cells % CELL_SPAN)) % CELL_SPAN;
-	mem->alloc.tag_free.cell -= new_span_cells;
-	mem->alloc.tag_free.offset = new_offset;
+	alloc->tag_free.cell -= new_span_cells;
+	alloc->tag_free.offset = new_offset;
 
-	return mem->alloc.tag_free;
+	*ref = alloc->tag_free;
+	return 0;
 }
 
 struct lxlist lx_cons(
@@ -55,7 +56,9 @@ struct lxlist lx_cons(
 	} else {
 		cc = cdr_link;
 	}
-	res = reserve_tagged(mem, cc == cdr_link ? 2 : 1);
+	if (reserve_tagged(&mem->alloc, cc == cdr_link ? 2 : 1, &res)) {
+		longjmp(mem->escape, mem->oom);
+	}
 	*ref_tag(res) = mktag(cc, val.tag);
 	switch (val.tag) {
 	case lx_nil_tag: ref_data(res)->i = 0; break;
