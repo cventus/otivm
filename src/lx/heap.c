@@ -101,9 +101,9 @@ size_t lx_heap_size(struct lxheap const *heap)
 	return (unsigned char *)heap->end -(unsigned char *)heap->begin;
 }
 
-static union lxcell **ptr_at(struct lxalloc *alloc, size_t offset)
+static union lxcell **ptr_at(struct lxheap *heap, size_t offset)
 {
-	return (union lxcell **)((unsigned char *)alloc + offset);
+	return (union lxcell **)((unsigned char *)heap + offset);
 }
 
 /* grow heap - might or might not require garbage collection before
@@ -111,16 +111,18 @@ static union lxcell **ptr_at(struct lxalloc *alloc, size_t offset)
 int lx_resize_heap(struct lxheap *heap, size_t new_size)
 {
 	static size_t const member_offsets[] = {
-		offsetof(struct lxalloc, tag_free.cell),
-		offsetof(struct lxalloc, raw_free),
-		offsetof(struct lxalloc, mark_bits),
+		offsetof(struct lxheap, alloc.max_addr),
+		offsetof(struct lxheap, alloc.tag_free.cell),
+		offsetof(struct lxheap, alloc.raw_free),
+		offsetof(struct lxheap, alloc.mark_bits),
+		offsetof(struct lxheap, root.list.ref.cell),
 	};
-#define OFFSETS_MAX (sizeof member_offsets / sizeof member_offsets[0])
+#define MEMBERS_MAX (sizeof member_offsets / sizeof member_offsets[0])
 
-	struct lxalloc *alloc;
-	size_t old_size, adjusted_new_size, i;
-	ptrdiff_t save[OFFSETS_MAX], min_addr_off;
-	enum { at_begin, at_mid } active_space;
+	size_t old_size, adjusted_new_size, i, max_member;
+	ptrdiff_t save[MEMBERS_MAX], min_addr_offset;
+	enum { first_half, second_half } alloc_space;
+	union lxcell **min_addr;
 
 	/* Shrinking heap not supported yet - do nothing. */
 	old_size = lx_heap_size(heap);
@@ -129,33 +131,31 @@ int lx_resize_heap(struct lxheap *heap, size_t new_size)
 	adjusted_new_size = adjust_heap_size(&heap->config, new_size);
 	if (adjusted_new_size == old_size) { return 0; }
 
-	alloc = &heap->alloc;
-
 	/* save allocation pointers */
-	min_addr_off = alloc->min_addr - heap->begin;
-	for (i = 0; i < OFFSETS_MAX; i++) {
-		save[i] = *ptr_at(alloc, member_offsets[i]) - alloc->min_addr;
+	min_addr = &heap->alloc.min_addr;
+	max_member = MEMBERS_MAX;
+	if (heap->root.tag != lx_list_tag) { max_member--; }
+	min_addr_offset = *min_addr - heap->begin;
+	for (i = 0; i < max_member; i++) {
+		save[i] = *ptr_at(heap, member_offsets[i]) - *min_addr;
 	}
 
-	/* which space is currently active? */
-	active_space = alloc->min_addr == heap->begin ? at_begin : at_mid;
-
+	/* which space is currently used for allocation? */
+	alloc_space = *min_addr < heap->mid ? first_half : second_half;
 	if (realloc_heap(heap, adjusted_new_size)) { return -1; }
 
 	/* restore allocation pointers */
-	if (active_space == at_mid && adjusted_new_size < 2*old_size) {
-		/* we allocated from the second semi-space [mid, end), and
-		   it grew by less than double in size */
-		alloc->min_addr = heap->mid;
-		alloc->max_addr = heap->end;
-		memmove(heap->mid, heap->begin + min_addr_off, old_size/2);
+	if (alloc_space == second_half && adjusted_new_size < 2*old_size) {
+		/* shift data forward to new second half */
+		memmove(heap->mid, heap->begin + min_addr_offset, old_size/2);
+		*min_addr = heap->mid;
 	} else {
-		alloc->min_addr = heap->begin;
-		alloc->max_addr = heap->mid;
+		*min_addr = heap->begin + min_addr_offset;
 	}
-	for (i = 0; i < OFFSETS_MAX; i++) {
-		*ptr_at(alloc, member_offsets[i]) = alloc->min_addr + save[i];
+	for (i = 0; i < max_member; i++) {
+		*ptr_at(heap, member_offsets[i]) = *min_addr + save[i];
 	}
+
 	return 0;
 }
 
@@ -167,7 +167,7 @@ int lx_gc(struct lxheap *heap)
 
 	semispace_cells = heap->mid - heap->begin;
 	from = heap->alloc.min_addr;
-	to = from == heap->begin ? heap->mid : heap->begin;
+	to = from < heap->mid ? heap->mid : heap->begin;
 	init_tospace(&heap->alloc, to, semispace_cells);
 	heap->root = lx_compact(heap->root, from, &heap->alloc);
 	swap_allocation_pointers(&heap->alloc);

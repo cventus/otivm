@@ -13,20 +13,16 @@
 static union lxvalue
 list_integers(struct lxmem *mem, union lxvalue root, void *param)
 {
-	int const *integers;
 	int n, i;
 	struct lxlist list;
 
 	(void)root;
 	n = *(int const *)param;
-	integers = (int const *)param + 1;
-
 	list = lx_empty_list();
 	i = n;
 	while (i --> 0) {
-		list = lx_cons(mem, lx_int(integers[i]), list);
+		list = lx_cons(mem, lx_int(i), list);
 	}
-
 	return lx_list(list);
 }
 
@@ -81,25 +77,21 @@ int test_modify_should_set_nil(void)
 
 int test_basic_list_modification(void)
 {
-	static int const integers[] = {
-		2, 42, 0xf00
-	};
-
 	struct lxheap *heap;
 	struct lxresult result;
 	union lxvalue root;
 
 	heap = lx_make_heap(0, NULL);
 
-	result = lx_modify(heap, list_integers, (void *)integers);
+	result = lx_modify(heap, list_integers, (int []){ 2 });
 	if (result.status) {
 		fail_test("lx_modify returned: %d\n", result.status);
 	}
 	root = result.value;
 
 	assert_tag_eq(root.tag, lx_list_tag);
-	assert_eq(lx_nth(root.list, 0), lx_int(42));
-	assert_eq(lx_nth(root.list, 1), lx_int(0xf00));
+	assert_eq(lx_nth(root.list, 0), lx_int(0));
+	assert_eq(lx_nth(root.list, 1), lx_int(1));
 
 	lx_free_heap(heap);
 	return 0;
@@ -140,6 +132,37 @@ int test_modify_should_garbage_collect(void)
 
 	root = lx_heap_root(heap);
 	assert_serialize_eq(root, "(5 4 3 0)");
+
+	lx_free_heap(heap);
+	return 0;
+}
+
+int test_modify_should_garbage_collect_many_times(void)
+{
+	int i, j, k;
+	struct lxheap *heap;
+	struct lxresult result;
+	union lxvalue root;
+	struct lxlist list;
+
+	heap = lx_make_heap(4096, NULL);
+
+	result = lx_modify(heap, set_nil, NULL);
+	assert_status_eq(result.status, 0);
+
+	for (i = 1; i <= 10000; i++) {
+		k = rand() % i;
+		result = lx_modify(heap, list_integers, &k);
+		assert_status_eq(result.status, 0);
+		root = lx_heap_root(heap);
+		list = root.list;
+		for (j = 0; j < k; j++) {
+			assert_tag_eq(list.tag, lx_list_tag);
+			assert_eq(lx_car(list), lx_int(j));
+			list = lx_cdr(list);
+		}
+		assert_tag_eq(list.tag, lx_nil_tag);
+	}
 
 	lx_free_heap(heap);
 	return 0;
