@@ -1,12 +1,40 @@
+static inline struct lxref mkref(
+	enum lx_tag tag,
+	unsigned offset,
+	union lxcell const *c)
+{
+	return (struct lxref) { tag, offset, c };
+}
+
+static inline bool ref_lt(struct lxref a, struct lxref b)
+{
+        return a.cell < b.cell || (a.cell == b.cell && a.offset < b.offset);
+}
+
+static inline bool ref_eq(struct lxref a, struct lxref b)
+{
+        return a.cell == b.cell && a.offset == b.offset;
+}
+
+static inline lxtag *ref_tag(struct lxref ref)
+{
+	assert(ref.tag == lx_list_tag);
+	return (lxtag *)ref.cell->t + ref.offset;
+}
+
+static inline union lxcell *ref_data(struct lxref ref)
+{
+	assert(ref.tag == lx_list_tag);
+	return (union lxcell *)ref.cell + ref.offset + 1;
+}
+
 static inline struct lxref ref_advance(struct lxref ref, lxuint n)
 {
 	size_t cells, offset;
 
 	offset = ref.offset + n;
-	cells = offset / CELL_SIZE;
-	ref.cell += cells * (CELL_SIZE + 1);
-	ref.offset = offset % CELL_SIZE;
-	return ref;
+	cells = offset/CELL_SIZE;
+	return mkref(ref.tag, offset%CELL_SIZE, ref.cell + cells*SPAN_LENGTH);
 }
 
 static inline lxint ref_diff(struct lxref a, struct lxref b)
@@ -24,7 +52,7 @@ static inline struct lxref backward(struct lxref ref)
 	union lxcell const *newc = ref.cell;
 	unsigned newoff = (ref.offset - 1) & OFFSET_MASK;
 	if ((newoff ^ OFFSET_MASK) == 0) { newc -= SPAN_LENGTH; }
-	return (struct lxref) { ref.tag, newoff, newc };
+	return mkref(ref.tag, newoff, newc);
 }
 
 static inline struct lxref forward(struct lxref ref)
@@ -32,27 +60,7 @@ static inline struct lxref forward(struct lxref ref)
 	union lxcell const *newc = ref.cell;
 	unsigned newoff = (ref.offset + 1) & OFFSET_MASK;
 	if (newoff == 0) { newc += SPAN_LENGTH; }
-	return (struct lxref) { ref.tag, newoff, newc };
-}
-
-static inline bool ref_lt(struct lxref a, struct lxref b)
-{
-        return a.cell < b.cell || (a.cell == b.cell && a.offset < b.offset);
-}
-
-static inline bool ref_eq(struct lxref a, struct lxref b)
-{
-        return a.cell == b.cell && a.offset == b.offset;
-}
-
-static inline lxtag *ref_tag(struct lxref ref)
-{
-	return (lxtag *)ref.cell->t + ref.offset;
-}
-
-static inline union lxcell *ref_data(struct lxref ref)
-{
-	return (union lxcell *)ref.cell + ref.offset + 1;
+	return mkref(ref.tag, newoff, newc);
 }
 
 /* cross references are offsets from the start of a memory region */
