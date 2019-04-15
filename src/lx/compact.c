@@ -12,6 +12,7 @@
 #include "lx.h"
 #include "memory.h"
 #include "ref.h"
+#include "str.h"
 #include "list.h"
 #include "mark.h"
 
@@ -30,10 +31,38 @@ static bool is_shared(void *bitset, size_t i)
 	return get_bits(bitset, i) != 0x1;
 }
 
+static struct lxref copy_string(struct lxref string, struct lxalloc *to)
+{
+	struct lxref copy;
+	union lxcell *src, *dest;
+	lxint length = string.cell->i;
+
+	if (length < 0) {
+		/* already copied */
+		copy = dexref(string.cell + 1, to->min_addr, lx_string_tag);
+	} else {
+		/* move string allocation pointer backwards */
+		to->raw_free -= ceil_div(length + 1, CELL_SIZE) + 1;
+		src = (union lxcell *)string.cell;
+		dest = to->raw_free;
+		copy = mkref(lx_string_tag, 0, dest);
+
+		/* copy string into to-space */
+		dest->i = length;
+		memcpy(dest + 1, src + 1, length + 1);
+
+		/* store forward cross refereence in source string */
+		src->i = -1;
+		setxref(src + 1, to->min_addr, copy);
+	}
+	return copy;
+}
+
 static void copy_car(
 	struct lxref dest,
 	struct lxlist list,
-	union lxcell *from)
+	union lxcell *from,
+	struct lxalloc *to)
 {
 	struct lxref car;
 	switch (list_car_tag(list)) {
@@ -43,6 +72,10 @@ static void copy_car(
 		   the "scan" pointer advances. */
 		car = deref(list_car(list), lx_list_tag);
 		setxref(ref_data(dest), from, car);
+		break;
+	case lx_string_tag:
+		car = deref(list_car(list), lx_string_tag);
+		setref(ref_data(dest), copy_string(car, to));
 		break;
 	case lx_nil_tag:
 	case lx_bool_tag:
@@ -86,7 +119,7 @@ static struct lxref copy_list(
 	}
 	while (true) {
 		tag = list_car_tag(src);
-		copy_car(dest, src, from);
+		copy_car(dest, src, from, to);
 		if (shared) {
 			/* If this list segment is shared with other data
 			   structures then it must not be copied multiple
@@ -168,11 +201,12 @@ static struct lxlist cheney70(
 			}
 			setref(to_car, ref);
 			break;
+		case lx_string_tag:
 		case lx_nil_tag:
 		case lx_bool_tag:
 		case lx_int_tag:
 		case lx_float_tag:
-			/* small data has already been copied */
+			/* atoms have already been copied */
 			break;
 		}
 		scan = forward(scan);
@@ -193,13 +227,6 @@ union lxvalue lx_compact(
 	size_t mark_cells;
 	union lxcell *bitset;
 
-	bitset = to->mark_bits;
-	mark_cells = to->max_addr - to->mark_bits;
-	memset(bitset, 0, mark_cells * sizeof *bitset);
-
-	/* Use area below bitset in to-space as a stack during for marking */
-	lx_count_refs(root, from, bitset, bitset);
-
 	switch (root.tag) {
 	default: abort();
 	case lx_nil_tag:
@@ -208,7 +235,18 @@ union lxvalue lx_compact(
 	case lx_float_tag:
 		return root;
 
+	case lx_string_tag:
+		return ref_to_string(copy_string(string_to_ref(root), to));
+
 	case lx_list_tag:
+		bitset = to->mark_bits;
+		mark_cells = to->max_addr - to->mark_bits;
+		memset(bitset, 0, mark_cells * sizeof *bitset);
+
+		/* Use area below bitset in to-space as a stack during for
+		   marking */
+		lx_count_refs(root, from, bitset, bitset);
+
 		/* Non-trivial case: copy a list structure */
 		assert(get_bits(bitset, ref_offset(from, root.list.ref)) != 0);
 		return lx_list(cheney70(root.list, from, to, bitset));
