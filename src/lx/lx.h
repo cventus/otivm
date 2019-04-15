@@ -31,7 +31,7 @@
 #define lxresult MANGLE(result)
 #define lxalloc MANGLE(alloc)
 
-/* converter functions */
+/* conversion functions */
 #define lx_list MANGLE(list)
 #define lx_bool MANGLE(bool)
 #define lx_int MANGLE(int)
@@ -43,6 +43,7 @@
 #define lx_heap_size MANGLE(heap_size)
 #define lx_heap_value MANGLE(heap_value)
 #define lx_modify MANGLE(modify)
+#define lx_gc MANGLE(gc)
 
 /* list API */
 #define lx_empty_list MANGLE(empty_list)
@@ -61,7 +62,6 @@
 #define lx_count_refs MANGLE(count_refs)
 #define lx_compact MANGLE(compact)
 #define lx_resize_heap MANGLE(resize_heap)
-#define lx_gc MANGLE(gc)
 
 /* Make an integer constant representing a tag with two cdr-code bits and
    six type tag bits: CCTTTTTT */
@@ -134,6 +134,8 @@ struct lxresult lx_modify(
 	struct lxheap *heap,
 	union lxvalue modify(struct lxmem *, union lxvalue, void *),
 	void *param);
+
+int lx_gc(struct lxheap *heap);
 
 /* recursively compare values for equality */
 bool lx_equals(union lxvalue a, union lxvalue b);
