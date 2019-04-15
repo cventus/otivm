@@ -130,7 +130,7 @@ int test_modify_should_garbage_collect(void)
 		j++;
 	}
 
-	root = lx_heap_root(heap);
+	root = lx_heap_value(heap);
 	assert_serialize_eq(root, "(5 4 3 0)");
 
 	lx_free_heap(heap);
@@ -154,7 +154,7 @@ int test_modify_should_garbage_collect_many_times(void)
 		k = rand() % i;
 		result = lx_modify(heap, list_integers, &k);
 		assert_status_eq(result.status, 0);
-		root = lx_heap_root(heap);
+		root = lx_heap_value(heap);
 		list = root.list;
 		for (j = 0; j < k; j++) {
 			assert_tag_eq(list.tag, lx_list_tag);

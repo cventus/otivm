@@ -41,7 +41,7 @@
 #define lx_make_heap MANGLE(make_heap)
 #define lx_free_heap MANGLE(free_heap)
 #define lx_heap_size MANGLE(heap_size)
-#define lx_heap_root MANGLE(heap_root)
+#define lx_heap_value MANGLE(heap_value)
 #define lx_modify MANGLE(modify)
 
 /* list API */
@@ -128,7 +128,7 @@ struct lxheap *lx_make_heap(size_t init_size, struct lx_config const *config);
 void lx_free_heap(struct lxheap *heap);
 
 size_t lx_heap_size(struct lxheap const *heap);
-union lxvalue lx_heap_root(struct lxheap const *heap);
+union lxvalue lx_heap_value(struct lxheap const *heap);
 
 struct lxresult lx_modify(
 	struct lxheap *heap,

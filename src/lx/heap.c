@@ -92,7 +92,7 @@ void lx_free_heap(struct lxheap *heap)
 	}
 }
 
-union lxvalue lx_heap_root(struct lxheap const *heap)
+union lxvalue lx_heap_value(struct lxheap const *heap)
 {
 	return heap->root;
 }
