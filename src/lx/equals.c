@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <setjmp.h>
+#include <string.h>
 
 #include "common.h"
 #include "lx.h"
@@ -32,6 +33,7 @@ bool lx_equals(union lxvalue a, union lxvalue b)
 			q = lx_cdr(q);
 		} while (p.ref.cell && q.ref.cell);
 		return list_eq(p, q);
+	case lx_string_tag: return a.s == b.s || strcmp(a.s, b.s) == 0;
 	case lx_bool_tag: return a.b == b.b;
 	case lx_int_tag: return a.i == b.i;
 	case lx_float_tag:
