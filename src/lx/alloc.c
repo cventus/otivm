@@ -12,6 +12,7 @@
 #include "lx.h"
 #include "memory.h"
 #include "ref.h"
+#include "str.h"
 #include "list.h"
 
 static int reserve_tagged(struct lxalloc *alloc, size_t n, struct lxref *ref)
@@ -49,7 +50,7 @@ struct lxlist lx_cons(
 	union lxvalue val,
 	struct lxlist list)
 {
-	struct lxref res, cdr;
+	struct lxref ref, cdr;
 	enum cdr_code cc;
 
 	if (lx_is_empty_list(list)) {
@@ -59,30 +60,29 @@ struct lxlist lx_cons(
 	} else {
 		cc = cdr_link;
 	}
-	if (reserve_tagged(&mem->alloc, cc == cdr_link ? 2 : 1, &res)) {
+	if (reserve_tagged(&mem->alloc, cc == cdr_link ? 2 : 1, &ref)) {
 		longjmp(mem->escape, mem->oom);
 	}
-	*ref_tag(res) = mktag(cc, val.tag);
+	*ref_tag(ref) = mktag(cc, val.tag);
 	switch (val.tag) {
-	default: abort();
-	case lx_nil_tag: ref_data(res)->i = 0; break;
-	case lx_list_tag: setref(ref_data(res), val.list.ref); break;
-	case lx_bool_tag: ref_data(res)->i = val.b; break;
-	case lx_int_tag: ref_data(res)->i = val.i; break;
+	case lx_nil_tag: ref_data(ref)->i = 0; break;
+	case lx_list_tag: setref(ref_data(ref), val.list.ref); break;
+	case lx_string_tag: setref(ref_data(ref), string_to_ref(val)); break;
+	case lx_bool_tag: ref_data(ref)->i = val.b; break;
+	case lx_int_tag: ref_data(ref)->i = val.i; break;
+	case lx_float_tag:
 #if lxfloat
-	case lx_float_tag: ref_data(res)->f = val.f; break;
+		ref_data(ref)->f = val.f; break;
 #endif
+	default: abort();
 	}
 	if (cc == cdr_link) {
-		cdr = forward(res);
+		cdr = forward(ref);
 		*ref_tag(cdr) = mktag(cdr_nil, lx_list_tag);
 		setref(ref_data(cdr), list.ref);
 	}
-	return (struct lxlist) {
-		.ref.tag = lx_list_tag,
-		.ref.offset = res.offset,
-		.ref.cell = res.cell,
-	};
+	ref.tag = lx_list_tag;
+	return ref_to_list(ref);
 }
 
 size_t lx_strlen(union lxvalue string)
@@ -90,7 +90,7 @@ size_t lx_strlen(union lxvalue string)
 	if (string.tag != lx_string_tag || string.s == NULL) {
 		return 0;
 	} else {
-		return -1[(union lxcell *)string.s].i;
+		return string_to_ref(string).cell->i;
 	}
 }
 
@@ -130,7 +130,7 @@ union lxvalue lx_strdup(struct lxmem *mem, char const *src)
 
 union lxvalue lx_strndup(struct lxmem *mem, char const *src, size_t n)
 {
-	char *p;
+	char const *p;
 
 	/* look for early NUL-terminator */
 	p = memchr(src, 0, n);
