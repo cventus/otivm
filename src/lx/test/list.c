@@ -5,11 +5,13 @@
 #include <string.h>
 
 #include "ok/ok.h"
-
 #include "lx32x4.h"
 
 enum { ALPHA, BETA, GAMMA };
 
+struct lx_list list, list_cdr, list_cddr, list_cdddr;
+
+#if defined(LINKED_LIST_TEST)
 /* Two spans, one conses in each and one (ALPHA) that is in both */
 union lxcell state[] = {
    span(
@@ -25,8 +27,6 @@ union lxcell state[] = {
 )
 };
 
-struct lx_list list, list_cdr, list_cddr, list_cdddr;
-
 void before_each_test(void)
 {
 	list = mklist(state, 3); /* ALPHA */
@@ -34,6 +34,26 @@ void before_each_test(void)
 	list_cddr = mklist(state, 0); /* GAMMA */
 	list_cdddr = lx_empty_list();
 }
+#elif defined(ADJACENT_LIST_TEST)
+union lxcell state[] = {
+   span(
+	tag(int, adjacent), int_data(ALPHA),
+	tag(int, adjacent), int_data(BETA),
+	tag(int, nil),      int_data(GAMMA),
+	tag(int, nil),      int_data(42)
+)
+};
+
+void before_each_test(void)
+{
+	list = mklist(state, 0);
+	list_cdr = mklist(state, 1);
+	list_cddr = mklist(state, 2);
+	list_cdddr = lx_empty_list();
+}
+#else
+#error "Define LINKED_LIST_TEST or ADJACENT_LIST_TEST"
+#endif
 
 int test_car(void)
 {
