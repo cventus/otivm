@@ -91,6 +91,11 @@ int test_int_one_does_not_equal_zero(void)
 }
 
 #ifdef lxfloat
+int test_float_one_equals_int_one(void)
+{
+	return assert_eq(float_one, int_one);
+}
+
 int test_float_one_equals_self(void)
 {
 	return assert_eq(float_one, float_one);
