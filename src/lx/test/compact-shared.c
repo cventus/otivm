@@ -39,7 +39,7 @@ union lxcell state[] = { span(
 	tag(list, nil),      ref_data(1, -4, 1),
 	tag(list, adjacent), ref_data(2, -4, 3), /* D */
 	tag(list, nil),      ref_data(3, 0, 0)
-) }, from_buf[25], to_buf[27];
+) }, from_buf[5*SPAN_LENGTH], to_buf[5*SPAN_LENGTH], bitset[2];
 
 #define SERIALIZED_TREE_A "((1 2 3 4) (2 3 4) (3 4) (4))"
 #define SERIALIZED_TREE_B "((4) (3 4) (2 3 4) (1 2 3 4))"
@@ -59,8 +59,9 @@ union lxcell stack_buf[50], *stack;
 
 void before_each_test(void)
 {
+	memset(bitset, 0, sizeof bitset);
 	memcpy(from_buf, state, sizeof state);
-	init_tospace(&to, to_buf, 27);
+	init_tospace(&to, to_buf, 25);
 
 	stack = stack_buf + 50;
 	root_A = lx_list(mklist(from_buf + 5, 0));
@@ -69,14 +70,9 @@ void before_each_test(void)
 	root_D = lx_list(mklist(from_buf + 20, 2));
 }
 
-int test_tospace_should_contain_25_cells(void)
+int test_there_should_be_2_mark_cells(void)
 {
-	return assert_int_eq(alloc_cell_count(&to), 25);
-}
-
-int test_tospace_should_contain_2_mark_cells(void)
-{
-	return assert_int_eq(alloc_mark_cell_count(&to), 2);
+	return assert_int_eq(mark_cell_count(25), 2);
 }
 
 int test_A_count_refs_should_mark_shared_cells_twice(void)
@@ -86,11 +82,11 @@ int test_A_count_refs_should_mark_shared_cells_twice(void)
 		0xff,
 		/* Second four cells are only reachable once */
 		0x55
-	}, bitset[sizeof expected];
+	}, bits[sizeof expected];
 
-	memset(bitset, 0, sizeof bitset);
-	lx_count_refs(root_A, from_buf, stack, bitset);
-	assert_mem_eq(bitset, expected, sizeof expected);
+	memset(bits, 0, sizeof bits);
+	lx_count_refs(root_A, from_buf, stack, bits);
+	assert_mem_eq(bits, expected, sizeof expected);
 	return ok;
 }
 
@@ -108,7 +104,7 @@ int test_A_expected_tospace_structure(void)
 {
 	char buf[2 * sizeof(SERIALIZED_TREE_A)];
 
-	root_A = lx_compact(root_A, from_buf, &to);
+	root_A = lx_compact(root_A, from_buf, &to, bitset, sizeof bitset);
 	serialize(root_A, buf, sizeof buf);
 	assert_str_eq(buf, SERIALIZED_TREE_A);
 
@@ -117,7 +113,7 @@ int test_A_expected_tospace_structure(void)
 
 int test_A_compacted_tree_is_smaller(void)
 {
-	lx_compact(root_A, from_buf, &to);
+	lx_compact(root_A, from_buf, &to, bitset, sizeof bitset);
 	swap_allocation_pointers(&to);
 	assert_int_eq(alloc_low_used_count(&to), compacted_size_A);
 	return ok;
@@ -130,9 +126,9 @@ int test_B_count_refs_should_mark_shared_cells_twice(void)
 		0xff, 0x00,
 		/* Second four cells are only reachable once */
 		0x55, 0x00, 0x00, 0x00, 0x00, 0x00
-	}, bitset[sizeof expected];
+	}, bits[sizeof expected];
 
-	memset(bitset, 0, sizeof bitset);
+	memset(bits, 0, sizeof bits);
 	lx_count_refs(root_B, from_buf, stack, bitset);
 	assert_mem_eq(bitset, expected, sizeof expected);
 	return ok;
@@ -152,7 +148,7 @@ int test_B_expected_tospace_structure(void)
 {
 	char buf[2 * sizeof(SERIALIZED_TREE_B)];
 
-	root_B = lx_compact(root_B, from_buf, &to);
+	root_B = lx_compact(root_B, from_buf, &to, bitset, sizeof bitset);
 	serialize(root_B, buf, sizeof buf);
 	assert_str_eq(buf, SERIALIZED_TREE_B);
 
@@ -161,7 +157,7 @@ int test_B_expected_tospace_structure(void)
 
 int test_B_compacted_tree_is_smaller(void)
 {
-	lx_compact(root_B, from_buf, &to);
+	lx_compact(root_B, from_buf, &to, bitset, sizeof bitset);
 	swap_allocation_pointers(&to);
 	assert_int_eq(alloc_low_used_count(&to), compacted_size_B);
 	return ok;
@@ -176,11 +172,11 @@ int test_C_count_refs_should_mark_shared_cells_twice(void)
 		0x15,
 
 		0x00, 0x00, 0x00, 0x00
-	}, bitset[sizeof expected];
+	}, bits[sizeof expected];
 
-	memset(bitset, 0, sizeof bitset);
-	lx_count_refs(root_C, from_buf, stack, bitset);
-	assert_mem_eq(bitset, expected, sizeof expected);
+	memset(bits, 0, sizeof bits);
+	lx_count_refs(root_C, from_buf, stack, bits);
+	assert_mem_eq(bits, expected, sizeof expected);
 	return ok;
 }
 
@@ -198,7 +194,7 @@ int test_C_expected_tospace_structure(void)
 {
 	char buf[2 * sizeof(SERIALIZED_TREE_C)];
 
-	root_C = lx_compact(root_C, from_buf, &to);
+	root_C = lx_compact(root_C, from_buf, &to, bitset, sizeof bitset);
 	serialize(root_C, buf, sizeof buf);
 	assert_str_eq(buf, SERIALIZED_TREE_C);
 
@@ -207,7 +203,7 @@ int test_C_expected_tospace_structure(void)
 
 int test_C_compacted_tree_is_smaller(void)
 {
-	lx_compact(root_C, from_buf, &to);
+	lx_compact(root_C, from_buf, &to, bitset, sizeof bitset);
 	swap_allocation_pointers(&to);
 	assert_int_eq(alloc_low_used_count(&to), compacted_size_C);
 	return ok;
@@ -220,11 +216,11 @@ int test_D_count_refs_should_mark_shared_cells_twice(void)
 		0xfc, 0x00, 0x00, 0x00,
 		/* fourth span of cells are only reachable from the root */
 		0x55, 0x00, 0x00, 0x00
-	}, bitset[sizeof expected];
+	}, bits[sizeof expected];
 
-	memset(bitset, 0, sizeof bitset);
-	lx_count_refs(root_D, from_buf, stack, bitset);
-	assert_mem_eq(bitset, expected, sizeof expected);
+	memset(bits, 0, sizeof bits);
+	lx_count_refs(root_D, from_buf, stack, bits);
+	assert_mem_eq(bits, expected, sizeof expected);
 	return ok;
 }
 
@@ -242,7 +238,7 @@ int test_D_expected_tospace_structure(void)
 {
 	char buf[2 * sizeof(SERIALIZED_TREE_D)];
 
-	root_D = lx_compact(root_D, from_buf, &to);
+	root_D = lx_compact(root_D, from_buf, &to, bitset, sizeof bitset);
 	serialize(root_D, buf, sizeof buf);
 	assert_str_eq(buf, SERIALIZED_TREE_D);
 
@@ -251,7 +247,7 @@ int test_D_expected_tospace_structure(void)
 
 int test_D_compacted_tree_is_smaller(void)
 {
-	lx_compact(root_D, from_buf, &to);
+	lx_compact(root_D, from_buf, &to, bitset, sizeof bitset);
 	swap_allocation_pointers(&to);
 	assert_int_eq(alloc_low_used_count(&to), compacted_size_D);
 	return ok;

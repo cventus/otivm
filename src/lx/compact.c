@@ -222,11 +222,10 @@ static struct lxlist cheney70(
 union lxvalue lx_compact(
 	union lxvalue root,
 	union lxcell *from,
-	struct lxalloc *to)
+	struct lxalloc *to,
+	void *bitset,
+	size_t bitset_size)
 {
-	size_t mark_cells;
-	union lxcell *bitset;
-
 	switch (root.tag) {
 	default: abort();
 	case lx_nil_tag:
@@ -239,16 +238,9 @@ union lxvalue lx_compact(
 		return ref_to_string(copy_string(string_to_ref(root), to));
 
 	case lx_list_tag:
-		bitset = to->mark_bits;
-		mark_cells = to->max_addr - to->mark_bits;
-		memset(bitset, 0, mark_cells * sizeof *bitset);
-
-		/* Use area below bitset in to-space as a stack during for
-		   marking */
-		lx_count_refs(root, from, bitset, bitset);
-
-		/* Non-trivial case: copy a list structure */
-		assert(get_bits(bitset, ref_offset(from, root.list.ref)) != 0);
+		/* Use to-space as a stack while marking */
+		memset(bitset, 0, bitset_size);
+		lx_count_refs(root, from, to->max_addr, bitset);
 		return lx_list(cheney70(root.list, from, to, bitset));
 	}
 }

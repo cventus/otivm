@@ -94,7 +94,7 @@ union lxcell state[] = { span(
 	tag(nil, nil),       int_data(-1),
 	tag(nil, nil),       int_data(-1),
 	tag(nil, nil),       int_data(-1)
-) }, from_buf[50], to_buf[54];
+) }, from_buf[10*SPAN_LENGTH], to_buf[10*SPAN_LENGTH], bitset[4];
 
 struct lxalloc to;
 
@@ -102,8 +102,9 @@ union lxvalue root;
 
 void before_each_test(void)
 {
+	memset(bitset, 0, sizeof bitset);
 	memcpy(from_buf, state, sizeof state);
-	init_tospace(&to, to_buf, 54);
+	init_tospace(&to, to_buf, 50);
 	root = lx_list(mklist(from_buf, 0));
 }
 
@@ -112,9 +113,9 @@ int test_tospace_should_contain_50_cells(void)
 	return assert_int_eq(alloc_cell_count(&to), 50);
 }
 
-int test_tospace_should_contain_4_mark_cells(void)
+int test_there_should_be_4_mark_cells(void)
 {
-	return assert_int_eq(alloc_mark_cell_count(&to), 4);
+	return assert_int_eq(mark_cell_count(50), 4);
 }
 
 int test_count_refs_should_mark_all_cells_once(void)
@@ -124,11 +125,11 @@ int test_count_refs_should_mark_all_cells_once(void)
 		0x55, 0x55, 0x55, 0x55,
 		0x55, 0x55, 0x55, 0x55,
 		0x55, 0x01
-	}, bitset[sizeof expected];
+	}, bits[sizeof expected];
 
-	memset(bitset, 0, sizeof bitset);
-	lx_count_refs(root, from_buf, stack + 50, bitset);
-	assert_mem_eq(bitset, expected, sizeof expected);
+	memset(bits, 0, sizeof bits);
+	lx_count_refs(root, from_buf, stack + 50, bits);
+	assert_mem_eq(bits, expected, sizeof expected);
 	return ok;
 }
 
@@ -146,7 +147,7 @@ int test_expected_tospace_structure(void)
 {
 	char buf[2 * sizeof(SERIALIZED_TREE)];
 
-	root = lx_compact(root, from_buf, &to);
+	root = lx_compact(root, from_buf, &to, bitset, sizeof bitset);
 	serialize(root, buf, sizeof buf);
 	assert(strcmp(buf, SERIALIZED_TREE) == 0);
 
@@ -155,7 +156,7 @@ int test_expected_tospace_structure(void)
 
 int test_compacted_tree_is_smaller(void)
 {
-	lx_compact(root, from_buf, &to);
+	lx_compact(root, from_buf, &to, bitset, sizeof bitset);
 	swap_allocation_pointers(&to);
 	assert(alloc_low_used_count(&to) == 38);
 	return ok;

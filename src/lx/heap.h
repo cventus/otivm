@@ -1,8 +1,9 @@
 struct lxheap
 {
+	/* copy of heap configuration */
 	struct lx_config config;
 	union lxvalue root;
-	union lxcell *begin, *mid, *end;
+	union lxcell *first, *second, *bitset, *end;
 	struct lxalloc alloc;
 };
 

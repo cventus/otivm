@@ -15,6 +15,7 @@
 #include "../common.h"
 #include "../lx.h"
 #include "../memory.h"
+#include "../ref.h"
 #include "../mark.h"
 
 unsigned char bitset[2];

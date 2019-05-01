@@ -2,6 +2,8 @@
 
 typedef unsigned char lxtag;
 
+static inline struct lxref mkref(enum lx_tag, unsigned, union lxcell const *);
+
 enum out_of_memory
 {
 	OOM_COMPACT = 1,
@@ -32,10 +34,6 @@ struct lxalloc
 
 	/* non-list allocation pointer, moves towards `tag_free` */
 	union lxcell *raw_free;
-
-	/* bitmap to store mark bits during garbage collection, two bits per
-	   cell (is reserved when allocator is initiated) */
-	union lxcell *mark_bits;
 };
 
 struct lxmem
@@ -45,19 +43,6 @@ struct lxmem
 	enum out_of_memory oom;
 };
 
-static inline void init_alloc(
-	struct lxalloc *alloc,
-	union lxcell *min_addr,
-	size_t size)
-{
-	size_t cell_count;
-
-	cell_count = (size * LX_BITS) / (LX_BITS + 2);
-	alloc->min_addr = min_addr;
-	alloc->max_addr = min_addr + size;
-	alloc->mark_bits = min_addr + cell_count;
-}
-
 /* Tagged cells are allocated from high addresses towards low addresses in a
    *cons*-space, so that cons can create compact lists directly when the tail
    was allocated just before. */
@@ -66,11 +51,11 @@ static inline void init_cons(
 	union lxcell *min_addr,
 	size_t size)
 {
-	init_alloc(alloc, min_addr, size);
+	alloc->min_addr = min_addr;
+	alloc->max_addr = min_addr + size;
+
 	alloc->raw_free = min_addr;
-	alloc->tag_free.tag = lx_list_tag;
-	alloc->tag_free.offset = 0;
-	alloc->tag_free.cell = alloc->mark_bits;
+	alloc->tag_free = mkref(lx_list_tag, 0, alloc->max_addr);
 }
 
 /* A to-space is the target space during garbage collection. During that time
@@ -81,11 +66,11 @@ static inline void init_tospace(
 	union lxcell *min_addr,
 	size_t size)
 {
-	init_alloc(alloc, min_addr, size);
-	alloc->tag_free.tag = lx_list_tag;
-	alloc->tag_free.offset = 0;
-	alloc->tag_free.cell = alloc->min_addr;
-	alloc->raw_free = alloc->mark_bits;
+	alloc->min_addr = min_addr;
+	alloc->max_addr = min_addr + size;
+
+	alloc->raw_free = alloc->max_addr;
+	alloc->tag_free = mkref(lx_list_tag, 0, alloc->min_addr);
 }
 
 /* swap raw_free and tag_free */
@@ -104,7 +89,7 @@ static inline void swap_allocation_pointers(struct lxalloc *alloc)
 
 static inline size_t alloc_cell_count(struct lxalloc const *alloc)
 {
-	return alloc->mark_bits - alloc->min_addr;
+	return alloc->max_addr - alloc->min_addr;
 }
 
 static inline size_t alloc_free_count(struct lxalloc const *alloc)
@@ -119,15 +104,17 @@ static inline size_t alloc_low_used_count(struct lxalloc const *alloc)
 
 static inline size_t alloc_high_used_count(struct lxalloc const *alloc)
 {
-	return alloc->mark_bits - alloc->tag_free.cell;
+	return alloc->max_addr - alloc->tag_free.cell;
 }
 
-static inline size_t alloc_mark_cell_count(struct lxalloc const *alloc)
+static inline size_t mark_cell_count(size_t semispace_cells)
 {
-	return alloc->max_addr - alloc->mark_bits;
+	return ceil_div(semispace_cells * 2, LX_BITS);
 }
 
 union lxvalue lx_compact(
 	union lxvalue root,
 	union lxcell *from,
-	struct lxalloc *to);
+	struct lxalloc *to,
+	void *bitset,
+	size_t bitset_size);

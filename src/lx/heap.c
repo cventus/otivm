@@ -33,7 +33,7 @@ static size_t adjust_heap_size(struct lx_config const *config, size_t new_size)
 		heap_size = config->max_size;
 	}
 
-	/* round to multiple of two cells */
+	/* round down to multiple of two cells */
 	heap_size = heap_size & ~(size_t)(2*CELL_SIZE - 1);
 
 	if (heap_size < MIN_SIZE) {
@@ -45,19 +45,30 @@ static size_t adjust_heap_size(struct lx_config const *config, size_t new_size)
 
 static int realloc_heap(struct lxheap *heap, size_t adjusted_new_size)
 {
-	size_t semispace_cells;
+	size_t total_cells, bitmap_cells, semispace_cells;
 	void *new_heap;
 
-	new_heap = realloc(heap->begin, adjusted_new_size);
+	assert(adjusted_new_size % CELL_SIZE == 0);
+
+	new_heap = realloc(heap->first, adjusted_new_size);
 	if (!new_heap) {
 		return -1;
 	}
-	semispace_cells = adjusted_new_size / (2*CELL_SIZE);
-	heap->begin = new_heap;
-	heap->mid = heap->begin + semispace_cells;
-	heap->end = heap->mid + semispace_cells;
+	heap->first = new_heap;
+	heap->end = (union lxcell *)((char *)new_heap + adjusted_new_size);
 
-	assert((char *)heap->begin + adjusted_new_size == (char *)heap->end);
+	total_cells = adjusted_new_size / CELL_SIZE;
+	/* N bits: N*total_cells = 2*N*semispace_cells + 2*semispace_cells */
+	semispace_cells = total_cells * ((0.5 * LX_BITS) / (LX_BITS + 1.0));
+	bitmap_cells = total_cells - 2*semispace_cells;
+
+	heap->first = new_heap;
+	heap->second = heap->first + semispace_cells;
+	heap->bitset = heap->second + semispace_cells;
+	heap->end = (union lxcell *)((char *)new_heap + adjusted_new_size);
+
+	assert((size_t)(heap->end - heap->bitset) >= bitmap_cells);
+	(void)bitmap_cells;
 
 	return 0;
 }
@@ -71,15 +82,15 @@ struct lxheap *lx_make_heap(size_t init_size, struct lx_config const *config)
 	if (!heap) { return NULL; }
 
 	heap->config = config ? *config : default_config;
-	heap->begin = NULL;
+	heap->first = NULL;
 	heap_size = adjust_heap_size(&heap->config, init_size);
 	if (realloc_heap(heap, heap_size)) {
 		free(heap);
 		return NULL;
 	}
 	heap->root = lx_list(lx_empty_list());
-	semispace_cells = heap->mid - heap->begin;
-	init_cons(&heap->alloc, heap->begin, semispace_cells);
+	semispace_cells = heap->second - heap->first;
+	init_cons(&heap->alloc, heap->first, semispace_cells);
 
 	return heap;
 }
@@ -87,7 +98,7 @@ struct lxheap *lx_make_heap(size_t init_size, struct lx_config const *config)
 void lx_free_heap(struct lxheap *heap)
 {
 	if (heap) {
-		free(heap->begin);
+		free(heap->first);
 		free(heap);
 	}
 }
@@ -99,7 +110,12 @@ union lxvalue lx_heap_value(struct lxheap const *heap)
 
 size_t lx_heap_size(struct lxheap const *heap)
 {
-	return (unsigned char *)heap->end -(unsigned char *)heap->begin;
+	return (unsigned char *)heap->end - (unsigned char *)heap->first;
+}
+
+static size_t semispace_size(struct lxheap const *heap)
+{
+	return (unsigned char *)heap->second - (unsigned char *)heap->first;
 }
 
 static union lxcell **ptr_at(struct lxheap *heap, size_t offset)
@@ -115,13 +131,12 @@ int lx_resize_heap(struct lxheap *heap, size_t new_size)
 		offsetof(struct lxheap, alloc.max_addr),
 		offsetof(struct lxheap, alloc.tag_free.cell),
 		offsetof(struct lxheap, alloc.raw_free),
-		offsetof(struct lxheap, alloc.mark_bits),
 		offsetof(struct lxheap, root.list.ref.cell),
 	};
 #define MEMBERS_MAX (sizeof member_offsets / sizeof member_offsets[0])
 
-	size_t old_size, adjusted_new_size, i, max_member;
-	ptrdiff_t save[MEMBERS_MAX], min_addr_offset;
+	size_t old_size, adjusted_new_size, i, max_member, old_semi, new_semi;
+	ptrdiff_t save[MEMBERS_MAX], offset;
 	enum { first_half, second_half } alloc_space;
 	union lxcell **min_addr;
 
@@ -136,22 +151,24 @@ int lx_resize_heap(struct lxheap *heap, size_t new_size)
 	min_addr = &heap->alloc.min_addr;
 	max_member = MEMBERS_MAX;
 	if (heap->root.tag != lx_list_tag) { max_member--; }
-	min_addr_offset = *min_addr - heap->begin;
+	offset = *min_addr - heap->first;
 	for (i = 0; i < max_member; i++) {
 		save[i] = *ptr_at(heap, member_offsets[i]) - *min_addr;
 	}
 
 	/* which space is currently used for allocation? */
-	alloc_space = *min_addr < heap->mid ? first_half : second_half;
+	alloc_space = *min_addr < heap->second ? first_half : second_half;
+	old_semi = semispace_size(heap);
 	if (realloc_heap(heap, adjusted_new_size)) { return -1; }
+	new_semi = semispace_size(heap);
 
 	/* restore allocation pointers */
-	if (alloc_space == second_half && adjusted_new_size < 2*old_size) {
-		/* shift data forward to new second half */
-		memmove(heap->mid, heap->begin + min_addr_offset, old_size/2);
-		*min_addr = heap->mid;
+	if (alloc_space == second_half && new_semi < 2*old_semi) {
+		/* shift data backward to start */
+		memmove(heap->first, heap->first + offset, old_semi);
+		*min_addr = heap->first;
 	} else {
-		*min_addr = heap->begin + min_addr_offset;
+		*min_addr = heap->first + offset;
 	}
 	for (i = 0; i < max_member; i++) {
 		*ptr_at(heap, member_offsets[i]) = *min_addr + save[i];
@@ -164,13 +181,19 @@ int lx_resize_heap(struct lxheap *heap, size_t new_size)
 int lx_gc(struct lxheap *heap)
 {
 	union lxcell *from, *to;
-	size_t semispace_cells;
+	size_t semispace_cells, bitset_size;
 
-	semispace_cells = heap->mid - heap->begin;
+	semispace_cells = heap->second - heap->first;
 	from = heap->alloc.min_addr;
-	to = from < heap->mid ? heap->mid : heap->begin;
+	to = from < heap->second ? heap->second : heap->first;
 	init_tospace(&heap->alloc, to, semispace_cells);
-	heap->root = lx_compact(heap->root, from, &heap->alloc);
+	bitset_size = sizeof(*heap->bitset)*(heap->end - heap->bitset);
+	heap->root = lx_compact(
+		heap->root,
+		from,
+		&heap->alloc,
+		heap->bitset,
+		bitset_size);
 	swap_allocation_pointers(&heap->alloc);
 
 	return 0;

@@ -14,7 +14,7 @@ union lxcell state[] = {
 	tag(list, adjacent), ref_data(1, 0, 1),
 	tag(list, link),     ref_data(2, 0, 2),
 	tag(list, nil),      ref_data(3, 0, 0)
-)}, from_buf[5], to_buf[6];
+)}, from_buf[SPAN_LENGTH], to_buf[SPAN_LENGTH], bitset[1];
 
 struct lxalloc to;
 
@@ -22,8 +22,9 @@ union lxvalue root;
 
 void before_each_test(void)
 {
+	memset(bitset, 0, sizeof bitset);
 	memcpy(from_buf, state, sizeof state);
-	init_tospace(&to, to_buf, 6);
+	init_tospace(&to, to_buf, 5);
 	root = lx_list(mklist(from_buf, 0));
 }
 
@@ -31,7 +32,7 @@ int test_recursively_defined_structure_is_properly_copied(void)
 {
 	union lxvalue first, second, third, fourth;
 
-	first = lx_compact(root, from_buf, &to);
+	first = lx_compact(root, from_buf, &to, bitset, sizeof bitset);
 
 	assert_tag_eq(first.tag, lx_list_tag);
 
