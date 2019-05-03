@@ -5,14 +5,23 @@ enum cdr_code
 	cdr_adjacent = 2
 };
 
+static inline size_t lxtag_len(lxtag h)
+{
+	return h >> TAG_BIT;
+}
+
 static inline enum cdr_code lxtag_cdr(lxtag h)
 {
-	return h >> 6;
+	switch (lxtag_len(h)) {
+	case 0: return cdr_link;
+	case 1: return cdr_nil;
+	default: return cdr_adjacent;
+	}
 }
 
 static inline enum lx_tag lxtag_tag(lxtag h)
 {
-	return h & 0x3f;
+	return h & TAG_MASK;
 }
 
 static inline enum cdr_code list_cdr_code(struct lxlist list)
@@ -33,11 +42,6 @@ static inline union lxcell const *list_car(struct lxlist list)
 static inline struct lxlist ref_to_list(struct lxref ref)
 {
 	return (struct lxlist) { .ref = ref };
-}
-
-static inline struct lxlist list_backward(struct lxlist list)
-{
-	return ref_to_list(backward(list.ref));
 }
 
 static inline struct lxlist list_forward(struct lxlist list)

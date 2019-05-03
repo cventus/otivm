@@ -49,9 +49,9 @@ int test_cons_should_make_two_subsequent_allocations_adjacent(void)
 	/* assert physical structure */
 	assert_int_eq(mem.alloc.tag_free.offset, 2);
 
-	t = mem.alloc.tag_free.cell->t;
-	assert_int_eq(t[2], mktag(cdr_adjacent, lx_int_tag));
-	assert_int_eq(t[3], mktag(cdr_nil, lx_int_tag));
+	t = list.ref.cell->t;
+	assert_int_eq(t[2], mktag(2, lx_int_tag));
+	assert_int_eq(t[3], mktag(1, lx_int_tag));
 
 	return ok;
 }
@@ -77,11 +77,11 @@ int test_cons_should_link_two_non_adjacent_allocations(void)
 	/* assert physical structure */
 	assert_int_eq(mem.alloc.tag_free.offset, 0);
 
-	t = mem.alloc.tag_free.cell->t;
-	assert_int_eq(t[0], mktag(cdr_link, lx_int_tag));
-	assert_int_eq(t[1], mktag(cdr_nil, lx_list_tag));
-	assert_int_eq(t[2], mktag(cdr_nil, lx_nil_tag));
-	assert_int_eq(t[3], mktag(cdr_nil, lx_int_tag));
+	t = list.ref.cell->t;
+	assert_int_eq(t[0], mktag(0, lx_int_tag));
+	assert_int_eq(t[1], mktag(1, lx_list_tag));
+	assert_int_eq(t[2], mktag(1, lx_nil_tag));
+	assert_int_eq(t[3], mktag(1, lx_int_tag));
 
 	return ok;
 }

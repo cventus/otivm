@@ -40,60 +40,60 @@ structure in the tree.
 "(8 (4 (3 (1 ()) 2 ()) 6 (5 ()) 7 ()) 12 (10 (9 ()) 11 ()) 14 (13 ()) 15 ())"
 union lxcell state[] = { span(
 	/* (8 (4 ...) . (12 ...)) */
-	tag(int, adjacent),  int_data(8),
-	tag(list, link),     ref_data(1, 0, 3),
-	tag(list, nil),      ref_data(2, 5, 0),
+	int_tag(2), int_data(8),
+	lst_tag(0), ref_data(1, 0, 3),
+	lst_tag(1), ref_data(2, 5, 0),
 	/* (4 (3 ...) . (6 ...)) */
-	tag(int, adjacent),  int_data(4)), span(
-	tag(list, link),     ref_data(0, 0, 2),
-	tag(list, nil),      ref_data(1, 2, 1),
+	int_tag(2), int_data(4)), span(
+	lst_tag(0), ref_data(0, 0, 2),
+	lst_tag(1), ref_data(1, 2, 1),
 	/* (3 (1 ...) . (2 ...)) */
-	tag(int, adjacent),  int_data(3),
-	tag(list, link),     ref_data(3, 1, 1)), span(
-	tag(list, nil),      ref_data(0, 0, 3),
+	int_tag(2), int_data(3),
+	lst_tag(0), ref_data(3, 1, 1)), span(
+	lst_tag(1), ref_data(0, 0, 3),
 	/* (1 ()) */
-	tag(int, adjacent),  int_data(1),
-	tag(nil, nil),       int_data(-1),
+	int_tag(2), int_data(1),
+	nil_tag(1), int_data(-1),
 	/* (2 ()) */
-	tag(int, adjacent),  int_data(2)), span(
-	tag(nil, nil),       int_data(-1),
+	int_tag(2), int_data(2)), span(
+	nil_tag(1), int_data(-1),
 	/* (6 (5 ...) . (7 ...)) */
-	tag(int, adjacent),  int_data(6),
-	tag(list, link),     ref_data(2, 1, 0),
-	tag(list, nil),      ref_data(3, 1, 2)), span(
+	int_tag(2), int_data(6),
+	lst_tag(0), ref_data(2, 1, 0),
+	lst_tag(1), ref_data(3, 1, 2)), span(
 	/* (5 ()) */
-	tag(int, adjacent),  int_data(5),
-	tag(nil, nil),       int_data(-1),
+	int_tag(2), int_data(5),
+	nil_tag(1), int_data(-1),
 	/* (7 ()) */
-	tag(int, adjacent),  int_data(7),
-	tag(nil, nil),       int_data(-1)), span(
+	int_tag(2), int_data(7),
+	nil_tag(1), int_data(-1)), span(
    	/* (12 (10 ...)) . (14 ...)) */
-	tag(int, adjacent),  int_data(12),
-	tag(list, link),     ref_data(1, 0, 3),
-	tag(list, nil),      ref_data(2, 2, 2),
+	int_tag(2), int_data(12),
+	lst_tag(0), ref_data(1, 0, 3),
+	lst_tag(1), ref_data(2, 2, 2),
    	/* (10 (9 ...)) . (11 ...)) */
-	tag(int, adjacent),  int_data(10)), span(
-	tag(list, link),     ref_data(0, 0, 2),
-	tag(list, nil),      ref_data(1, 1, 0),
+	int_tag(2), int_data(10)), span(
+	lst_tag(0), ref_data(0, 0, 2),
+	lst_tag(1), ref_data(1, 1, 0),
    	/* (9 ()) */
-	tag(int, adjacent),  int_data(9),
-	tag(nil, nil),       int_data(-1)), span(
+	int_tag(2), int_data(9),
+	nil_tag(1), int_data(-1)), span(
 	/* (11 ()) */
-	tag(int, adjacent),  int_data(11),
-	tag(nil, nil),       int_data(-1),
+	int_tag(2), int_data(11),
+	nil_tag(1), int_data(-1),
    	/* (14 (13 ...) . (15 ...)) */
-	tag(int, adjacent),  int_data(14),
-	tag(list, link),     ref_data(3, 1, 1)), span(
-	tag(list, nil),      ref_data(0, 0, 3),
+	int_tag(2), int_data(14),
+	lst_tag(0), ref_data(3, 1, 1)), span(
+	lst_tag(1), ref_data(0, 0, 3),
    	/* (13 ()) */
-	tag(int, adjacent),  int_data(13),
-	tag(nil, nil),       int_data(-1),
+	int_tag(2), int_data(13),
+	nil_tag(1), int_data(-1),
    	/* (15 ()) */
-	tag(int, adjacent),  int_data(15)), span(
-	tag(nil, nil),       int_data(-1),
-	tag(nil, nil),       int_data(-1),
-	tag(nil, nil),       int_data(-1),
-	tag(nil, nil),       int_data(-1)
+	int_tag(2), int_data(15)), span(
+	nil_tag(1), int_data(-1),
+	nil_tag(1), int_data(-1),
+	nil_tag(1), int_data(-1),
+	nil_tag(1), int_data(-1)
 ) }, from_buf[10*SPAN_LENGTH], to_buf[10*SPAN_LENGTH], bitset[4];
 
 struct lxalloc to;
@@ -157,7 +157,6 @@ int test_expected_tospace_structure(void)
 int test_compacted_tree_is_smaller(void)
 {
 	lx_compact(root, from_buf, &to, bitset, sizeof bitset);
-	swap_allocation_pointers(&to);
-	assert(alloc_low_used_count(&to) == 38);
+	assert_int_eq(ref_offset(to_buf, to.tag_free), 30 + 1);
 	return ok;
 }

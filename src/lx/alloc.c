@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <setjmp.h>
 #include <string.h>
+#include <limits.h>
 
 #include "common.h"
 #include "lx.h"
@@ -51,19 +52,24 @@ struct lxlist lx_cons(
 	struct lxlist list)
 {
 	struct lxref ref, cdr;
-	enum cdr_code cc;
+	size_t len;
 
 	if (lx_is_empty_list(list)) {
-		cc = cdr_nil;
+		len = 1;
 	} else if (ref_eq(list.ref, mem->alloc.tag_free)) {
-		cc = cdr_adjacent;
+		len = lxtag_len(*ref_tag(list.ref));
+		if (len == 0) {
+			len = 2;
+		} else if (len < MAX_SEGMENT_LENGTH) {
+			len++
+		}
 	} else {
-		cc = cdr_link;
+		len = 0;
 	}
-	if (reserve_tagged(&mem->alloc, cc == cdr_link ? 2 : 1, &ref)) {
+	if (reserve_tagged(&mem->alloc, len == 0 ? 2 : 1, &ref)) {
 		longjmp(mem->escape, mem->oom);
 	}
-	*ref_tag(ref) = mktag(cc, val.tag);
+	*ref_tag(ref) = mktag(len, val.tag);
 	switch (val.tag) {
 	case lx_nil_tag: ref_data(ref)->i = 0; break;
 	case lx_list_tag: setref(ref_data(ref), val.list.ref); break;
@@ -76,9 +82,9 @@ struct lxlist lx_cons(
 #endif
 	default: abort();
 	}
-	if (cc == cdr_link) {
+	if (len == 0) {
 		cdr = forward(ref);
-		*ref_tag(cdr) = mktag(cdr_nil, lx_list_tag);
+		*ref_tag(cdr) = mktag(1, lx_list_tag);
 		setref(ref_data(cdr), list.ref);
 	}
 	ref.tag = lx_list_tag;

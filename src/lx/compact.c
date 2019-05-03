@@ -87,6 +87,21 @@ static void copy_car(
 	}
 }
 
+static void adjust_segment_lengths(struct lxref ref)
+{
+	size_t i;
+	lxtag tag;
+
+	for (i = 2; i < MAX_SEGMENT_LENGTH; i++) {
+		ref = backward(ref);
+		tag = *ref_tag(ref);
+		if (lxtag_len(tag) != MAX_SEGMENT_LENGTH) {
+			break;
+		}
+		*ref_tag(ref) = mktag(i, lxtag_tag(tag));
+	}
+}
+
 /* Shallowly copy list, which is in from-space, into to-space and leave a
    forward-pointer (the copy's offset in to-space) in the CAR. */
 static struct lxref copy_list(
@@ -135,7 +150,8 @@ static struct lxref copy_list(
 		default: abort();
 		case cdr_nil:
 			/* entire list copied */
-			*ref_tag(dest) = mktag(cdr_nil, tag);
+			adjust_segment_lengths(dest);
+			*ref_tag(dest) = mktag(1, tag);
 			to->tag_free = forward(dest);
 			return result;
 		case cdr_link:
@@ -143,10 +159,11 @@ static struct lxref copy_list(
 			i = ref_offset(from, src.ref);
 			if (is_shared(bitset, i)) {
 				/* Shared structure should not be compacted. */
-				*ref_tag(dest) = mktag(cdr_link, tag);
+				adjust_segment_lengths(dest);
+				*ref_tag(dest) = mktag(0, tag);
 				dest = forward(dest);
 				/* Leave forward reference to it and stop. */
-				*ref_tag(dest) = mktag(cdr_nil, lx_list_tag);
+				*ref_tag(dest) = mktag(1, lx_list_tag);
 				setxref(ref_data(dest), from, src.ref);
 				to->tag_free = forward(dest);
 				return result;
@@ -157,7 +174,7 @@ static struct lxref copy_list(
 			i++;
 			break;
 		}
-		*ref_tag(dest) = mktag(cdr_adjacent, tag);
+		*ref_tag(dest) = mktag(MAX_SEGMENT_LENGTH, tag);
 		dest = forward(dest);
 	}
 }
@@ -174,6 +191,11 @@ static struct lxlist cheney70(
 	union lxcell *from_car, *to_car;
 	struct lxref ref, scan;
 	struct lxlist result, from_list;
+
+	/* allocate one cell as a sentinel value when scanning backwards */
+	*ref_tag(to->tag_free) = mktag(1, lx_int_tag);
+	ref_data(to->tag_free)->i = 0;
+	to->tag_free = forward(to->tag_free);
 
 	/* copy_list places the list at the start */
 	scan = copy_list(root, from, to, bitset);

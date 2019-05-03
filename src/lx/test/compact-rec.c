@@ -10,21 +10,20 @@
 
 union lxcell state[] = {
    span(
-	tag(list, adjacent), ref_data(0, 0, 0),
-	tag(list, adjacent), ref_data(1, 0, 1),
-	tag(list, link),     ref_data(2, 0, 2),
-	tag(list, nil),      ref_data(3, 0, 0)
-)}, from_buf[SPAN_LENGTH], to_buf[SPAN_LENGTH], bitset[1];
+	lst_tag(3), ref_data(0, 0, 0),
+	lst_tag(2), ref_data(1, 0, 1),
+	lst_tag(0), ref_data(2, 0, 2),
+	lst_tag(1), ref_data(3, 0, 0)
+)}, from_buf[2*SPAN_LENGTH], to_buf[2*SPAN_LENGTH], bitset[1];
 
 struct lxalloc to;
-
 union lxvalue root;
 
 void before_each_test(void)
 {
 	memset(bitset, 0, sizeof bitset);
 	memcpy(from_buf, state, sizeof state);
-	init_tospace(&to, to_buf, 5);
+	init_tospace(&to, to_buf, 2*SPAN_LENGTH);
 	root = lx_list(mklist(from_buf, 0));
 }
 

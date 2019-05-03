@@ -28,35 +28,35 @@ list_c;
 
 union lxcell const memory[] = {
    span(/* 0 */
-	tag(int, nil),       int_data(X),
-	tag(int, link),      int_data(X),
-	cdr_tag,             ref_data(2, 0, 0),
-	tag(int, adjacent),  int_data(LAMBDA) /* list_a */
+	int_tag(1), int_data(X),
+	int_tag(0), int_data(X),
+	cdr_tag,    ref_data(2, 0, 0),
+	int_tag(3), int_data(LAMBDA) /* list_a */
 ), span(/* 1 */
-	tag(list, adjacent), ref_data(0, -1, 0),
-	tag(list, nil),      ref_data(1, -1, 1),
-	tag(int, adjacent),  int_data(X),
-	tag(int, nil),       int_data(X)
+	lst_tag(2), ref_data(0, -1, 0),
+	lst_tag(1), ref_data(1, -1, 1),
+	int_tag(2), int_data(X),
+	int_tag(1), int_data(X)
 ), span(/* 2 */
-	tag(list, nil),      ref_data(0, -1, 2),
-	tag(list, link),     ref_data(1, -1, 3),
-	cdr_tag,             ref_data(2, 0, 0),
-	tag(int, link),      int_data(LAMBDA) /* list_a_copy */
+	lst_tag(1), ref_data(0, -1, 2),
+	lst_tag(0), ref_data(1, -1, 3),
+	cdr_tag,    ref_data(2, 0, 0),
+	int_tag(0), int_data(LAMBDA) /* list_a_copy */
 ), span(/* 3 */
-	cdr_tag,             ref_data(0, -1, 1),
-	tag(list, adjacent), ref_data(1, -3, 3), /* list_b */
-	tag(list, nil),      ref_data(2, -1, 3),
-	tag(list, adjacent), ref_data(3, -1, 3) /* list_b_copy */
+	cdr_tag,    ref_data(0, -1, 1),
+	lst_tag(2), ref_data(1, -3, 3), /* list_b */
+	lst_tag(1), ref_data(2, -1, 3),
+	lst_tag(2), ref_data(3, -1, 3) /* list_b_copy */
 ), span(/* 4 */
-	tag(list, nil),      ref_data(0, -4, 3),
-	tag(int, adjacent),  int_data(X),
-	tag(int, nil),       int_data(Y),
-	tag(int, adjacent),  int_data(LAMBDA) /* list_c */
+	lst_tag(1), ref_data(0, -4, 3),
+	int_tag(2), int_data(X),
+	int_tag(1), int_data(Y),
+	int_tag(3), int_data(LAMBDA) /* list_c */
 ), span(/* 5 */
-	tag(list, adjacent), ref_data(0, -4, 3),
-	tag(list, nil),      ref_data(1, -1, 1),
-	tag(int, nil),       int_data(0xDEAD),
-	tag(int, nil),       int_data(0xDEAD)
+	lst_tag(2), ref_data(0, -4, 3),
+	lst_tag(1), ref_data(1, -1, 1),
+	int_tag(1), int_data(0xDEAD),
+	int_tag(1), int_data(0xDEAD)
 )
 };
 

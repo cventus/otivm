@@ -16,15 +16,15 @@
 #define QUOTE_(x) #x
 #define QUOTE(x) QUOTE_(x)
 
-#define tag(type, cdr_code) \
-	mktag(JOIN(cdr_,cdr_code), JOIN(lx_,JOIN(type,_tag)))
+#define tag(type, len) mktag(len, JOIN(lx_,JOIN(type,_tag)))
 
 #define span(t0, d0, t1, d1, t2, d2, t3, d3) \
 	tag_cell(t0, t1, t2, t3), d0, d1, d2, d3
 
-#define int_tag(cdr) mktag(cdr, lx_int_tag)
-#define lst_tag(cdr) mktag(cdr, lx_list_tag)
-#define cdr_tag lst_tag(cdr_nil)
+#define nil_tag(len) mktag(len, lx_nil_tag)
+#define int_tag(len) mktag(len, lx_int_tag)
+#define lst_tag(len) mktag(len, lx_list_tag)
+#define cdr_tag lst_tag(1)
 #define int_data(v) { .i = (lxint)v }
 #define ref_data(cell_no, span_offset, offset) int_data( \
 	(CELL_SIZE * (lxint)(SPAN_LENGTH*(span_offset) - (cell_no) - 1)) |\

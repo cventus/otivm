@@ -15,15 +15,15 @@ struct lx_list list, list_cdr, list_cddr, list_cdddr;
 /* Two spans, one conses in each and one (ALPHA) that is in both */
 union lxcell state[] = {
    span(
-	tag(int, nil),  int_data(GAMMA),
-	tag(int, nil),  int_data(0xDEAD),
-	tag(int, nil),  int_data(0xDEAD),
-	tag(int, link), int_data(ALPHA)
+	int_tag(1), int_data(GAMMA),
+	int_tag(1), int_data(0xDEAD),
+	int_tag(1), int_data(0xDEAD),
+	int_tag(0), int_data(ALPHA)
 ), span(
-	cdr_tag,        ref_data(0, 0, 1),
-	tag(int, link), int_data(BETA),
-	cdr_tag,        ref_data(2, -1, 0),
-	tag(int, nil),  int_data(0xDEAD)
+	cdr_tag,    ref_data(0, 0, 1),
+	int_tag(0), int_data(BETA),
+	cdr_tag,    ref_data(2, -1, 0),
+	int_tag(1), int_data(0xDEAD)
 )
 };
 
@@ -37,10 +37,10 @@ void before_each_test(void)
 #elif defined(ADJACENT_LIST_TEST)
 union lxcell state[] = {
    span(
-	tag(int, adjacent), int_data(ALPHA),
-	tag(int, adjacent), int_data(BETA),
-	tag(int, nil),      int_data(GAMMA),
-	tag(int, nil),      int_data(42)
+	int_tag(3), int_data(ALPHA),
+	int_tag(2), int_data(BETA),
+	int_tag(1), int_data(GAMMA),
+	int_tag(1), int_data(42)
 )
 };
 

@@ -19,26 +19,26 @@
    cope with shared list structure without copying lists twice or expanding
    what has been cdr-coded. */
 union lxcell state[] = { span(
-	tag(int, adjacent),  int_data(1), /* X */
-	tag(int, adjacent),  int_data(2),
-	tag(int, adjacent),  int_data(3),
-	tag(int, nil),       int_data(4)), span(
-	tag(list, adjacent), ref_data(0, -1, 0), /* A */
-	tag(list, adjacent), ref_data(1, -1, 1),
-	tag(list, adjacent), ref_data(2, -1, 2),
-	tag(list, nil),      ref_data(3, -1, 3)), span(
-	tag(list, adjacent), ref_data(0, -2, 3), /* B */
-	tag(list, adjacent), ref_data(1, -2, 2),
-	tag(list, adjacent), ref_data(2, -2, 1),
-	tag(list, nil),      ref_data(3, -2, 0)), span(
-	tag(list, adjacent), ref_data(0, -3, 3), /* C */
-	tag(list, adjacent), ref_data(1, -3, 2),
-	tag(list, nil),      ref_data(2, -3, 1),
-	tag(nil, nil),       int_data(-1)), span(
-	tag(list, adjacent), ref_data(0, -4, 2),
-	tag(list, nil),      ref_data(1, -4, 1),
-	tag(list, adjacent), ref_data(2, -4, 3), /* D */
-	tag(list, nil),      ref_data(3, 0, 0)
+	int_tag(4), int_data(1), /* X */
+	int_tag(3), int_data(2),
+	int_tag(2), int_data(3),
+	int_tag(1), int_data(4)), span(
+	lst_tag(4), ref_data(0, -1, 0), /* A */
+	lst_tag(3), ref_data(1, -1, 1),
+	lst_tag(2), ref_data(2, -1, 2),
+	lst_tag(1), ref_data(3, -1, 3)), span(
+	lst_tag(4), ref_data(0, -2, 3), /* B */
+	lst_tag(3), ref_data(1, -2, 2),
+	lst_tag(2), ref_data(2, -2, 1),
+	lst_tag(1), ref_data(3, -2, 0)), span(
+	lst_tag(3), ref_data(0, -3, 3), /* C */
+	lst_tag(2), ref_data(1, -3, 2),
+	lst_tag(1), ref_data(2, -3, 1),
+	int_tag(1), int_data(-1)), span(
+	lst_tag(2), ref_data(0, -4, 2),
+	lst_tag(1), ref_data(1, -4, 1),
+	lst_tag(2), ref_data(2, -4, 3), /* D */
+	lst_tag(1), ref_data(3, 0, 0)
 ) }, from_buf[5*SPAN_LENGTH], to_buf[5*SPAN_LENGTH], bitset[2];
 
 #define SERIALIZED_TREE_A "((1 2 3 4) (2 3 4) (3 4) (4))"
@@ -46,10 +46,10 @@ union lxcell state[] = { span(
 #define SERIALIZED_TREE_C "((4) (3 4) (2 3 4))"
 #define SERIALIZED_TREE_D "((4) ((3 4) (2 3 4)))"
 
-size_t compacted_size_A = 10;
-size_t compacted_size_B = 10;
-size_t compacted_size_C = 8;
-size_t compacted_size_D = 9;
+size_t compacted_size_A = 8 + 1;
+size_t compacted_size_B = 8 + 1;
+size_t compacted_size_C = 6 + 1;
+size_t compacted_size_D = 7 + 1;
 
 struct lxalloc to;
 
@@ -114,8 +114,7 @@ int test_A_expected_tospace_structure(void)
 int test_A_compacted_tree_is_smaller(void)
 {
 	lx_compact(root_A, from_buf, &to, bitset, sizeof bitset);
-	swap_allocation_pointers(&to);
-	assert_int_eq(alloc_low_used_count(&to), compacted_size_A);
+	assert_int_eq(ref_offset(to_buf, to.tag_free), compacted_size_A);
 	return ok;
 }
 
@@ -158,8 +157,7 @@ int test_B_expected_tospace_structure(void)
 int test_B_compacted_tree_is_smaller(void)
 {
 	lx_compact(root_B, from_buf, &to, bitset, sizeof bitset);
-	swap_allocation_pointers(&to);
-	assert_int_eq(alloc_low_used_count(&to), compacted_size_B);
+	assert_int_eq(ref_offset(to_buf, to.tag_free), compacted_size_B);
 	return ok;
 }
 
@@ -204,8 +202,7 @@ int test_C_expected_tospace_structure(void)
 int test_C_compacted_tree_is_smaller(void)
 {
 	lx_compact(root_C, from_buf, &to, bitset, sizeof bitset);
-	swap_allocation_pointers(&to);
-	assert_int_eq(alloc_low_used_count(&to), compacted_size_C);
+	assert_int_eq(ref_offset(to_buf, to.tag_free), compacted_size_C);
 	return ok;
 }
 
@@ -248,7 +245,6 @@ int test_D_expected_tospace_structure(void)
 int test_D_compacted_tree_is_smaller(void)
 {
 	lx_compact(root_D, from_buf, &to, bitset, sizeof bitset);
-	swap_allocation_pointers(&to);
-	assert_int_eq(alloc_low_used_count(&to), compacted_size_D);
+	assert_int_eq(ref_offset(to_buf, to.tag_free), compacted_size_D);
 	return ok;
 }

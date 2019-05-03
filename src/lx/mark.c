@@ -58,24 +58,24 @@ struct lxlist lx_shared_head(
 	union lxcell const *from,
 	void const *bitset)
 {
-	struct lxlist p, q;
+	struct lxref p, q;
 	lxint i;
 
-	p = list;
-	i = ref_offset(from, p.ref);
-	while (p.ref.cell != from || p.ref.offset != 0) {
-		q = list_backward(p);
+	p = list.ref;
+	i = ref_offset(from, p);
+	do {
+		q = backward(p);
 		i--;
 
 		/* previous is not the end of a preceding list segment */
-		if (list_cdr_code(q) != cdr_adjacent) { break; }
+		if (lxtag_len(*ref_tag(q)) <= 1) { break; }
 
 		/* is referenced by something */
 		if (get_bits(bitset, i) == 0) { break; }
 
 		p = q;
-	}
-	return p;
+	} while (true);
+	return ref_to_list(p);
 }
 
 /* Recursively mark reachable nodes to find shared list structure. */

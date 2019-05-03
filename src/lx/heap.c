@@ -92,6 +92,9 @@ struct lxheap *lx_make_heap(size_t init_size, struct lx_config const *config)
 	semispace_cells = heap->second - heap->first;
 	init_cons(&heap->alloc, heap->first, semispace_cells);
 
+	/* reserve space for sentinel value */
+	heap->alloc.tag_free = backward(heap->alloc.tag_free);
+
 	return heap;
 }
 

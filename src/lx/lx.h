@@ -63,21 +63,26 @@
 #define lx_compact MANGLE(compact)
 #define lx_resize_heap MANGLE(resize_heap)
 
-/* Make an integer constant representing a tag with two cdr-code bits and
-   six type tag bits: CCTTTTTT */
-#define mktag(cdr, type) ((lxtag)(((lxtag)(cdr) << 6)|((lxtag)(type) & 0x3f)))
+#define TAG_BIT 3
+#define TAG_MASK ((1 << TAG_BIT) - 1)
+#define MAX_SEGMENT_LENGTH ((1 << (CHAR_BIT - TAG_BIT)) - 2)
+
+/* Make an integer constant representing a tag with five segment length bits
+   and three type tag bits: LLLLLTTT */
+#define mktag(len, type) \
+	((lxtag)(((lxtag)(len) << TAG_BIT) | ((lxtag)(type) & TAG_MASK)))
 
 /* Asserted value of sizeof(union lxXY_cell) */
 #define CELL_SIZE ((lxint)LX_BITS / 8)
 
-/* Number of headers/cells per span. Must be a power of two. */
+/* Number of headers/cells per span. */
 #define CELL_SPAN CELL_SIZE
 
-/* Total number of cells in a span (header segment and cell segment) */
+/* Total number of cells in a span (one tag cell and CELL_SIZE data cells) */
 #define SPAN_LENGTH (CELL_SPAN + 1)
 
-/* LSB of a pointer holding the offset of the header and cell */
-#define OFFSET_MASK (CELL_SPAN - (lxint)1)
+/* LSB of a reference holding the offset of the tag and cell */
+#define OFFSET_MASK (CELL_SPAN - 1)
 
 union lxcell;
 struct lxmem;
