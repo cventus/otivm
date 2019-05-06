@@ -100,3 +100,16 @@ static inline struct lxref deref(union lxcell const *c, enum lx_tag tag)
 {
 	return dexref(c, c, tag);
 }
+
+/* Auto-relative references must refer to a tag word in a span, which is at
+   an absolute offset no less than sizeof(union lxcell). A zero offset is
+   therefore illegal and can be used to indicate NULL */
+static inline void setnilref(union lxcell *c)
+{
+	c->i = 0;
+}
+
+static inline bool isnilref(union lxcell const *c)
+{
+	return c->i == 0;
+}
