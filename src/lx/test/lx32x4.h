@@ -21,10 +21,10 @@
 #define span(t0, d0, t1, d1, t2, d2, t3, d3) \
 	tag_cell(t0, t1, t2, t3), d0, d1, d2, d3
 
-#define nil_tag(len) mktag(len, lx_nil_tag)
 #define int_tag(len) mktag(len, lx_int_tag)
 #define lst_tag(len) mktag(len, lx_list_tag)
 #define cdr_tag lst_tag(1)
+#define nil_data int_data(0)
 #define int_data(v) { .i = (lxint)v }
 #define ref_data(cell_no, span_offset, offset) int_data( \
 	(CELL_SIZE * (lxint)(SPAN_LENGTH*(span_offset) - (cell_no) - 1)) |\
@@ -140,14 +140,12 @@ static void _print_value(union lxvalue val)
 	struct lxlist l;
 	switch (val.tag) {
 	default: abort();
-	case lx_nil_tag: printf("()"); break;
 	case lx_list_tag:
 		printf("(");
-		while (true) {
+		while (!lx_is_empty_list(l)) {
 			_print_value(lx_car(val.list));
 			l = lx_cdr(val.list);
-			if (l.tag == lx_nil_tag) { break; }
-			printf(" ");
+			if (!lx_is_empty_list(l)) { printf(" "); }
 		}
 		printf(")");
 		break;
@@ -215,12 +213,12 @@ static inline int _assert_list_eq(
 	struct lxlist b,
 	struct assert_ctx ctx)
 {
-	if (a.tag != lx_list_tag && a.tag != lx_nil_tag) {
+	if (a.tag != lx_list_tag) {
 		assertion_failed(ctx);
 		printf("%s is not a list (got %d)\n", ctx.value, (int)a.tag);
 		fail_test(0);
 	}
-	if (b.tag != lx_list_tag && b.tag != lx_nil_tag) {
+	if (b.tag != lx_list_tag) {
 		assertion_failed(ctx);
 		printf("%s is not a list (got %d)\n", ctx.expected, (int)b.tag);
 		fail_test(0);
@@ -284,12 +282,12 @@ static inline void serialize_rec(union lxvalue value, char **p, size_t *size)
 	if (*size == 0) { return; }
 
 	switch (value.tag) {
-	case lx_nil_tag:
-		_append_char('(', p, size);
-		_append_char(')', p, size);
-		break;
 	case lx_list_tag:
 		_append_char('(', p, size);
+		if (lx_is_empty_list(value.list)) {
+			_append_char(')', p, size);
+			break;
+		}
 		serialize_rec(lx_car(value.list), p, size);
 		l = lx_cdr(value.list);
 		while (!lx_is_empty_list(l)) {

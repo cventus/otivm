@@ -20,7 +20,7 @@ static void push_ref(
 	union lxcell const *from,
 	union lxcell **stack)
 {
-	if (val.tag == lx_list_tag) {
+	if (val.tag == lx_list_tag && !lx_is_empty_list(val.list)) {
 		setxref(--(*stack), from, val.list.ref);
 	}
 }

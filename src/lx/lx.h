@@ -48,7 +48,6 @@
 /* list API */
 #define lx_empty_list MANGLE(empty_list)
 #define lx_is_empty_list MANGLE(is_empty_list)
-#define lx_is_list MANGLE(is_list)
 #define lx_cons MANGLE(cons)
 #define lx_car MANGLE(car)
 #define lx_cdr MANGLE(cdr)
@@ -207,17 +206,12 @@ static inline union lxvalue lx_float(lxfloat f)
 /* create an empty list value */
 static inline struct lxlist lx_empty_list(void)
 {
-	return (struct lxlist) { .ref = { lx_nil_tag, 0, 0 } };
+	return (struct lxlist) { .ref = { lx_list_tag, 0, 0 } };
 }
 
 /* compare a list against the empty list */
 static inline bool lx_is_empty_list(struct lxlist list)
 {
-	return list.tag == lx_nil_tag;
+	return list.tag == lx_list_tag && list.ref.cell == NULL;
 }
 
-/* check if a value is a list (i.e. of type list or empty list) */
-static inline bool lx_is_list(union lxvalue val)
-{
-	return val.tag <= lx_list_tag;
-}

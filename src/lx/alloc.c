@@ -55,15 +55,17 @@ struct lxlist lx_cons(
 	size_t len;
 
 	if (lx_is_empty_list(list)) {
+		/* singleton */
 		len = 1;
 	} else if (ref_eq(list.ref, mem->alloc.tag_free)) {
 		len = lxtag_len(*ref_tag(list.ref));
 		if (len == 0) {
 			len = 2;
 		} else if (len < MAX_SEGMENT_LENGTH) {
-			len++
+			len++;
 		}
 	} else {
+		/* normal cons with a link reference */
 		len = 0;
 	}
 	if (reserve_tagged(&mem->alloc, len == 0 ? 2 : 1, &ref)) {
@@ -71,8 +73,13 @@ struct lxlist lx_cons(
 	}
 	*ref_tag(ref) = mktag(len, val.tag);
 	switch (val.tag) {
-	case lx_nil_tag: ref_data(ref)->i = 0; break;
-	case lx_list_tag: setref(ref_data(ref), val.list.ref); break;
+	case lx_list_tag:
+		if (lx_is_empty_list(val.list)) {
+			setnilref(ref_data(ref));
+		} else {
+			setref(ref_data(ref), val.list.ref);
+		}
+		break;
 	case lx_string_tag: setref(ref_data(ref), string_to_ref(val)); break;
 	case lx_bool_tag: ref_data(ref)->i = val.b; break;
 	case lx_int_tag: ref_data(ref)->i = val.i; break;

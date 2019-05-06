@@ -67,17 +67,19 @@ static void copy_car(
 	struct lxref car;
 	switch (list_car_tag(list)) {
 	default: abort();
-	case lx_list_tag:
-		/* Copy cross reference into to-space which will be upated as
-		   the "scan" pointer advances. */
-		car = deref(list_car(list), lx_list_tag);
-		setxref(ref_data(dest), from, car);
-		break;
 	case lx_string_tag:
 		car = deref(list_car(list), lx_string_tag);
 		setref(ref_data(dest), copy_string(car, to));
 		break;
-	case lx_nil_tag:
+	case lx_list_tag:
+		if (!isnilref(list_car(list))) {
+			/* Copy cross reference into to-space which will be
+			   upated as the "scan" pointer advances. */
+			car = deref(list_car(list), lx_list_tag);
+			setxref(ref_data(dest), from, car);
+			break;
+		}
+		/* else fall-through */
 	case lx_bool_tag:
 	case lx_int_tag:
 	case lx_float_tag:
@@ -207,6 +209,10 @@ static struct lxlist cheney70(
 		switch (lxtag_tag(*ref_tag(scan))) {
 		default: abort();
 		case lx_list_tag:
+			if (isnilref(ref_data(scan))) {
+				/* don't copy empty list */
+				break;
+			}
 			/* Data of element contains cross-reference to source
 			   in from-space */
 			to_car = ref_data(scan);
@@ -224,7 +230,6 @@ static struct lxlist cheney70(
 			setref(to_car, ref);
 			break;
 		case lx_string_tag:
-		case lx_nil_tag:
 		case lx_bool_tag:
 		case lx_int_tag:
 		case lx_float_tag:
@@ -250,7 +255,6 @@ union lxvalue lx_compact(
 {
 	switch (root.tag) {
 	default: abort();
-	case lx_nil_tag:
 	case lx_bool_tag:
 	case lx_int_tag:
 	case lx_float_tag:
@@ -260,8 +264,11 @@ union lxvalue lx_compact(
 		return ref_to_string(copy_string(string_to_ref(root), to));
 
 	case lx_list_tag:
-		/* Use to-space as a stack while marking */
+		if (lx_is_empty_list(root.list)) {
+			return root;
+		}
 		memset(bitset, 0, bitset_size);
+		/* use to-space as a stack while marking */
 		lx_count_refs(root, from, to->max_addr, bitset);
 		return lx_list(cheney70(root.list, from, to, bitset));
 	}

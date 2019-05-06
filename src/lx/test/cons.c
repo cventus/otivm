@@ -80,7 +80,7 @@ int test_cons_should_link_two_non_adjacent_allocations(void)
 	t = list.ref.cell->t;
 	assert_int_eq(t[0], mktag(0, lx_int_tag));
 	assert_int_eq(t[1], mktag(1, lx_list_tag));
-	assert_int_eq(t[2], mktag(1, lx_nil_tag));
+	assert_int_eq(t[2], mktag(1, lx_list_tag));
 	assert_int_eq(t[3], mktag(1, lx_int_tag));
 
 	return ok;

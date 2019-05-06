@@ -111,7 +111,8 @@ int test_modify_should_set_nil(void)
 
 	result = lx_modify(heap, set_nil, NULL);
 	assert_status_eq(result.status, 0);
-	assert_tag_eq(result.value.tag, lx_nil_tag);
+	assert_tag_eq(result.value.tag, lx_list_tag);
+	assert_list_eq(result.value.list, lx_empty_list());
 
 	return 0;
 }
@@ -197,7 +198,7 @@ int test_modify_should_garbage_collect_many_times(void)
 			assert_eq(lx_car(list), lx_int(j));
 			list = lx_cdr(list);
 		}
-		assert_tag_eq(list.tag, lx_nil_tag);
+		assert_list_eq(list, lx_empty_list());
 	}
 
 	return 0;

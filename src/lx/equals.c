@@ -17,7 +17,6 @@ bool lx_equals(union lxvalue a, union lxvalue b)
 	struct lxlist p, q;
 
 	switch (a.tag) {
-	case lx_nil_tag: return b.tag == lx_nil_tag;
 	case lx_list_tag:
 		if (b.tag != lx_list_tag) { return false; }
 		p = a.list;

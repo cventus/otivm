@@ -53,20 +53,20 @@ union lxcell state[] = { span(
 	lst_tag(1), ref_data(0, 0, 3),
 	/* (1 ()) */
 	int_tag(2), int_data(1),
-	nil_tag(1), int_data(-1),
+	lst_tag(1), nil_data,
 	/* (2 ()) */
 	int_tag(2), int_data(2)), span(
-	nil_tag(1), int_data(-1),
+	lst_tag(1), nil_data,
 	/* (6 (5 ...) . (7 ...)) */
 	int_tag(2), int_data(6),
 	lst_tag(0), ref_data(2, 1, 0),
 	lst_tag(1), ref_data(3, 1, 2)), span(
 	/* (5 ()) */
 	int_tag(2), int_data(5),
-	nil_tag(1), int_data(-1),
+	lst_tag(1), nil_data,
 	/* (7 ()) */
 	int_tag(2), int_data(7),
-	nil_tag(1), int_data(-1)), span(
+	lst_tag(1), nil_data), span(
    	/* (12 (10 ...)) . (14 ...)) */
 	int_tag(2), int_data(12),
 	lst_tag(0), ref_data(1, 0, 3),
@@ -77,23 +77,23 @@ union lxcell state[] = { span(
 	lst_tag(1), ref_data(1, 1, 0),
    	/* (9 ()) */
 	int_tag(2), int_data(9),
-	nil_tag(1), int_data(-1)), span(
+	lst_tag(1), nil_data), span(
 	/* (11 ()) */
 	int_tag(2), int_data(11),
-	nil_tag(1), int_data(-1),
+	lst_tag(1), nil_data,
    	/* (14 (13 ...) . (15 ...)) */
 	int_tag(2), int_data(14),
 	lst_tag(0), ref_data(3, 1, 1)), span(
 	lst_tag(1), ref_data(0, 0, 3),
    	/* (13 ()) */
 	int_tag(2), int_data(13),
-	nil_tag(1), int_data(-1),
+	lst_tag(1), nil_data,
    	/* (15 ()) */
 	int_tag(2), int_data(15)), span(
-	nil_tag(1), int_data(-1),
-	nil_tag(1), int_data(-1),
-	nil_tag(1), int_data(-1),
-	nil_tag(1), int_data(-1)
+	lst_tag(1), nil_data,
+	lst_tag(1), nil_data,
+	lst_tag(1), nil_data,
+	lst_tag(1), nil_data
 ) }, from_buf[10*SPAN_LENGTH], to_buf[10*SPAN_LENGTH], bitset[4];
 
 struct lxalloc to;
