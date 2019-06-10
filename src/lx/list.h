@@ -7,7 +7,7 @@ enum cdr_code
 
 static inline size_t lxtag_len(lxtag h)
 {
-	return h >> TAG_BIT;
+	return (h >> TAG_BIT) & 0xff;
 }
 
 static inline enum cdr_code lxtag_cdr(lxtag h)

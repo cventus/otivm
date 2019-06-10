@@ -71,3 +71,39 @@ lxint lx_length(struct lxlist list)
 	}
 	return sz;
 }
+
+struct lxlist lx_cons(
+	struct lxmem *mem,
+	union lxvalue val,
+	struct lxlist list)
+{
+	struct lxref ref, cdr;
+	size_t len;
+
+	if (lx_is_empty_list(list)) {
+		/* singleton */
+		len = 1;
+	} else if (ref_eq(list.ref, mem->alloc.tag_free)) {
+		len = lxtag_len(*ref_tag(list.ref));
+		if (len == 0) {
+			len = 2;
+		} else if (len < MAX_SEGMENT_LENGTH) {
+			len++;
+		}
+	} else {
+		/* normal cons with a link reference */
+		len = 0;
+	}
+	if (lx_reserve_tagged(&mem->alloc, len == 0 ? 2 : 1, &ref)) {
+		longjmp(mem->escape, mem->oom);
+	}
+	*ref_tag(ref) = mktag(len, val.tag);
+	set_cell_data(ref_data(ref), val);
+	if (len == 0) {
+		cdr = forward(ref);
+		*ref_tag(cdr) = mktag(1, lx_list_tag);
+		setref(ref_data(cdr), list.ref);
+	}
+	ref.tag = lx_list_tag;
+	return ref_to_list(ref);
+}

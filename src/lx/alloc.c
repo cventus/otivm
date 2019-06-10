@@ -16,7 +16,7 @@
 #include "str.h"
 #include "list.h"
 
-static int reserve_tagged(struct lxalloc *alloc, size_t n, struct lxref *ref)
+int lx_reserve_tagged(struct lxalloc *alloc, size_t n, struct lxref *ref)
 {
 	size_t new_cells, new_span_cells, new_offset;
 
@@ -44,58 +44,6 @@ static int reserve_tagged(struct lxalloc *alloc, size_t n, struct lxref *ref)
 
 	*ref = alloc->tag_free;
 	return 0;
-}
-
-struct lxlist lx_cons(
-	struct lxmem *mem,
-	union lxvalue val,
-	struct lxlist list)
-{
-	struct lxref ref, cdr;
-	size_t len;
-
-	if (lx_is_empty_list(list)) {
-		/* singleton */
-		len = 1;
-	} else if (ref_eq(list.ref, mem->alloc.tag_free)) {
-		len = lxtag_len(*ref_tag(list.ref));
-		if (len == 0) {
-			len = 2;
-		} else if (len < MAX_SEGMENT_LENGTH) {
-			len++;
-		}
-	} else {
-		/* normal cons with a link reference */
-		len = 0;
-	}
-	if (reserve_tagged(&mem->alloc, len == 0 ? 2 : 1, &ref)) {
-		longjmp(mem->escape, mem->oom);
-	}
-	*ref_tag(ref) = mktag(len, val.tag);
-	switch (val.tag) {
-	case lx_list_tag:
-		if (lx_is_empty_list(val.list)) {
-			setnilref(ref_data(ref));
-		} else {
-			setref(ref_data(ref), val.list.ref);
-		}
-		break;
-	case lx_string_tag: setref(ref_data(ref), string_to_ref(val)); break;
-	case lx_bool_tag: ref_data(ref)->i = val.b; break;
-	case lx_int_tag: ref_data(ref)->i = val.i; break;
-	case lx_float_tag:
-#if lxfloat
-		ref_data(ref)->f = val.f; break;
-#endif
-	default: abort();
-	}
-	if (len == 0) {
-		cdr = forward(ref);
-		*ref_tag(cdr) = mktag(1, lx_list_tag);
-		setref(ref_data(cdr), list.ref);
-	}
-	ref.tag = lx_list_tag;
-	return ref_to_list(ref);
 }
 
 size_t lx_strlen(union lxvalue string)

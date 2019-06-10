@@ -112,6 +112,29 @@ static inline size_t mark_cell_count(size_t semispace_cells)
 	return ceil_div(semispace_cells * 2, LX_BITS);
 }
 
+static inline void set_cell_data(union lxcell *data, union lxvalue val)
+{
+	switch (val.tag) {
+	case lx_list_tag:
+		if (lx_is_empty_list(val.list)) {
+			setnilref(data);
+		} else {
+			setref(data, val.list.ref);
+		}
+		break;
+	case lx_string_tag: setref(data, string_to_ref(val)); break;
+	case lx_bool_tag: data->i = val.b; break;
+	case lx_int_tag: data->i = val.i; break;
+	case lx_float_tag:
+#if lxfloat
+		data->f = val.f; break;
+#endif
+	default: abort();
+	}
+}
+
+int lx_space_reserve_tagged(struct lxalloc *, size_t n, struct lxref *ref);
+
 union lxvalue lx_compact(
 	union lxvalue root,
 	union lxcell *from,

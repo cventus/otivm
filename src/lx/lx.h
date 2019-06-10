@@ -61,6 +61,7 @@
 #define lx_count_refs MANGLE(count_refs)
 #define lx_compact MANGLE(compact)
 #define lx_resize_heap MANGLE(resize_heap)
+#define lx_reserve_tagged MANGLE(reserve_tagged)
 
 #define TAG_BIT 3
 #define TAG_MASK ((1 << TAG_BIT) - 1)
