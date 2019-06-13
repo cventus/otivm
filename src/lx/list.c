@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <assert.h>
+#include <limits.h>
 #include <setjmp.h>
 
 #include "common.h"
@@ -37,7 +38,7 @@ struct lxlist lx_cdr(struct lxlist list)
 {
 	switch (list_cdr_code(list)) {
 	case cdr_nil: return lx_empty_list();
-	case cdr_link: return deref_list(ref_data(list_forward(list).ref));
+	case cdr_link: return deref_list(ref_data(forward(list.ref)));
 	case cdr_adjacent: return list_forward(list);
 	default: abort();
 	}
@@ -45,14 +46,38 @@ struct lxlist lx_cdr(struct lxlist list)
 
 struct lxlist lx_drop(struct lxlist list, lxint i)
 {
-	struct lxlist p = list;
-	lxint j = 0;
+	struct lxlist p;
+	size_t raw_len, len;
 
-	while (j < i && p.ref.cell) {
-		j++;
-		p = lx_cdr(p);
+	if (i <= 0) {
+		return list;
 	}
-	return p;
+	p = list;
+	while (!lx_is_empty_list(p)) {
+		raw_len = lxtag_len(*ref_tag(list.ref));
+		len = raw_len == 0 ? 1 : raw_len;
+
+		if ((size_t)i < len) {
+			p.ref = ref_advance(p.ref, i);
+			return p;
+		} else {
+			p.ref = ref_advance(p.ref, len - 1);
+			switch (lxtag_len(*ref_tag(p.ref))) {
+			case 0:
+				/* Follow link to next segment */
+				p = deref_list(ref_data(forward(p.ref)));
+				i -= len;
+				break;
+			case 1:
+				/* Offset past length of list, return empty. */
+				return lx_empty_list();
+			default:
+				/* Sequence length saturated, continue. */
+				i -= len;
+				break;
+			}
+		}
+	}
 }
 
 union lxvalue lx_nth(struct lxlist list, lxint i)
