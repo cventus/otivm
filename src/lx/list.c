@@ -123,7 +123,7 @@ struct lxlist lx_cons(
 		longjmp(mem->escape, mem->oom);
 	}
 	*ref_tag(ref) = mktag(len, val.tag);
-	set_cell_data(ref_data(ref), val);
+	lx_set_cell_data(ref_data(ref), val);
 	if (len == 0) {
 		cdr = forward(ref);
 		*ref_tag(cdr) = mktag(1, lx_list_tag);
