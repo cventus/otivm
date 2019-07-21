@@ -10,20 +10,9 @@
 
 enum { ALPHA, BETA, GAMMA };
 
-/* Two spans, one conses in each and one (ALPHA) that is in both */
-union lxcell state[] = {
-   span(
-	int_tag(1), int_data(GAMMA),
-	int_tag(1), int_data(0xDEAD),
-	int_tag(1), int_data(0xDEAD),
-	int_tag(0), int_data(ALPHA)
-), span(
-	cdr_tag,    ref_data(0, 0, 1),
-	int_tag(0), int_data(BETA),
-	cdr_tag,    ref_data(2, -1, 0),
-	int_tag(1), int_data(0xDEAD)
-)
-}, from_buf[2*SPAN_LENGTH], to_buf[2*SPAN_LENGTH], bitset[1];
+#include STATE_DEFINITION
+
+union lxcell from_buf[length_of(state)], to_buf[length_of(state)], bitset[1];
 
 struct lxalloc to;
 
@@ -33,8 +22,8 @@ void before_each_test(void)
 {
 	memset(bitset, 0, sizeof bitset);
 	memcpy(from_buf, state, sizeof state);
-	init_tospace(&to, to_buf, 11);
-	root = lx_list(mklist(from_buf, 3));
+	init_tospace(&to, to_buf, length_of(to_buf));
+	root = lx_list(mklist(from_buf + alpha_cell, alpha_offset));
 	nil = lx_list(lx_empty_list());
 }
 

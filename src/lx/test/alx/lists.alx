@@ -1,0 +1,13 @@
+# singly linked list (ALPHA BETA GAMMA)
+	2 int  -1
+gamma:	1 int  GAMMA
+
+# garbage
+	1 int  0xDEAD
+	1 int  0xDEAD
+
+alpha:	0 int  ALPHA
+	1 list beta
+
+beta:	0 int  BETA
+	1 list gamma

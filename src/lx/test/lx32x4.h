@@ -16,6 +16,8 @@
 #define QUOTE_(x) #x
 #define QUOTE(x) QUOTE_(x)
 
+#define length_of(x) (sizeof (x) / sizeof *(x))
+
 #define tag(type, len) mktag(len, JOIN(lx_,JOIN(type,_tag)))
 
 #define span(t0, d0, t1, d1, t2, d2, t3, d3) \
