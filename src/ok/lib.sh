@@ -13,6 +13,17 @@ define_ok_test()
   esac
   shift
 
+  local params_=''
+  while [ $# -gt 0 ]; do
+    if [ "$1" == ":" ]; then
+      shift
+      break
+    else
+      params_="$params_ $1"
+      shift
+    fi
+  done
+
   local object_="\$(TARGET)/test/$MODULE/obj/$name_.o"
   local gensrc_="\$(TARGET)/test/$MODULE/src/$name_.ok.c"
   local genobj_="\$(TARGET)/test/$MODULE/obj/$name_.ok.o"
@@ -21,8 +32,8 @@ define_ok_test()
   local script_="\$(SOURCE)/src/ok/stub.awk"
 
   # Build test functions
-  cc_target "$object_ ${object_%.o}.d" "$source_"
-    CC_object "$object_" "$source_" "$@"
+  cc_target "$object_ ${object_%.o}.d" "$source_ $*"
+    CC_object "$object_" "$source_" $params_
 
   # Generate stub functions based on what was defined
   new_target "$gensrc_" "$object_" "$script_"
