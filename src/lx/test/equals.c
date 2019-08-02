@@ -7,8 +7,6 @@
 #include "ok/ok.h"
 #include "lx32x4.h"
 
-#define listval(s, n) lx_list(mklist(memory + s*SPAN_LENGTH, n))
-
 enum symbols { LAMBDA, X, Y };
 
 union lxvalue
@@ -26,49 +24,18 @@ list_b,
 list_b_copy,
 list_c;
 
-union lxcell const memory[] = {
-   span(/* 0 */
-	int_tag(1), int_data(X),
-	int_tag(0), int_data(X),
-	cdr_tag,    ref_data(2, 0, 0),
-	int_tag(3), int_data(LAMBDA) /* list_a */
-), span(/* 1 */
-	lst_tag(2), ref_data(0, -1, 0),
-	lst_tag(1), ref_data(1, -1, 1),
-	int_tag(2), int_data(X),
-	int_tag(1), int_data(X)
-), span(/* 2 */
-	lst_tag(1), ref_data(0, -1, 2),
-	lst_tag(0), ref_data(1, -1, 3),
-	cdr_tag,    ref_data(2, 0, 0),
-	int_tag(0), int_data(LAMBDA) /* list_a_copy */
-), span(/* 3 */
-	cdr_tag,    ref_data(0, -1, 1),
-	lst_tag(2), ref_data(1, -3, 3), /* list_b */
-	lst_tag(1), ref_data(2, -1, 3),
-	lst_tag(2), ref_data(3, -1, 3) /* list_b_copy */
-), span(/* 4 */
-	lst_tag(1), ref_data(0, -4, 3),
-	int_tag(2), int_data(X),
-	int_tag(1), int_data(Y),
-	int_tag(3), int_data(LAMBDA) /* list_c */
-), span(/* 5 */
-	lst_tag(2), ref_data(0, -4, 3),
-	lst_tag(1), ref_data(1, -1, 1),
-	int_tag(1), int_data(0xDEAD),
-	int_tag(1), int_data(0xDEAD)
-)
-};
+#include STATE_DEFINITION
 
 void before_each_test(void)
 {
-	list_a = listval(0, 3);
-	list_a_copy = listval(2, 3);
+	list_a = lx_list(mklist(state + list_a_cell, list_a_offset));
 
-	list_b = listval(3, 1);
-	list_b_copy = listval(3, 3);
+	list_a_copy = lx_list(mklist(state + list_a_copy_cell, list_a_copy_offset));
 
-	list_c = listval(4, 3);
+	list_b = lx_list(mklist(state + list_b_cell, list_b_offset));
+	list_b_copy = lx_list(mklist(state + list_b_copy_cell, list_b_copy_offset));
+
+	list_c = lx_list(mklist(state + list_c_cell, list_c_offset));
 
 	int_one = lx_int(1);
 	int_zero = lx_int(0);

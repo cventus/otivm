@@ -8,16 +8,9 @@
 
 #include "lx32x4.h"
 
-union lxcell state[] = { span(
-	int_tag(1), int_data(0), // sentinel
-	lst_tag(3), ref_data(1, 0, 1),
-	lst_tag(2), ref_data(2, 0, 2),
-	lst_tag(0), ref_data(3, 0, 3)), span(
-	lst_tag(1), ref_data(0, -1, 1),
-	lst_tag(1), nil_data,
-	lst_tag(1), nil_data,
-	lst_tag(1), nil_data
-)}, from_buf[2*SPAN_LENGTH], to_buf[2*SPAN_LENGTH], bitset[1];
+#include STATE_DEFINITION
+
+union lxcell from_buf[length_of(state)], to_buf[length_of(state)], bitset[1];
 
 struct lxalloc to;
 union lxvalue root;
@@ -28,7 +21,7 @@ void before_each_test(void)
 	memset(to_buf, 0, sizeof to_buf);
 	memcpy(from_buf, state, sizeof state);
 	init_tospace(&to, to_buf, 2*SPAN_LENGTH);
-	root = lx_list(mklist(from_buf, 1));
+	root = lx_list(mklist(from_buf + root_cell, root_offset));
 }
 
 int test_recursively_defined_structure_is_properly_copied(void)

@@ -1,0 +1,6 @@
+	1 int  -1
+
+# singly linked list (ALPHA BETA GAMMA)
+alpha:	3 int  ALPHA
+beta:	2 int  BETA
+gamma:	1 int  GAMMA

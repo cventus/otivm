@@ -1,0 +1,53 @@
+	3 int 0
+
+root:	2 int 8		# (8 (4 ...) . (12 ...))
+	0 list .n4
+	1 list .n12
+
+.n4:	2 int 4		# (4 (2 ...) . (6 ...))
+	0 list .n2
+	1 list .n6
+
+.n2:	2 int 2		# (2 (1 ...) . (3 ...))
+	0 list .n1
+	1 list .n3
+
+.n1:	2 int 1		# (1 ())
+	1 list nil
+
+.n3:	2 int 3		# (3 ())
+	1 list nil
+
+.n6:	2 int 6		# (6 (5 ...) . (7 ...))
+	0 list .n5
+	1 list .n7
+
+.n5:	2 int 5		# (5 ())
+	1 list nil
+
+.n7:	2 int 7		# (7 ())
+	1 list nil
+
+.n12:	2 int 12	# (12 (10 ...)) . (14 ...))
+	0 list .n10
+	1 list .n14
+
+.n10:	2 int 10	# (10 (9 ...)) . (11 ...))
+	0 list .n9
+	1 list .n11
+
+.n9:	2 int 9		# (9 ())
+	1 list nil
+
+.n11:	2 int 11	# (11 ())
+	1 list nil
+
+.n14:	2 int 14	# (14 (13 ...)) . (15 ...))
+	0 list .n13
+	1 list .n15
+
+.n13:	2 int 13	# (13 ())
+	1 list nil
+
+.n15:	2 int 15	# (15 ())
+	1 list nil

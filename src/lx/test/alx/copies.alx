@@ -1,0 +1,37 @@
+	1 int 42
+
+.x:	1 int X
+
+.xx:	0 int X
+	1 list .x
+
+list_a:	3 int LAMBDA
+	2 list .x
+	1 list .xx
+
+.2ndxx:	2 int X
+.2ndx:	1 int X
+
+.body:	1 list .2ndxx
+
+.args:	0 list .2ndx
+	1 list .body
+
+list_a_copy:
+	0 int LAMBDA
+	1 list .args
+
+list_b:	2 list list_a
+	1 list list_a_copy
+
+list_b_copy:
+	2 list list_a_copy
+	1 list list_a
+
+.2ndbody:
+	2 int X
+	1 int Y
+
+list_c:	3 int LAMBDA
+	2 list .2ndx
+	1 list .2ndbody

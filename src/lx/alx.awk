@@ -16,7 +16,7 @@ BEGIN {
 }
 
 function islocal(symbol) {
-	return symbol ~ /^_/
+	return symbol ~ /^\./
 }
 
 function make_ref(src_entry, target_entry,           sc, tc, to, span_offset) {
@@ -40,6 +40,11 @@ function output_data(entry,                                val, t, pre, post) {
 	pre = ".i = (lxint)"
 	post = ""
 	if (t == "list" || t == "string") {
+		if (!(val in symbol_entry)) {
+			printf "Undefined symbol: %s\n", val >"/dev/stderr"
+			failure = 1
+			exit 1
+		}
 		val = (val == "nil") ? 0 : make_ref(entry, symbol_entry[val])
 	} else if (t == "bool") {
 		val = int(val) ? 1 : 0
@@ -102,11 +107,18 @@ function add_entry(str, typ, val)
 	entries++
 }
 
-# Remove comments
-/#/ { $0 = substr($0, 1, index($0, "#") - 1) }
+function check_type(t)
+{
+	if (!(t in tagof)) {
+		printf "Illegal element type on line %d: %s\n", \
+			NR, t >"/dev/stderr"
+		failure = 1
+		exit 1
+	}
+}
 
-# Skip blank lines
-/^[[:space:]]*$/ { next }
+# Remove lines comments
+$1 ~ /^#/ { next }
 
 # Record raw/structure data
 {
@@ -122,6 +134,12 @@ function add_entry(str, typ, val)
 		symbol_name[symbols++] = symbol
 		sub("^[^:]*:", "")
 	}
+}
+
+# Skip blank lines
+/^[[:space:]]*$/ { next }
+
+{
 	if ($1 == "char") {
 		n = split($0, chars, "")
 		chunk = ""
@@ -162,13 +180,10 @@ function add_entry(str, typ, val)
 		}
 		if (count) add_entry("raw", "byte", chunk)
 	} else if ($1 ~ /[0-9]{1,}/) {
-		if (!($2 in tagof)) {
-			printf "Illegal element type: %s\n", $2 >"/dev/stderr"
-			failure = 1
-			exit 1
-		}
+		check_type($2)
 		add_entry($1, $2, $3)
 	} else {
+		check_type($1)
 		add_entry("raw", $1, $2)
 	}
 }

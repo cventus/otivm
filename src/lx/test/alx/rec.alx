@@ -1,0 +1,6 @@
+	1 int 0
+
+root:	3 list root
+.2nd:	2 list .2nd
+.3rd:	0 list .3rd
+	1 list root

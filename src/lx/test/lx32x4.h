@@ -312,13 +312,14 @@ static inline void serialize_rec(union lxvalue value, char **p, size_t *size)
 	}
 }
 
-static inline void serialize(union lxvalue value, char *p, size_t size)
+static inline char *serialize(union lxvalue value, char *p, size_t size)
 {
 	size_t sz = size;
 	char *q = p;
-	if (size == 0) { return; }
+	if (size == 0) { return NULL; }
 	serialize_rec(value, &q, &sz);
 	*q = '\0';
+	return p;
 }
 
 static inline void _assert_serialize_eq(
@@ -383,7 +384,7 @@ static inline void _assert_str_eq(
 	char const *expected,
 	struct assert_ctx ctx)
 {
-	if (strcmp(value, expected) == 0) { return; }
+	if (value && expected && strcmp(value, expected) == 0) { return; }
 	printf("%s:%s:%u: Assertion strcmp(%s, %s) == 0 failed!\n",
 		ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected);
 	printf("Got:\n%s\nExpected:\n%s\n", value, expected);
