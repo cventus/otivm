@@ -38,8 +38,8 @@ static void mark_shared_list(
 	lxint i;
 
 	list = lx_shared_head(list, from, bitset);
-	i = ref_offset(from, list.ref);
 	do {
+		i = ref_offset(from, list.ref);
 		if (mark_shared_bits(bitset, i) == 0x3) {
 			/* rest of list has already been marked as
 			   shared, nothing more to do */
@@ -47,7 +47,6 @@ static void mark_shared_list(
 		}
 		if (list_cdr_code(list) == cdr_nil) { break; }
 		list = list_forward(list);
-		i++;
 	} while (true);
 }
 
@@ -59,19 +58,16 @@ struct lxlist lx_shared_head(
 	void const *bitset)
 {
 	struct lxref p, q;
-	lxint i;
 
 	p = list.ref;
-	i = ref_offset(from, p);
 	do {
 		q = backward(p);
-		i--;
 
 		/* previous is not the end of a preceding list segment */
 		if (lxtag_len(*ref_tag(q)) <= 1) { break; }
 
 		/* is referenced by something */
-		if (get_bits(bitset, i) == 0) { break; }
+		if (get_bits(bitset, ref_offset(from, q)) == 0) { break; }
 
 		p = q;
 	} while (true);
@@ -93,11 +89,11 @@ void lx_count_refs(
 	push_ref(root, from, &stack);
 
 	while (stack < stack_max) {
-		list = head = ref_to_list(pop_ref(&stack, from));
-		assert(head.tag == lx_list_tag);
-		i = ref_offset(from, head.ref);
+		list.ref = head.ref = pop_ref(&stack, from);
 
 		do {
+			i = ref_offset(from, list.ref);
+
 			if (mark_bits(bitset, i) != 0) {
 				/* We found a cell that was visited before.
 				   Restart marking and mark whole segment as
@@ -121,7 +117,6 @@ void lx_count_refs(
 			/* Traverse only within segment using list_forward()
 			   instead of lx_cdr(). */
 			list = list_forward(list);
-			i++;
 		} while (true);
 	}
 }

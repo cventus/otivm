@@ -63,12 +63,11 @@ static inline unsigned get_bits(void const *bitset, size_t i)
 	return (p[byte] >> (2*bits)) & 0x3;
 }
 
-/* Get cell offset. */
+/* Get cell bit offset. */
 static inline size_t ref_offset(union lxcell const *space, struct lxref ref)
 {
-	size_t i = ref.cell - space;
-	/* don't count tag cells in bitmap offset */
-	return i - (i + CELL_SPAN) / (CELL_SPAN + 1) + ref.offset;
+	/* two unused bits in case of a span */
+	return (ref.cell - space) + ref.offset;
 }
 
 struct lxlist lx_shared_head(

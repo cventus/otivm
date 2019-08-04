@@ -173,7 +173,7 @@ static struct lxref copy_list(
 			break;
 		case cdr_adjacent:
 			src = list_forward(src);
-			i++;
+			i = ref_offset(from, src.ref);
 			break;
 		}
 		*ref_tag(dest) = mktag(MAX_SEGMENT_LENGTH, tag);
