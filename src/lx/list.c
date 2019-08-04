@@ -78,6 +78,7 @@ struct lxlist lx_drop(struct lxlist list, lxint i)
 			}
 		}
 	}
+	return p;
 }
 
 union lxvalue lx_nth(struct lxlist list, lxint i)
