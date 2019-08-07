@@ -10,6 +10,11 @@ static inline size_t lxtag_len(lxtag h)
 	return (h >> TAG_BIT) & 0xff;
 }
 
+static inline enum lx_tag lxtag_tag(lxtag h)
+{
+	return h & TAG_MASK;
+}
+
 static inline enum cdr_code lxtag_cdr(lxtag h)
 {
 	switch (lxtag_len(h)) {
@@ -17,11 +22,6 @@ static inline enum cdr_code lxtag_cdr(lxtag h)
 	case 1: return cdr_nil;
 	default: return cdr_adjacent;
 	}
-}
-
-static inline enum lx_tag lxtag_tag(lxtag h)
-{
-	return h & TAG_MASK;
 }
 
 static inline enum cdr_code list_cdr_code(struct lxlist list)

@@ -18,13 +18,13 @@ static inline bool ref_eq(struct lxref a, struct lxref b)
 
 static inline lxtag *ref_tag(struct lxref ref)
 {
-	assert(ref.tag == lx_list_tag);
+	assert(ref.tag == lx_list_tag || ref.tag == lx_tree_tag);
 	return (lxtag *)ref.cell->t + ref.offset;
 }
 
 static inline union lxcell *ref_data(struct lxref ref)
 {
-	assert(ref.tag == lx_list_tag);
+	assert(ref.tag == lx_list_tag || ref.tag == lx_tree_tag);
 	return (union lxcell *)ref.cell + ref.offset + 1;
 }
 

@@ -28,11 +28,13 @@
 #define lxvalue MANGLE(value)
 #define lxref MANGLE(ref)
 #define lxlist MANGLE(list)
+#define lxtree MANGLE(tree)
 #define lxresult MANGLE(result)
 #define lxalloc MANGLE(alloc)
 
 /* conversion functions */
 #define lx_list MANGLE(list)
+#define lx_tree MANGLE(tree)
 #define lx_bool MANGLE(bool)
 #define lx_int MANGLE(int)
 #define lx_float MANGLE(float)
@@ -55,6 +57,15 @@
 #define lx_nth MANGLE(nth)
 #define lx_length MANGLE(length)
 #define lx_equals MANGLE(equals)
+
+/* tree API */
+#define lx_empty_tree MANGLE(empty_tree)
+#define lx_is_empty_tree MANGLE(is_empty_tree)
+#define lx_tree_entry MANGLE(tree_entry)
+#define lx_tree_left MANGLE(tree_left)
+#define lx_tree_right MANGLE(tree_right)
+#define lx_tree_size MANGLE(tree_size)
+#define lx_tree_nth MANGLE(tree_nth)
 
 /* internal API */
 #define lx_shared_head MANGLE(shared_head)
@@ -108,9 +119,18 @@ struct lxlist
 	};
 };
 
+struct lxtree
+{
+	union {
+		unsigned char tag;
+		struct lxref ref;
+	};
+};
+
 union lxvalue
 {
 	struct lxlist list;
+	struct lxtree tree;
 	struct {
 		unsigned char tag;
 		union {
@@ -185,6 +205,12 @@ static inline union lxvalue lx_list(struct lxlist list)
 	return (union lxvalue) { .list = list };
 }
 
+/* wrap a tree in a tagged union */
+static inline union lxvalue lx_tree(struct lxtree tree)
+{
+	return (union lxvalue) { .tree = tree };
+}
+
 /* wrap a boolean in a tagged union */
 static inline union lxvalue lx_bool(bool b)
 {
@@ -217,3 +243,23 @@ static inline bool lx_is_empty_list(struct lxlist list)
 	return list.tag == lx_list_tag && list.ref.cell == NULL;
 }
 
+/* create an empty list value */
+static inline struct lxtree lx_empty_tree(void)
+{
+	return (struct lxtree) { .ref = { lx_tree_tag, 0, 0 } };
+}
+
+/* compare a list against the empty list */
+static inline bool lx_is_empty_tree(struct lxtree tree)
+{
+	return tree.tag == lx_tree_tag && tree.ref.cell == NULL;
+}
+
+/* low level API for traversal */
+struct lxlist lx_tree_entry(struct lxtree);
+struct lxtree lx_tree_left(struct lxtree);
+struct lxtree lx_tree_right(struct lxtree);
+
+size_t lx_tree_size(struct lxtree);
+
+struct lxlist lx_tree_nth(struct lxtree tree, lxint n);

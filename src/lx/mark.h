@@ -70,8 +70,8 @@ static inline size_t ref_offset(union lxcell const *space, struct lxref ref)
 	return (ref.cell - space) + ref.offset;
 }
 
-struct lxlist lx_shared_head(
-	struct lxlist list,
+struct lxref lx_shared_head(
+	struct lxref segment,
 	union lxcell const *from,
 	void const *bitset);
 

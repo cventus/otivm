@@ -46,7 +46,7 @@ void before_each_test(void)
 	memset(expected, 0, sizeof expected);
 	memset(to_buf, 0, sizeof to_buf);
 	memcpy(from_buf, state, sizeof state);
-	init_tospace(&to, to_buf, 25);
+	init_tospace(&to, to_buf, length_of(to_buf));
 	stack = stack_buf + length_of(stack_buf);
 
 	root_X = lx_list(mklist(from_buf + list_X_cell, list_X_offset));

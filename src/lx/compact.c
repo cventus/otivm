@@ -14,12 +14,8 @@
 #include "ref.h"
 #include "str.h"
 #include "list.h"
+#include "tree.h"
 #include "mark.h"
-
-static union lxcell *set_car(struct lxlist list)
-{
-	return (union lxcell *)list_car(list);
-}
 
 static bool is_forwarded(void *bitset, size_t i)
 {
@@ -58,24 +54,28 @@ static struct lxref copy_string(struct lxref string, struct lxalloc *to)
 	return copy;
 }
 
-static void copy_car(
+static void copy_data(
 	struct lxref dest,
-	struct lxlist list,
+	struct lxref src,
 	union lxcell *from,
 	struct lxalloc *to)
 {
 	struct lxref car;
-	switch (list_car_tag(list)) {
+	enum lx_tag tag;
+
+	tag = lxtag_tag(*ref_tag(src));
+	switch (tag) {
 	default: abort();
 	case lx_string_tag:
-		car = deref(list_car(list), lx_string_tag);
+		car = deref(ref_data(src), lx_string_tag);
 		setref(ref_data(dest), copy_string(car, to));
 		break;
 	case lx_list_tag:
-		if (!isnilref(list_car(list))) {
+	case lx_tree_tag:
+		if (!isnilref(ref_data(src))) {
 			/* Copy cross reference into to-space which will be
 			   upated as the "scan" pointer advances. */
-			car = deref(list_car(list), lx_list_tag);
+			car = deref(ref_data(src), tag);
 			setxref(ref_data(dest), from, car);
 			break;
 		}
@@ -84,7 +84,7 @@ static void copy_car(
 	case lx_int_tag:
 	case lx_float_tag:
 		/* Immediate values can be copied right away */
-		*ref_data(dest) = *list_car(list);
+		*ref_data(dest) = *ref_data(src);
 		break;
 	}
 }
@@ -105,129 +105,142 @@ static void adjust_segment_lengths(struct lxref ref)
 }
 
 /* Shallowly copy list, which is in from-space, into to-space and leave a
-   forward-pointer (the copy's offset in to-space) in the CAR. */
+   forward-pointer (the copy's offset in to-space) in the CAR. `list` is a list
+   structure in from-space. Return the copied and possibly compacted list in
+   to-space. */
 static struct lxref copy_list(
-	struct lxlist list,
+	struct lxref list,
 	union lxcell *from,
 	struct lxalloc *to,
 	void *bitset)
 {
-	struct lxref dest, result;
-	struct lxlist src;
-	size_t i;
-	enum lx_tag tag;
+	struct lxref src, dest, result;
+	lxtag meta;
+	enum lx_tag type;
 	bool shared;
 	lxint diff;
 
-	assert(!is_forwarded(bitset, ref_offset(from, list.ref)));
+	assert(!is_forwarded(bitset, ref_offset(from, list)));
 
-	i = ref_offset(from, list.ref);
-	shared = is_shared(bitset, i);
+	shared = is_shared(bitset, ref_offset(from, list));
 	dest = to->tag_free;
+	dest.tag = list.tag;
 	if (shared) {
-		/* copy the whole list segment when it is shared */
+		/* don't split shared structure; copy common head */
 		src = lx_shared_head(list, from, bitset);
-		diff = ref_diff(list.ref, src.ref); /* src <= list */
+		diff = ref_diff(list, src); /* src <= list */
 		result = ref_advance(dest, diff);
-		i = ref_offset(from, src.ref);
 	} else {
 		src = list;
 		result = dest;
 	}
+
+	/* loop until end of list or a link to a shared segment is reached */
 	while (true) {
-		tag = list_car_tag(src);
-		copy_car(dest, src, from, to);
+		meta = *ref_tag(src);
+		type = lxtag_tag(meta);
+		copy_data(dest, src, from, to);
 		if (shared) {
 			/* If this list segment is shared with other data
 			   structures then it must not be copied multiple
 			   times. By clearing the bits the cell is marked as
 			   moved and a forwarding pointer back to to-space is
 			   stored in from-space. */
-			clear_bits(bitset, i);
-			setxref(set_car(src), to->min_addr, dest);
+			clear_bits(bitset, ref_offset(from, src));
+			setxref(ref_data(src), to->min_addr, dest);
 		}
 		/* The tag depends on the cdr code. If possible, compact a link
 		   into an adjacent cell. Then advance src. */
-		switch (list_cdr_code(src)) {
+		switch (lxtag_cdr(meta)) {
 		default: abort();
 		case cdr_nil:
 			/* entire list copied */
 			adjust_segment_lengths(dest);
-			*ref_tag(dest) = mktag(1, tag);
+			*ref_tag(dest) = mktag(1, type);
 			to->tag_free = forward(dest);
 			return result;
 		case cdr_link:
-			src = deref_list(list_car(list_forward(src)));
-			i = ref_offset(from, src.ref);
-			if (is_shared(bitset, i)) {
-				/* Shared structure should not be compacted. */
+			src = deref(ref_data(forward(src)), lx_list_tag);
+			if (is_shared(bitset, ref_offset(from, src))) {
+				/* Shared structure cannot be compacted. */
 				adjust_segment_lengths(dest);
-				*ref_tag(dest) = mktag(0, tag);
+				*ref_tag(dest) = mktag(0, type);
 				dest = forward(dest);
 				/* Leave forward reference to it and stop. */
 				*ref_tag(dest) = mktag(1, lx_list_tag);
-				setxref(ref_data(dest), from, src.ref);
+				setxref(ref_data(dest), from, src);
 				to->tag_free = forward(dest);
 				return result;
 			}
 			break;
 		case cdr_adjacent:
-			src = list_forward(src);
-			i = ref_offset(from, src.ref);
+			src = forward(src);
 			break;
 		}
-		*ref_tag(dest) = mktag(MAX_SEGMENT_LENGTH, tag);
+		*ref_tag(dest) = mktag(MAX_SEGMENT_LENGTH, type);
 		dest = forward(dest);
 	}
 }
 
 /* Adapted from: Cheney, C. J. (November 1970). "A Nonrecursive List Compacting
    Algorithm", Communications of the ACM. 13 (11): 677-678. */
-static struct lxlist cheney70(
-	struct lxlist root,
+static union lxvalue cheney70(
+	union lxvalue root,
 	union lxcell *from,
 	struct lxalloc *to,
 	void *bitset)
 {
 	size_t i;
-	union lxcell *from_car, *to_car;
+	union lxcell *from_data, *to_data;
 	struct lxref ref, scan;
-	struct lxlist result, from_list;
+	enum lx_tag tag;
+	union lxvalue result;
 
-	/* allocate one cell as a sentinel value when scanning backwards */
+	/* allocate one cell as a sentinel value when scanning backwards in
+	   lx_shared_head() - note that the latest allocation in the other end
+	   of the heap is never shared */
 	*ref_tag(to->tag_free) = mktag(1, lx_int_tag);
 	ref_data(to->tag_free)->i = 0;
 	to->tag_free = forward(to->tag_free);
 
-	/* copy_list places the list at the start */
-	scan = copy_list(root, from, to, bitset);
-	result = ref_to_list(scan);
-	result.ref.tag = lx_list_tag;
+	if (root.tag == lx_list_tag || is_leaf_node(root.tree)) {
+		scan = copy_list(root.list.ref, from, to, bitset);
+		result.list.ref = scan;
+	} else {
+		ref = backward(backward(root.tree.ref));
+		scan = copy_list(ref, from, to, bitset);
+		result.tree.ref = forward(forward(scan));
+	}
 
 	/* update references until the free pointer has been reached */
 	while (ref_lt(scan, to->tag_free)) {
-		switch (lxtag_tag(*ref_tag(scan))) {
+		tag = lxtag_tag(*ref_tag(scan));
+		switch (tag) {
 		default: abort();
 		case lx_list_tag:
+		case lx_tree_tag:
 			if (isnilref(ref_data(scan))) {
-				/* don't copy empty list */
+				/* don't copy empty list/tree */
 				break;
 			}
 			/* Data of element contains cross-reference to source
 			   in from-space */
-			to_car = ref_data(scan);
-			ref = dexref(to_car, from, lx_list_tag);
+			to_data = ref_data(scan);
+			ref = dexref(to_data, from, tag);
 			i = ref_offset(from, ref);
 			if (is_forwarded(bitset, i)) {
 				/* Get pointer to already copied list from
 				   from-apace */
-				from_car = ref_data(ref);
-				ref = dexref(from_car, to->min_addr, lx_list_tag);
+				from_data = ref_data(ref);
+				ref = dexref(from_data, to->min_addr, tag);
+			} else if (tag == lx_tree_tag && !is_leaf_node(ref_to_tree(ref))) {
+				ref = backward(backward(ref));
+				ref = copy_list(ref, from, to, bitset);
+				ref = forward(forward(ref));
 			} else {
-				from_list = ref_to_list(ref);
-				ref = copy_list(from_list, from, to, bitset);
+				ref = copy_list(ref, from, to, bitset);
 			}
-			setref(to_car, ref);
+			setref(to_data, ref);
 			break;
 		case lx_string_tag:
 		case lx_bool_tag:
@@ -267,9 +280,17 @@ union lxvalue lx_compact(
 		if (lx_is_empty_list(root.list)) {
 			return root;
 		}
-		memset(bitset, 0, bitset_size);
-		/* use to-space as a stack while marking */
-		lx_count_refs(root, from, to->max_addr, bitset);
-		return lx_list(cheney70(root.list, from, to, bitset));
+		break;
+	case lx_tree_tag:
+		if (lx_is_empty_tree(root.tree)) {
+			return root;
+		}
+		break;
 	}
+
+	/* tree or list */
+	memset(bitset, 0, bitset_size);
+	/* use to-space as a stack while marking */
+	lx_count_refs(root, from, to->max_addr, bitset);
+	return cheney70(root, from, to, bitset);
 }

@@ -12,31 +12,18 @@
 #include "../memory.h"
 #include "../ref.h"
 #include "../list.h"
+#include "../tree.h"
 
 #define QUOTE_(x) #x
 #define QUOTE(x) QUOTE_(x)
 
-#define length_of(x) (sizeof (x) / sizeof *(x))
-
-#define tag(type, len) mktag(len, JOIN(lx_,JOIN(type,_tag)))
-
-#define span(t0, d0, t1, d1, t2, d2, t3, d3) \
-	tag_cell(t0, t1, t2, t3), d0, d1, d2, d3
-
-#define int_tag(len) mktag(len, lx_int_tag)
-#define lst_tag(len) mktag(len, lx_list_tag)
-#define cdr_tag lst_tag(1)
-#define nil_data int_data(0)
-#define int_data(v) { .i = (lxint)v }
-#define ref_data(cell_no, span_offset, offset) int_data( \
-	(CELL_SIZE * (lxint)(SPAN_LENGTH*(span_offset) - (cell_no) - 1)) |\
-	((lxint)(offset) & OFFSET_MASK) \
-)
-
-#define tag_cell(t0, t1, t2, t3) { { t0, t1, t2, t3 } }
-
 #define mklist(cell, offset) \
-	ref_to_list((struct lxref) { lx_list_tag, offset, cell })
+       ref_to_list((struct lxref) { lx_list_tag, offset, cell })
+
+#define mktree(cell, offset) \
+       ref_to_tree((struct lxref) { lx_tree_tag, offset, cell })
+
+#define length_of(x) (sizeof (x) / sizeof *(x))
 
 struct assert_ctx
 {
@@ -140,16 +127,28 @@ static inline int _assert_ref_eq(
 static void _print_value(union lxvalue val)
 {
 	struct lxlist l;
+	struct lxtree t;
+	size_t i;
 	switch (val.tag) {
 	default: abort();
 	case lx_list_tag:
 		printf("(");
+		l = val.list;
 		while (!lx_is_empty_list(l)) {
-			_print_value(lx_car(val.list));
-			l = lx_cdr(val.list);
+			_print_value(lx_car(l));
+			l = lx_cdr(l);
 			if (!lx_is_empty_list(l)) { printf(" "); }
 		}
 		printf(")");
+		break;
+	case lx_tree_tag:
+		printf("{");
+		t = val.tree;
+		for (i = 0; i < lx_tree_size(t); i++) {
+			if (i > 0) { printf(" "); }
+			_print_value(lx_list(lx_tree_nth(t, i)));
+		}
+		printf("}");
 		break;
 	case lx_bool_tag:
 		if (val.i) {

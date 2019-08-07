@@ -50,6 +50,7 @@ void lx_set_cell_data(union lxcell *data, union lxvalue val)
 {
 	switch (val.tag) {
 	case lx_list_tag:
+	case lx_tree_tag:
 		if (lx_is_empty_list(val.list)) {
 			setnilref(data);
 		} else {

@@ -13,16 +13,23 @@
 #include "memory.h"
 #include "ref.h"
 #include "list.h"
+#include "tree.h"
 #include "mark.h"
 
+static bool is_ref(enum lx_tag tag)
+{
+	return tag == lx_list_tag || tag == lx_tree_tag;
+}
+
 static void push_ref(
-	union lxvalue val,
+	struct lxref ref,
 	union lxcell const *from,
 	union lxcell **stack)
 {
-	if (val.tag == lx_list_tag && !lx_is_empty_list(val.list)) {
-		setxref(--(*stack), from, val.list.ref);
+	if (ref.tag == lx_tree_tag && !is_leaf_node(ref_to_tree(ref))) {
+		ref = backward(backward(ref));
 	}
+	setxref(--(*stack), from, ref);
 }
 
 static struct lxref pop_ref(union lxcell **stack, union lxcell const *from)
@@ -30,36 +37,37 @@ static struct lxref pop_ref(union lxcell **stack, union lxcell const *from)
 	return dexref((*stack)++, from, lx_list_tag);
 }
 
-static void mark_shared_list(
-	struct lxlist list,
+static void mark_shared_head(
+	struct lxref segment,
 	union lxcell const *from,
 	void *bitset)
 {
 	lxint i;
+	struct lxref ref;
 
-	list = lx_shared_head(list, from, bitset);
+	ref = lx_shared_head(segment, from, bitset);
 	do {
-		i = ref_offset(from, list.ref);
+		i = ref_offset(from, ref);
 		if (mark_shared_bits(bitset, i) == 0x3) {
 			/* rest of list has already been marked as
 			   shared, nothing more to do */
 			break;
 		}
-		if (list_cdr_code(list) == cdr_nil) { break; }
-		list = list_forward(list);
+		if (lxtag_cdr(*ref_tag(ref)) == cdr_nil) { break; }
+		ref = forward(ref);
 	} while (true);
 }
 
 /* trace backwards from `list` to the first cell in the same segment of
    adjacent list cells that is marked */
-struct lxlist lx_shared_head(
-	struct lxlist list,
+struct lxref lx_shared_head(
+	struct lxref list,
 	union lxcell const *from,
 	void const *bitset)
 {
 	struct lxref p, q;
 
-	p = list.ref;
+	p = list;
 	do {
 		q = backward(p);
 
@@ -71,7 +79,8 @@ struct lxlist lx_shared_head(
 
 		p = q;
 	} while (true);
-	return ref_to_list(p);
+
+	return p;
 }
 
 /* Recursively mark reachable nodes to find shared list structure. */
@@ -81,42 +90,48 @@ void lx_count_refs(
 	union lxcell *stack_max,
 	void *bitset)
 {
-	union lxcell *stack;
-	struct lxlist list, head;
+	union lxcell *stack, *d;
+	struct lxref ref, head;
 	lxuint i;
+	lxtag meta;
+	enum lx_tag tag;
+
+	if (!is_ref(root.tag) || !root.list.ref.cell) { return; }
 
 	stack = stack_max;
-	push_ref(root, from, &stack);
+	push_ref(root.list.ref, from, &stack);
 
 	while (stack < stack_max) {
-		list.ref = head.ref = pop_ref(&stack, from);
-
+		ref = head = pop_ref(&stack, from);
 		do {
-			i = ref_offset(from, list.ref);
-
+			i = ref_offset(from, ref);
 			if (mark_bits(bitset, i) != 0) {
 				/* We found a cell that was visited before.
 				   Restart marking and mark whole segment as
 				   shared (both bits set). */
-				mark_shared_list(head, from, bitset);
+				mark_shared_head(head, from, bitset);
 				break;
 			}
+			meta = *ref_tag(ref);
 
 			/* New potential list reference found. A reference is
 			   pushed to the stack at most once. */
-			push_ref(lx_car(list), from, &stack);
+			tag = lxtag_tag(meta);
+			if (is_ref(tag) && !isnilref(d = ref_data(ref))) {
+				push_ref(deref(d, tag), from, &stack);
+			}
 
-			/* All list segments end in cdr_nil. Many segments have
-			   the cdr-code cdr_link in the second to last tagged
+			/* All lists end in cdr_nil. Many segments have the
+			   cdr-code `cdr_link` in the second to last tagged
 			   union cell. However, the following link cell always
 			   have the cdr_nil tag. */
-			if (list_cdr_code(list) == cdr_nil) {
+			if (lxtag_cdr(meta) == cdr_nil) {
 				break;
 			}
 
 			/* Traverse only within segment using list_forward()
 			   instead of lx_cdr(). */
-			list = list_forward(list);
+			ref = forward(ref);
 		} while (true);
 	}
 }

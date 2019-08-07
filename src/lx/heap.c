@@ -153,7 +153,9 @@ int lx_resize_heap(struct lxheap *heap, size_t new_size)
 	/* save allocation pointers */
 	min_addr = &heap->alloc.min_addr;
 	max_member = MEMBERS_MAX;
-	if (heap->root.tag != lx_list_tag) { max_member--; }
+	if (heap->root.tag != lx_list_tag && heap->root.tag != lx_tree_tag) {
+		max_member--;
+	}
 	offset = *min_addr - heap->first;
 	for (i = 0; i < max_member; i++) {
 		save[i] = *ptr_at(heap, member_offsets[i]) - *min_addr;

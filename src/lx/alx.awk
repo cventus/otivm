@@ -5,6 +5,7 @@ BEGIN {
 	if (!CELL_SIZE) CELL_SIZE = 4
 
 	tagof["list"] = "lx_list_tag"
+	tagof["tree"] = "lx_tree_tag"
 	tagof["bool"] = "lx_bool_tag"
 	tagof["int"] = "lx_int_tag"
 	tagof["float"] = "lx_float_tag"
@@ -39,8 +40,8 @@ function output_data(entry,                                val, t, pre, post) {
 	val = value[entry]
 	pre = ".i = (lxint)"
 	post = ""
-	if (t == "list" || t == "string") {
-		if (!(val in symbol_entry)) {
+	if (t == "list" || t == "tree" || t == "string") {
+		if (!(val in symbol_entry) && val != "nil") {
 			printf "Undefined symbol: %s\n", val >"/dev/stderr"
 			failure = 1
 			exit 1
