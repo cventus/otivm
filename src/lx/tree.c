@@ -55,6 +55,7 @@ static void destructure(
 	struct lxlist *entry)
 {
 	struct lxlist list;
+	union lxcell const *sz;
 	assert(!lx_is_empty_tree(tree));
 	list = as_list(tree);
 	*entry = lx_cdr(list);
@@ -62,9 +63,11 @@ static void destructure(
 		*left = *right = lx_empty_tree();
 	} else {
 		list.ref = backward(list.ref);
-		*right = deref_tree(ref_data(list.ref));
+		sz = ref_data(list.ref);
+		*right = isnilref(sz) ? lx_empty_tree() : deref_tree(sz);
 		list.ref = backward(list.ref);
-		*left = deref_tree(ref_data(list.ref));
+		sz = ref_data(list.ref);
+		*left = isnilref(sz) ? lx_empty_tree() : deref_tree(sz);
 	}
 }
 
