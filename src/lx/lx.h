@@ -166,6 +166,9 @@ int lx_gc(struct lxheap *heap);
 /* recursively compare values for equality */
 bool lx_equals(union lxvalue a, union lxvalue b);
 
+/* compare values by built-in ordering */
+int lx_compare(union lxvalue a, union lxvalue b);
+
 /* prepend an element to a list */
 struct lxlist lx_cons(struct lxmem *, union lxvalue, struct lxlist);
 

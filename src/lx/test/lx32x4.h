@@ -13,6 +13,7 @@
 #include "../ref.h"
 #include "../list.h"
 #include "../tree.h"
+#include "../str.h"
 
 #define QUOTE_(x) #x
 #define QUOTE(x) QUOTE_(x)
@@ -22,6 +23,9 @@
 
 #define mktree(cell, offset) \
        ref_to_tree((struct lxref) { lx_tree_tag, offset, cell })
+
+#define mkstr(cell) \
+       ref_to_string((struct lxref) { lx_string_tag, 0, cell })
 
 #define length_of(x) (sizeof (x) / sizeof *(x))
 
@@ -61,6 +65,23 @@ static inline int _assert_int_eq(
 
 #define assert_int_eq(value, expected) \
 	_call_assert(_assert_int_eq, value, expected)
+
+static inline int _assert_int_sign(
+	lxint value,
+	lxint expected,
+	struct assert_ctx ctx)
+{
+	if ((value < 0) == (expected < 0) && (value > 0) == (expected > 0)) {
+		return 0;
+	}
+	assertion_failed(ctx);
+	printf("Got: %d\nExpected: %d\n", value, expected);
+	fail_test(0);
+	return -1;
+}
+
+#define assert_int_sign(value, expected) \
+	_call_assert(_assert_int_sign, value, expected)
 
 static inline void _assert_tag_eq(
 	enum lx_tag value,

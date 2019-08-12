@@ -27,7 +27,7 @@ define_alx_test() {
   done
 }
 
-define_alx lists rec shared list-tree copies adjacent tree
+define_alx lists rec shared list-tree copies comparables adjacent tree
 
 define_alx_test adjacent-list test/list.c adjacent
 define_alx_test linked-list test/list.c lists
@@ -36,6 +36,7 @@ define_alx_test compact-list-tree  test/compact-list-tree.c list-tree
 define_alx_test compact-shared test/compact-shared.c shared
 define_alx_test compact-rec test/compact-rec.c rec
 define_alx_test equals test/equals.c copies
+define_alx_test compare test/compare.c comparables
 define_alx_test tree test/tree.c tree
 define_ok_test test/cons.c
 define_ok_test test/mark.c
