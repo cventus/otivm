@@ -94,7 +94,7 @@ function add_entry(str, typ, val)
 	struct[entries] = str
 	type[entries] = typ
 	value[entries] = val
-	if ($1 == "raw") {
+	if (str == "raw") {
 		offset[entries] = span_offset = 0
 		current_span = cells + 1
 	} else {
