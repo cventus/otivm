@@ -61,6 +61,7 @@
 /* tree API */
 #define lx_empty_tree MANGLE(empty_tree)
 #define lx_is_empty_tree MANGLE(is_empty_tree)
+#define lx_tree_assoc MANGLE(tree_assoc)
 #define lx_tree_entry MANGLE(tree_entry)
 #define lx_tree_left MANGLE(tree_left)
 #define lx_tree_right MANGLE(tree_right)
@@ -265,4 +266,5 @@ struct lxtree lx_tree_right(struct lxtree);
 
 size_t lx_tree_size(struct lxtree);
 
+struct lxlist lx_tree_assoc(union lxvalue key, struct lxtree tree);
 struct lxlist lx_tree_nth(struct lxtree tree, lxint n);

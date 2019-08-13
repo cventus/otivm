@@ -96,3 +96,20 @@ struct lxlist lx_tree_nth(struct lxtree tree, lxint n)
 	} while (true);
 	return e;
 }
+
+struct lxlist lx_tree_assoc(union lxvalue key, struct lxtree tree)
+{
+	int cmp;
+	struct lxtree t, l, r;
+	struct lxlist e;
+
+	t = tree;
+	while (!lx_is_empty_tree(t)) {
+		destructure(t, &l, &r, &e);
+		cmp = lx_compare(key, lx_car(e));
+		if (cmp < 0) t = l;
+		else if (cmp > 0) t = r;
+		else return e;
+	}
+	return lx_empty_list();
+}

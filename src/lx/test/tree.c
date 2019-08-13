@@ -104,12 +104,24 @@ int test_compact(void)
 
 int test_tree_nth(void)
 {
-	assert_int_eq(lx_car(lx_tree_nth(root.tree, 0)).i, 0);
-	assert_int_eq(lx_car(lx_tree_nth(root.tree, 1)).i, 1);
-	assert_int_eq(lx_car(lx_tree_nth(root.tree, 2)).i, 2);
-	assert_int_eq(lx_car(lx_tree_nth(root.tree, 3)).i, 3);
-	assert_int_eq(lx_car(lx_tree_nth(root.tree, 4)).i, 4);
-	assert_int_eq(lx_car(lx_tree_nth(root.tree, 5)).i, 5);
-	assert_int_eq(lx_car(lx_tree_nth(root.tree, 6)).i, 6);
+	assert_eq(lx_car(lx_tree_nth(root.tree, 0)), lx_int(0));
+	assert_eq(lx_car(lx_tree_nth(root.tree, 1)), lx_int(1));
+	assert_eq(lx_car(lx_tree_nth(root.tree, 2)), lx_int(2));
+	assert_eq(lx_car(lx_tree_nth(root.tree, 3)), lx_int(3));
+	assert_eq(lx_car(lx_tree_nth(root.tree, 4)), lx_int(4));
+	assert_eq(lx_car(lx_tree_nth(root.tree, 5)), lx_int(5));
+	assert_eq(lx_car(lx_tree_nth(root.tree, 6)), lx_int(6));
+	return 0;
+}
+
+int test_tree_assoc(void)
+{
+	assert_eq(lx_car(lx_tree_assoc(lx_int(0), root.tree)), lx_int(0));
+	assert_eq(lx_car(lx_tree_assoc(lx_int(1), root.tree)), lx_int(1));
+	assert_eq(lx_car(lx_tree_assoc(lx_int(2), root.tree)), lx_int(2));
+	assert_eq(lx_car(lx_tree_assoc(lx_int(3), root.tree)), lx_int(3));
+	assert_eq(lx_car(lx_tree_assoc(lx_int(4), root.tree)), lx_int(4));
+	assert_eq(lx_car(lx_tree_assoc(lx_int(5), root.tree)), lx_int(5));
+	assert_eq(lx_car(lx_tree_assoc(lx_int(6), root.tree)), lx_int(6));
 	return 0;
 }
