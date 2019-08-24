@@ -140,3 +140,22 @@ struct lxlist lx_cons(
 	ref.tag = lx_list_tag;
 	return ref_to_list(ref);
 }
+
+struct lxlist lx_single(struct lxmem *mem, union lxvalue a)
+{
+	return lx_cons(mem, a, lx_empty_list());
+}
+
+struct lxlist lx_pair(struct lxmem *mem, union lxvalue a, union lxvalue b)
+{
+	return lx_cons(mem, a, lx_single(mem, b));
+}
+
+struct lxlist lx_triple(
+	struct lxmem *mem,
+	union lxvalue a,
+	union lxvalue b,
+	union lxvalue c)
+{
+	return lx_cons(mem, a, lx_pair(mem, b, c));
+}

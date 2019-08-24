@@ -58,6 +58,11 @@
 #define lx_length MANGLE(length)
 #define lx_equals MANGLE(equals)
 
+/* tuples/list short-hands */
+#define lx_single MANGLE(single)
+#define lx_pair MANGLE(pair)
+#define lx_triple MANGLE(triple)
+
 /* tree API */
 #define lx_empty_tree MANGLE(empty_tree)
 #define lx_is_empty_tree MANGLE(is_empty_tree)
@@ -173,6 +178,12 @@ int lx_compare(union lxvalue a, union lxvalue b);
 /* prepend an element to a list */
 struct lxlist lx_cons(struct lxmem *, union lxvalue, struct lxlist);
 
+struct lxlist lx_single(struct lxmem *, union lxvalue);
+struct lxlist lx_pair(struct lxmem *, union lxvalue, union lxvalue);
+struct lxlist lx_triple(struct lxmem *,
+	union lxvalue,
+	union lxvalue,
+	union lxvalue);
 /* get first element of (non-empty) list */
 union lxvalue lx_car(struct lxlist list);
 
