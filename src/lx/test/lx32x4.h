@@ -413,3 +413,51 @@ static inline void _assert_str_eq(
 
 #define assert_str_eq(value, expected) \
 	_call_assert(_assert_str_eq, value, expected)
+
+static inline int fact(int n)
+{
+	int i, acc;
+
+	acc = 1;
+	for (i = 2; i <= n; i++) {
+		acc *= i;
+	}
+	return acc;
+}
+
+static inline void int_swap(int *a, int *b)
+{
+	int tmp;
+	tmp = *a;
+	*a = *b;
+	*b = tmp;
+}
+
+static inline void int_reverse(int n, int a[])
+{
+	int i, j;
+	for (i = 0, j = n - 1; i < j; i++, j--) {
+		int_swap(a + i, a + j);
+	}
+}
+
+/* permute lexicographically - each call produces the next permutation */
+static inline void int_permute(int n, int a[])
+{
+	int i, k, l;
+
+	if (n < 2) { return; }
+
+	for (k = n - 1; k --> 0; ) {
+		if (a[k] < a[k + 1]) { break; }
+	}
+	if (k < 0) {
+		int_reverse(n, a);
+	} else {
+		for (l = k + 1, i = k + 2; i < n; i++) {
+			if (a[i] > a[k]) { l = i; }
+		}
+		int_swap(a + k, a + l);
+		int_reverse(n - (k + 1), a + (k + 1));
+	}
+}

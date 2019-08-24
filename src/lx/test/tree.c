@@ -125,3 +125,65 @@ int test_tree_assoc(void)
 	assert_eq(lx_car(lx_tree_assoc(lx_int(6), root.tree)), lx_int(6));
 	return 0;
 }
+
+static union lxvalue
+insert_into_tree(struct lxmem *mem, union lxvalue val, va_list ap)
+{
+	struct lx_list entry;
+	struct lx_tree tree;
+	int const *keys;
+	int i, n;
+
+	(void)val;
+	n = va_arg(ap, int);
+	keys = va_arg(ap, int const *);
+	tree = lx_empty_tree();
+
+	for (i = 0; i < n; i++) {
+		entry = lx_pair(mem, lx_int(keys[i]), lx_int(i));
+		tree = lx_tree_cons(mem, entry, tree);
+	}
+
+	return lx_tree(tree);
+}
+
+int test_tree_cons(void)
+{
+	static int const numbers[] = { 0, 1, 2, 3, 4, 5, 6 };
+
+	struct lxheap *heap;
+	union lxvalue key, index;
+	struct lxresult result;
+	struct lx_tree tree;
+	struct lx_list entry;
+	int i, j, k, n, a[length_of(numbers)];
+
+	heap = lx_make_heap(0, 0);
+	for (i = 1; i < (int)length_of(numbers); i++) {
+		memcpy(a, numbers, sizeof numbers);
+		n = fact(i);
+		for (j = 0; j < n; j++) {
+			result = lx_modifyl(heap, insert_into_tree, i, a);
+			tree = result.value.tree;
+			assert_tag_eq(tree.tag, lx_tree_tag);
+
+			for (k = 0; k < i; k++) {
+				key = lx_int(a[k]);
+				index = lx_int(k);
+
+				/* validate by key */
+				entry = lx_tree_assoc(key, tree);
+				assert_eq(lx_car(entry), key);
+				assert_eq(lx_car(lx_cdr(entry)), index);
+
+				/* validate by order */
+				entry = lx_tree_nth(tree, k);
+				assert_eq(lx_car(entry), index);
+			}
+			int_permute(i, a);
+		}
+	}
+	lx_free_heap(heap);
+
+	return 0;
+}
