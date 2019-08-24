@@ -38,7 +38,7 @@ int lx_reserve_tagged(struct lxalloc *alloc, size_t n, struct lxref *ref)
 	}
 
 	/* Move free pointer */
-	new_offset = (CELL_SPAN - (new_span_cells % CELL_SPAN)) % CELL_SPAN;
+	new_offset = (CELL_SPAN - (new_cells % CELL_SPAN)) % CELL_SPAN;
 	alloc->tag_free.cell -= new_span_cells;
 	alloc->tag_free.offset = new_offset;
 

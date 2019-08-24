@@ -16,7 +16,27 @@ lxtag const *t;
 void before_each_test(void)
 {
 	mem.oom = OOM_COMPACT;
-	init_cons(&mem.alloc, data, 11);
+	init_cons(&mem.alloc, data, length_of(data));
+}
+
+int test_reserve_tagged(void)
+{
+	union lxcell cells[20];
+	struct lxalloc alloc;
+	struct lxref ref, expected;
+	int i;
+
+	init_cons(&alloc, cells, length_of(cells));
+	expected = alloc.tag_free;
+
+	for (i = 1; i <= CELL_SIZE*2; i++) {
+		lx_reserve_tagged(&alloc, i, &ref);
+		expected = backward(expected);
+		assert_ref_eq(expected, ref);
+		init_cons(&alloc, cells, length_of(cells));
+	}
+
+	return 0;
 }
 
 int test_cons_one_element(void)
