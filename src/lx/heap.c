@@ -126,6 +126,16 @@ static union lxcell **ptr_at(struct lxheap *heap, size_t offset)
 	return (union lxcell **)((unsigned char *)heap + offset);
 }
 
+static bool is_ref_value(union lxvalue val)
+{
+	switch (val.tag) {
+	case lx_list_tag: return !lx_is_empty_list(val.list);
+	case lx_tree_tag: return !lx_is_empty_tree(val.tree);
+	case lx_string_tag: return true;
+	default: return false;
+	}
+}
+
 /* grow heap - might or might not require garbage collection before
    allocating again */
 int lx_resize_heap(struct lxheap *heap, size_t new_size)
@@ -153,7 +163,7 @@ int lx_resize_heap(struct lxheap *heap, size_t new_size)
 	/* save allocation pointers */
 	min_addr = &heap->alloc.min_addr;
 	max_member = MEMBERS_MAX;
-	if (heap->root.tag != lx_list_tag && heap->root.tag != lx_tree_tag) {
+	if (!is_ref_value(heap->root)) {
 		max_member--;
 	}
 	offset = *min_addr - heap->first;
