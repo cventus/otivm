@@ -45,6 +45,7 @@
 #define lx_heap_size MANGLE(heap_size)
 #define lx_heap_value MANGLE(heap_value)
 #define lx_modify MANGLE(modify)
+#define lx_modifyl MANGLE(modifyl)
 #define lx_gc MANGLE(gc)
 
 /* list API */
@@ -166,6 +167,12 @@ struct lxresult lx_modify(
 	struct lxheap *heap,
 	union lxvalue modify(struct lxmem *, union lxvalue, void *),
 	void *param);
+
+/* pass arbitrary parameters to callback retrievable with va_arg(3) */
+struct lxresult lx_modifyl(
+	struct lxheap *heap,
+	union lxvalue vmodify(struct lxmem *, union lxvalue, va_list),
+	...);
 
 int lx_gc(struct lxheap *heap);
 
