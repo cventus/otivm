@@ -237,9 +237,9 @@ static struct lxtree make_node(
 	return size;
 }
 
-/* create a balanced tree node with the given sub-trees and entry, when an item
-   has recently been added to the right sub-tree, possibly rotating left to
-   restore balance */
+/* create a balanced tree node with the given sub-trees and entry, when a
+   single node has recently been added to the right sub-tree or removed from the
+   left sub-tree, possibly by rotating left to restore balance */
 static struct lxtree balance_left(
 	struct lxmem *mem,
 	struct lxtree l,
@@ -287,9 +287,9 @@ static struct lxtree balance_left(
 	}
 }
 
-/* create a balanced tree node with the given sub-trees and entry, when an item
-   has recently been added to the left sub-tree, possibly rotating right to
-   restore balance */
+/* create a balanced tree node with the given sub-trees and entry, when a
+   single node has recently been added to the left sub-tree or removed from the
+   right sub-tree, possibly by rotating right to restore balance */
 static struct lxtree balance_right(
 	struct lxmem *mem,
 	struct lxtree l,
@@ -360,4 +360,96 @@ struct lxtree lx_tree_cons(
 		return balance_left(mem, l, v, e);
 	}
 	return make_node(mem, l, r, entry);
+}
+
+static struct lxtree extract_min(
+	struct lxmem *mem,
+	struct lxtree tree,
+	struct lxlist *min_entry)
+{
+	struct lxtree l, r;
+	struct lxlist e;
+
+	assert(!lx_is_empty_tree(tree));
+
+	destructure(tree, &l, &r, &e);
+	if (lx_is_empty_tree(l)) {
+		*min_entry = e;
+		return r;
+	} else {
+		l = extract_min(mem, l, min_entry);
+		return balance_left(mem, l, r, e);
+	}
+}
+
+static struct lxtree extract_max(
+	struct lxmem *mem,
+	struct lxtree tree,
+	struct lxlist *max_entry)
+{
+	struct lxtree l, r;
+	struct lxlist e;
+
+	assert(!lx_is_empty_tree(tree));
+
+	destructure(tree, &l, &r, &e);
+	if (lx_is_empty_tree(r)) {
+		*max_entry = e;
+		return l;
+	} else {
+		r = extract_max(mem, r, max_entry);
+		return balance_right(mem, l, r, e);
+	}
+}
+
+static struct lxtree remove_rec(
+	struct lxmem *mem,
+	union lxvalue key,
+	struct lxtree tree,
+	jmp_buf not_found)
+{
+	struct lxtree l, r;
+	struct lxlist e;
+	int cmp;
+
+	if (lx_is_empty_tree(tree)) {
+		longjmp(not_found, 1);
+	}
+
+	destructure(tree, &l, &r, &e);
+	cmp = lx_compare(key, lx_car(e));
+	if (cmp < 0) {
+		l = remove_rec(mem, key, l, not_found);
+		return balance_left(mem, l, r, e);
+	}
+	if (cmp > 0) {
+		r = remove_rec(mem, key, r, not_found);
+		return balance_right(mem, l, r, e);
+	}
+
+	/* zero/one child */
+	if (lx_is_empty_tree(l)) { return r; }
+	if (lx_is_empty_tree(r)) { return l; }
+
+	/* two children */
+	if (lx_tree_size(l) > lx_tree_size(r)) {
+		l = extract_max(mem, l, &e);
+	} else {
+		r = extract_min(mem, r, &e);
+	}
+	return make_node(mem, l, r, e);
+}
+
+struct lxtree lx_tree_remove(
+	struct lxmem *mem,
+	union lxvalue key,
+	struct lxtree tree)
+{
+	jmp_buf not_found;
+
+	if (setjmp(not_found)) {
+		return tree;
+	} else {
+		return remove_rec(mem, key, tree, not_found);
+	}
 }

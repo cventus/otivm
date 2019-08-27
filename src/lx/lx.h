@@ -69,6 +69,7 @@
 #define lx_is_empty_tree MANGLE(is_empty_tree)
 #define lx_tree_cons MANGLE(tree_cons)
 #define lx_tree_assoc MANGLE(tree_assoc)
+#define lx_tree_remove MANGLE(tree_remove)
 #define lx_tree_entry MANGLE(tree_entry)
 #define lx_tree_left MANGLE(tree_left)
 #define lx_tree_right MANGLE(tree_right)
@@ -294,5 +295,11 @@ struct lxtree lx_tree_cons(struct lxmem *, struct lxlist entry, struct lxtree);
 
 size_t lx_tree_size(struct lxtree);
 
+struct lxtree lx_tree_remove(
+	struct lxmem *mem,
+	union lxvalue key,
+	struct lxtree tree);
+
 struct lxlist lx_tree_assoc(union lxvalue key, struct lxtree tree);
+
 struct lxlist lx_tree_nth(struct lxtree tree, lxint n);
