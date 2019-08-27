@@ -18,18 +18,8 @@
 union lxvalue lx_car(struct lxlist list)
 {
 	switch (list_car_tag(list)) {
-	case lx_list_tag:
-		if (isnilref(list_car(list))) {
-			return lx_list(lx_empty_list());
-		} else {
-			return lx_list(deref_list(list_car(list)));
-		}
-	case lx_tree_tag:
-		if (isnilref(list_car(list))) {
-			return lx_tree(lx_empty_tree());
-		} else {
-			return lx_tree(deref_tree(list_car(list)));
-		}
+	case lx_list_tag: return lx_list(deref_list(list_car(list)));
+	case lx_tree_tag: return lx_tree(deref_tree(list_car(list)));
 	case lx_string_tag: return ref_to_string(deref_string(list_car(list)));
 	case lx_bool_tag: return lx_bool(list_car(list)->i);
 	case lx_int_tag: return lx_int(list_car(list)->i);

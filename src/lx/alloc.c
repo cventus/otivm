@@ -51,11 +51,7 @@ void lx_set_cell_data(union lxcell *data, union lxvalue val)
 	switch (val.tag) {
 	case lx_list_tag:
 	case lx_tree_tag:
-		if (lx_is_empty_list(val.list)) {
-			setnilref(data);
-		} else {
-			setref(data, val.list.ref);
-		}
+		setref(data, val.list.ref);
 		break;
 	case lx_string_tag: setref(data, string_to_ref(val)); break;
 	case lx_bool_tag: data->i = val.b; break;
