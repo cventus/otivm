@@ -58,6 +58,7 @@
 #define lx_nth MANGLE(nth)
 #define lx_length MANGLE(length)
 #define lx_equals MANGLE(equals)
+#define lx_reverse MANGLE(reverse)
 
 /* tuples/list short-hands */
 #define lx_single MANGLE(single)
@@ -211,6 +212,8 @@ struct lxlist lx_drop(struct lxlist list, lxint i);
 
 /* equivalent of `car(drop(list, i))` */
 union lxvalue lx_nth(struct lxlist list, lxint i);
+
+struct lxlist lx_reverse(struct lxmem *, struct lxlist list);
 
 /* number of elements in list */
 lxint lx_length(struct lxlist list);

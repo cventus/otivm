@@ -131,6 +131,19 @@ struct lxlist lx_cons(
 	return ref_to_list(ref);
 }
 
+struct lxlist lx_reverse(struct lxmem *mem, struct lxlist list)
+{
+	struct lxlist res, l;
+
+	l = list;
+	res = lx_empty_list();
+	while (!lx_is_empty_list(l)) {
+		res = lx_cons(mem, lx_car(l), res);
+		l = lx_cdr(l);
+	}
+	return res;
+}
+
 struct lxlist lx_single(struct lxmem *mem, union lxvalue a)
 {
 	return lx_cons(mem, a, lx_empty_list());
