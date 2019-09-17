@@ -43,3 +43,4 @@ define_ok_test test/mark.c
 define_ok_test test/ref.c
 define_ok_test test/heap.c
 define_ok_test test/modify.c
+define_ok_test test/read.c

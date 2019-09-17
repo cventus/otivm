@@ -31,6 +31,7 @@
 #define lxtree MANGLE(tree)
 #define lxresult MANGLE(result)
 #define lxalloc MANGLE(alloc)
+#define lxread MANGLE(read)
 
 /* conversion functions */
 #define lx_list MANGLE(list)
@@ -48,6 +49,10 @@
 #define lx_modifyl MANGLE(modifyl)
 #define lx_gc MANGLE(gc)
 
+/* generic API */
+#define lx_equals MANGLE(equals)
+#define lx_read MANGLE(read)
+
 /* list API */
 #define lx_empty_list MANGLE(empty_list)
 #define lx_is_empty_list MANGLE(is_empty_list)
@@ -57,7 +62,6 @@
 #define lx_drop MANGLE(drop)
 #define lx_nth MANGLE(nth)
 #define lx_length MANGLE(length)
-#define lx_equals MANGLE(equals)
 #define lx_reverse MANGLE(reverse)
 
 /* tuples/list short-hands */
@@ -167,6 +171,12 @@ struct lxresult
 	union lxvalue value;
 };
 
+struct lxread {
+	enum lx_read_error err;
+	char const *where;
+	union lxvalue value;
+};
+
 struct lxheap *lx_make_heap(size_t init_size, struct lx_config const *config);
 void lx_free_heap(struct lxheap *heap);
 
@@ -191,6 +201,9 @@ bool lx_equals(union lxvalue a, union lxvalue b);
 
 /* compare values by built-in ordering */
 int lx_compare(union lxvalue a, union lxvalue b);
+
+/* deserialize string to value */
+struct lxread lx_read(struct lxmem *mem, char const *str);
 
 /* prepend an element to a list */
 struct lxlist lx_cons(struct lxmem *, union lxvalue, struct lxlist);
