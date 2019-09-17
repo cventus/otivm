@@ -52,6 +52,7 @@
 /* generic API */
 #define lx_equals MANGLE(equals)
 #define lx_read MANGLE(read)
+#define lx_write MANGLE(write)
 
 /* list API */
 #define lx_empty_list MANGLE(empty_list)
@@ -204,6 +205,9 @@ int lx_compare(union lxvalue a, union lxvalue b);
 
 /* deserialize string to value */
 struct lxread lx_read(struct lxmem *mem, char const *str);
+
+/* serialize value to string */
+union lxvalue lx_write(struct lxmem *mem, union lxvalue value);
 
 /* prepend an element to a list */
 struct lxlist lx_cons(struct lxmem *, union lxvalue, struct lxlist);
