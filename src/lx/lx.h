@@ -75,6 +75,13 @@
 #define lx_tree_size MANGLE(tree_size)
 #define lx_tree_nth MANGLE(tree_nth)
 
+/* string API */
+#define lx_strlen MANGLE(strlen)
+#define lx_strdup MANGLE(strdup)
+#define lx_strndup MANGLE(strndup)
+#define lx_sprintf MANGLE(sprintf)
+#define lx_vsprintf MANGLE(vsprintf)
+
 /* internal API */
 #define lx_shared_head MANGLE(shared_head)
 #define lx_count_refs MANGLE(count_refs)
