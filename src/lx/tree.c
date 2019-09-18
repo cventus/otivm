@@ -15,6 +15,11 @@
 #include "list.h"
 #include "tree.h"
 
+struct split {
+	struct lxtree l, r;
+	struct lxlist e;
+};
+
 static struct lxlist as_list(struct lxtree tree)
 {
 	return (struct lxlist) {
@@ -451,5 +456,191 @@ struct lxtree lx_tree_remove(
 		return tree;
 	} else {
 		return remove_rec(mem, key, tree, not_found);
+	}
+}
+
+static struct lxtree join_left(
+	struct lxmem *mem,
+	struct lxtree l,
+	struct lxtree r,
+	struct lxlist e)
+{
+	struct lxtree rr, rl;
+	struct lxlist re;
+
+  	if (is_balanced(l, r)) {
+		return make_node(mem, l, r, e);
+	} else {
+		destructure(r, &rl, &rr, &re);
+		rl = join_left(mem, l, rl, e);
+		return balance_right(mem, rl, rr, re);
+	}
+}
+
+static struct lxtree join_right(
+	struct lxmem *mem,
+	struct lxtree l,
+	struct lxtree r,
+	struct lxlist e)
+{
+	struct lxtree lr, ll;
+	struct lxlist le;
+
+  	if (is_balanced(l, r)) {
+		return make_node(mem, l, r, e);
+	} else {
+		destructure(l, &ll, &lr, &le);
+		lr = join_right(mem, lr, r, e);
+		return balance_left(mem, ll, lr, le);
+	}
+}
+
+/* create a tree from trees `l` and `r`, and entry `e` where the keys of `l`
+   are smaller then the key of `e` and the keys of `r` are greater than the key
+   of `e`. */
+static struct lxtree join(
+	struct lxmem *mem,
+	struct lxtree l,
+	struct lxtree r,
+	struct lxlist e)
+{
+	size_t lsz, rsz;
+
+	lsz = lx_tree_size(l);
+	rsz = lx_tree_size(r);
+
+	if (lsz > rsz) {
+		return join_right(mem, l, r, e);
+	} else if (lsz < rsz) {
+		return join_left(mem, l, r, e);
+	} else {
+		return make_node(mem, l, r, e);
+	}
+}
+
+/* join two trees where each key in `l` is smaller than each key in `r` */
+static struct lxtree join2(struct lxmem *mem, struct lxtree l, struct lxtree r)
+{
+	struct lxlist e;
+
+	if (lx_is_empty_tree(l)) return r;
+	l = extract_max(mem, l, &e);
+	return join(mem, l, r, e);
+}
+
+/* Split tree into two trees: .l with entries less than `key` and .r
+   with entries greater than `key`. If an entry with the key is found
+   store it in .e, otherwise it is empty. */
+static struct split split(
+	struct lxmem *mem,
+	struct lxtree tree,
+	union lxvalue key)
+{
+	struct split s;
+	struct lxtree l, r;
+	struct lxlist e;
+	int cmp;
+
+	if (lx_is_empty_tree(tree)) {
+		s.l = s.r = lx_empty_tree();
+		s.e = lx_empty_list();
+	} else {
+		destructure(tree, &l, &r, &e);
+		cmp = lx_compare(key, lx_car(e));
+		if (cmp < 0) {
+			s = split(mem, l, key);
+			s.r = join(mem, s.r, r, e);
+		} else if (cmp > 0) {
+			s = split(mem, r, key);
+			s.l = join(mem, l, s.l, e);
+		} else {
+			s.l = l;
+			s.r = r;
+			s.e = e;
+		}
+	}
+	return s;
+}
+
+struct lxtree lx_tree_union(
+	struct lxmem *mem,
+	struct lxtree lhs,
+	struct lxtree rhs)
+{
+	struct split s;
+	struct lxtree l, r;
+	struct lxlist e;
+
+	if (lx_is_empty_tree(lhs)) { return rhs; }
+	if (lx_is_empty_tree(rhs)) { return lhs; }
+
+	destructure(rhs, &l, &r, &e);
+	s = split(mem, lhs, lx_car(e));
+	l = lx_tree_union(mem, s.l, l);
+	r = lx_tree_union(mem, s.r, r);
+	/* prefer entry(lhs) over entry(rhs) */
+	if (!lx_is_empty_list(s.e)) { e = s.e; }
+	return join(mem, l, r, e);
+}
+
+struct lxtree lx_tree_isect(
+	struct lxmem *mem,
+	struct lxtree lhs,
+	struct lxtree rhs)
+{
+	struct split s;
+	struct lxtree l, r;
+	struct lxlist e;
+
+	if (lx_is_empty_tree(lhs) || lx_is_empty_tree(rhs)) {
+		return lx_empty_tree();
+	}
+	destructure(rhs, &l, &r, &e);
+	s = split(mem, lhs, lx_car(e));
+	l = lx_tree_isect(mem, s.l, l);
+	r = lx_tree_isect(mem, s.r, r);
+	if (lx_is_empty_list(s.e)) {
+		return join2(mem, l, r);
+	} else {
+		return join(mem, l, r, s.e); /* ignore entry(rhs) */
+	}
+}
+
+struct lxtree lx_tree_diff(
+	struct lxmem *mem,
+	struct lxtree lhs,
+	struct lxtree rhs)
+{
+	struct split s;
+	struct lxtree l, r;
+	struct lxlist e;
+
+	if (lx_is_empty_tree(lhs)) { return lx_empty_tree(); }
+	if (lx_is_empty_tree(rhs)) { return lhs; }
+
+	destructure(rhs, &l, &r, &e);
+	s = split(mem, lhs, lx_car(e));
+	l = lx_tree_diff(mem, s.l, l);
+	r = lx_tree_diff(mem, s.r, r);
+	return join2(mem, l, r);
+}
+
+struct lxtree lx_tree_filter(
+	struct lxmem *mem,
+	struct lxtree tree,
+	bool predicate(struct lxlist, void *),
+	void *param)
+{
+	struct lxtree l, r;
+	struct lxlist e;
+
+	if (lx_is_empty_tree(tree)) { return lx_empty_tree(); }
+	destructure(tree, &l, &r, &e);
+	l = lx_tree_filter(mem, l, predicate, param);
+	r = lx_tree_filter(mem, r, predicate, param);
+	if (predicate(e, param)) {
+		return join(mem, l, r, e);
+	} else {
+		return join2(mem, l, r);
 	}
 }

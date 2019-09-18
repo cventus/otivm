@@ -73,14 +73,18 @@
 /* tree API */
 #define lx_empty_tree MANGLE(empty_tree)
 #define lx_is_empty_tree MANGLE(is_empty_tree)
+#define lx_tree_size MANGLE(tree_size)
 #define lx_tree_cons MANGLE(tree_cons)
 #define lx_tree_assoc MANGLE(tree_assoc)
 #define lx_tree_remove MANGLE(tree_remove)
 #define lx_tree_entry MANGLE(tree_entry)
 #define lx_tree_left MANGLE(tree_left)
 #define lx_tree_right MANGLE(tree_right)
-#define lx_tree_size MANGLE(tree_size)
 #define lx_tree_nth MANGLE(tree_nth)
+#define lx_tree_filter MANGLE(tree_filter)
+#define lx_tree_union MANGLE(tree_union)
+#define lx_tree_isect MANGLE(tree_isect)
+#define lx_tree_diff MANGLE(tree_diff)
 
 /* string API */
 #define lx_strlen MANGLE(strlen)
@@ -306,20 +310,27 @@ static inline bool lx_is_empty_tree(struct lxtree tree)
 	return tree.tag == lx_tree_tag && tree.ref.cell == NULL;
 }
 
+size_t lx_tree_size(struct lxtree);
+
+struct lxtree lx_tree_cons(struct lxmem *, struct lxlist entry, struct lxtree);
+struct lxtree lx_tree_remove(struct lxmem *, union lxvalue key, struct lxtree);
+
+struct lxlist lx_tree_assoc(union lxvalue key, struct lxtree tree);
+struct lxlist lx_tree_nth(struct lxtree tree, lxint n);
+
+/* set operations */
+struct lxtree lx_tree_union(struct lxmem *, struct lxtree, struct lxtree);
+struct lxtree lx_tree_isect(struct lxmem *, struct lxtree, struct lxtree);
+struct lxtree lx_tree_diff(struct lxmem *, struct lxtree, struct lxtree);
+
 /* low level API for traversal */
 struct lxlist lx_tree_entry(struct lxtree);
 struct lxtree lx_tree_left(struct lxtree);
 struct lxtree lx_tree_right(struct lxtree);
 
-struct lxtree lx_tree_cons(struct lxmem *, struct lxlist entry, struct lxtree);
-
-size_t lx_tree_size(struct lxtree);
-
-struct lxtree lx_tree_remove(
+struct lxtree lx_tree_filter(
 	struct lxmem *mem,
-	union lxvalue key,
-	struct lxtree tree);
+	struct lxtree tree,
+	bool predicate(struct lxlist, void *),
+	void *param);
 
-struct lxlist lx_tree_assoc(union lxvalue key, struct lxtree tree);
-
-struct lxlist lx_tree_nth(struct lxtree tree, lxint n);
