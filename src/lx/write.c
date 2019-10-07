@@ -19,12 +19,13 @@
 #include "tree.h"
 
 #define ESCAPE_CHARS "\"\\\r\n\t\v"
+#define SHORT_LIST 40
 
 struct wstate {
 	struct lxref stack;
 	struct lxmem *mem;
 	char *p;
-	lxint n;
+	lxint n, indent;
 };
 
 static void out_of_memory(struct wstate *w)
@@ -74,14 +75,15 @@ static void push_tree_min(struct wstate *w, struct lxtree tree)
 	}
 }
 
-static void put_ch(struct wstate *w, int ch)
+static bool put_ch(struct wstate *w, int ch)
 {
-	if (w->n == 0) { out_of_memory(w); }
+	if (w->n == 0) { return false; }
 	w->n--;
 	*w->p++ = ch;
+	return true;
 }
 
-static void put_int(struct wstate *w, lxint val)
+static bool put_int(struct wstate *w, lxint val)
 {
 	char buf[LX_BITS + 1], *q;
 	int i;
@@ -112,16 +114,17 @@ static void put_int(struct wstate *w, lxint val)
 			buf[i++] = '-';
 		}
 	}
-	if (i > w->n) { out_of_memory(w); }
+	if (i > w->n) { return false; }
 	q = w->p;
 	w->n -= i;
 	w->p += i;
 	while (i --> 0) {
 		*q++ = buf[i];
 	}
+	return true;
 }
 
-static void put_float(struct wstate *w, double val)
+static bool put_float(struct wstate *w, double val)
 {
 	int n;
 
@@ -129,72 +132,157 @@ static void put_float(struct wstate *w, double val)
 	if (n < 0) {
 		abort();
 	} else if (n > w->n) {
- 		out_of_memory(w); 
+		return false;
 	}
 	w->p += n;
 	w->n -= n;
+	return true;
 }
 
-static void put_raw_str(struct wstate *w, lxint n, char const *q)
+static bool put_raw_str(struct wstate *w, lxint n, char const *q)
 {
-	if (w->n < n) { out_of_memory(w); }
+	if (w->n < n) { return false; }
 	(void)memcpy(w->p, q, n);
 	w->n -= n;
 	w->p += n;
+	return true;
 }
 
-static void put_str(struct wstate *w, lxint n, char const *q)
+static bool put_str(struct wstate *w, lxint n, char const *q)
 {
 	lxint i, len;
+	bool res;
 
-	if (w->n < n) { out_of_memory(w); }
+	if (w->n < n) { return false; }
 
 	if (n == 0) {
 		/* empty string */
-		put_raw_str(w, 2, "\"\"");
-		return;
+		return put_raw_str(w, 2, "\"\"");
 	}
 	len = (lxint)strcspn(q, "# (){}" ESCAPE_CHARS);
 	if (len == n) {
 		/* the whole string can be written unquoted */
-		put_raw_str(w, len, q);
-		return;
+		return put_raw_str(w, len, q);
 	}
 
 	/* the string must be written in quotes/special characters escaped */
 	i = 0;
-	put_ch(w, '"');
-	while (i < n) {
+	res = put_ch(w, '"');
+	while (res && i < n) {
 		switch (q[i]) {
-		case '"': i++; put_raw_str(w, 2, "\\\""); break;
-		case '\\': i++; put_raw_str(w, 2, "\\\\"); break;
-		case '\r': i++; put_raw_str(w, 2, "\\r"); break;
-		case '\n': i++; put_raw_str(w, 2, "\\n"); break;
-		case '\t': i++; put_raw_str(w, 2, "\\t"); break;
-		case '\v': i++; put_raw_str(w, 2, "\\v"); break;
+		case '"': i++; res = put_raw_str(w, 2, "\\\""); break;
+		case '\\': i++; res = put_raw_str(w, 2, "\\\\"); break;
+		case '\r': i++; res = put_raw_str(w, 2, "\\r"); break;
+		case '\n': i++; res = put_raw_str(w, 2, "\\n"); break;
+		case '\t': i++; res = put_raw_str(w, 2, "\\t"); break;
+		case '\v': i++; res = put_raw_str(w, 2, "\\v"); break;
 		default:
 			len = (lxint)strcspn(q + i, ESCAPE_CHARS);
-			put_raw_str(w, len, q + i);
+			res = put_raw_str(w, len, q + i);
 			i += len;
 			break;
 		}
 	}
-	put_ch(w, '"');
+	return res && put_ch(w, '"');
 }
 
-static void write_value(struct wstate *w, union lxvalue val)
+static bool write_brief(struct wstate *w, union lxvalue val, int maxdepth)
 {
+	bool res;
+	struct lxlist lst;
+
+	if (maxdepth == 0) {
+		return false;
+	}
+	switch (val.tag) {
+	default:
+		return abort(), false;
+
+	case lx_list_tag:
+		if (lx_is_empty_list(val.list)) {
+			return put_raw_str(w, 2, "()");
+		} else {
+			lst = val.list;
+			val = lx_car(lst);
+			res = put_ch(w, '(') &&
+				write_brief(w, val, maxdepth - 1);
+			lst = lx_cdr(lst);
+			while (res && !lx_is_empty_list(lst)) {
+				val = lx_car(lst);
+				res = put_ch(w, ' ') &&
+					write_brief(w, val, maxdepth - 1);
+				lst = lx_cdr(lst);
+			}
+			return res && put_ch(w, ')');
+		}
+
+	case lx_tree_tag:
+		if (lx_is_empty_tree(val.tree)) {
+			return put_raw_str(w, 2, "{}");
+		} else if (lx_tree_size(val.tree) == 1) {
+			return put_ch(w, '{') &&
+				write_brief(
+					w,
+					lx_list(lx_tree_entry(val.tree)),
+					maxdepth - 1) &&
+				put_ch(w, '}');
+		}
+		return false;
+
+	case lx_bool_tag:
+		return put_raw_str(w, 2, val.b ? "#t" : "#f");
+
+	case lx_int_tag:
+		return put_int(w, val.i);
+
+	case lx_float_tag:
+		return put_float(w, val.f);
+
+	case lx_string_tag:
+		return put_str(w, lx_strlen(val), val.s);
+	}
+}
+
+static void write_value(struct wstate *w, union lxvalue val, bool break_lines)
+{
+	struct wstate u;
+
+	if (w->indent > 0) {
+		if (break_lines) {
+			if (w->n < w->indent + 1) {
+				out_of_memory(w);
+			}
+			*w->p = '\n';
+			memset(w->p + 1, ' ', w->indent);
+			w->n -= w->indent + 1;
+			w->p += w->indent + 1;
+		} else {
+			if (!put_ch(w, ' ')) { out_of_memory(w); }
+		}
+	}
 next:
 	switch (val.tag) {
 	default: abort();
 
 	case lx_list_tag:
 		if (lx_is_empty_list(val.list)) {
-			put_raw_str(w, 2, "()");
+			if (!put_raw_str(w, 2, "()")) { out_of_memory(w); }
 			break;
 		} else {
 tree_entry:
-			put_ch(w, '(');
+			if (break_lines) {
+				u = *w;
+				if (u.n > SHORT_LIST) {
+					u.n = SHORT_LIST;
+				}
+				if (write_brief(&u, val, 10)) {
+					w->n -= u.n;
+					w->p = u.p;
+					break;
+				}
+			}
+			if (!put_ch(w, '(')) { out_of_memory(w); }
+			w->indent++;
 			push(w, lx_list(lx_cdr(val.list)));
 			val = lx_car(val.list);
 			goto next;
@@ -202,33 +290,37 @@ tree_entry:
 
 	case lx_tree_tag:
 		if (lx_is_empty_tree(val.tree)) {
-			put_raw_str(w, 2, "{}");
+			if (!put_raw_str(w, 2, "{}")) { out_of_memory(w); }
 			break;
 		} else {
-			put_ch(w, '{');
+			if (!put_ch(w, '{')) { out_of_memory(w); }
+			w->indent++;
 			push(w, lx_tree(lx_empty_tree()));
 			push_tree_min(w, val.tree);
 			val = pop(w);
 			assert(val.tag == lx_tree_tag);
 			push_tree_min(w, lx_tree_right(val.tree));
 			val.list = lx_tree_entry(val.tree);
+			assert(!lx_is_empty_list(val.list));
 			goto tree_entry;
 		}
 
 	case lx_bool_tag:
-		put_raw_str(w, 2, val.b ? "#t" : "#f");
+		if (!put_raw_str(w, 2, val.b ? "#t" : "#f")) {
+			out_of_memory(w);
+		}
 		break;
 
 	case lx_int_tag:
-		put_int(w, val.i);
+		if (!put_int(w, val.i)) { out_of_memory(w); }
 		break;
 
 	case lx_float_tag:
-		put_float(w, val.f);
+		if (!put_float(w, val.f)) { out_of_memory(w); }
 		break;
 
 	case lx_string_tag:
-		put_str(w, lx_strlen(val), val.s);
+		if (!put_str(w, lx_strlen(val), val.s)) { out_of_memory(w); }
 		break;
 	}
 }
@@ -243,25 +335,25 @@ static bool next_value(struct wstate *w, union lxvalue *next)
 		top = pop(w);
 		if (top.tag == lx_list_tag) {
 			if (!lx_is_empty_list(top.list)) {
-				put_ch(w, ' ');
 				*next = lx_car(top.list);
 				push(w, lx_list(lx_cdr(top.list)));
 				return true;
 			}
-			put_ch(w, ')');
+			if (!put_ch(w, ')')) { out_of_memory(w); }
+			w->indent--;
 		} else {
 			assert(top.tag == lx_tree_tag);
 			if (!lx_is_empty_tree(top.tree)) {
 				/* we've visited the left sub-tree: visit this
 				   entry next, and push everything up until the
 				   minimum value of the right sub-tree */ 
-				put_ch(w, ' ');
 				*next = lx_list(lx_tree_entry(top.tree));
 				push_tree_min(w, lx_tree_right(top.tree));
 				return true;
 			}
 			/* add closing bracket and pop more */
-			put_ch(w, '}');
+			if (!put_ch(w, '}')) { out_of_memory(w); }
+			w->indent--;
 		}
 	}
 	return false;
@@ -278,12 +370,46 @@ union lxvalue lx_write(struct lxmem *mem, union lxvalue value)
 	w.stack = mem->alloc.tag_free;
 	w.p = begin = (char *)(mem->alloc.raw_free + 1);
 	w.n = ((char *)mem->alloc.tag_free.cell - w.p) - 1;
+	w.indent = 0;
+
 	ref.tag = lx_string_tag;
 	ref.offset = 0;
 	ref.cell = mem->alloc.raw_free;
 
 	val = value;
-	do write_value(&w, val);
+	do write_value(&w, val, false);
+	while (next_value(&w, &val));
+
+	put_ch(&w, '\0');
+
+	/* store string length */
+	mem->alloc.raw_free->i = w.p - begin - 1;
+
+	/* advance raw free pointer */
+	mem->alloc.raw_free += 1 + ceil_div(mem->alloc.raw_free->i, CELL_SIZE);
+
+	return ref_to_string(ref);
+}
+
+union lxvalue lx_write_pretty(struct lxmem *mem, union lxvalue value)
+{
+	struct lxref ref;
+	union lxvalue val;
+	struct wstate w;
+	char *begin;
+
+	w.mem = mem;
+	w.stack = mem->alloc.tag_free;
+	w.p = begin = (char *)(mem->alloc.raw_free + 1);
+	w.n = ((char *)mem->alloc.tag_free.cell - w.p) - 1;
+	w.indent = 0;
+
+	ref.tag = lx_string_tag;
+	ref.offset = 0;
+	ref.cell = mem->alloc.raw_free;
+
+	val = value;
+	do write_value(&w, val, true);
 	while (next_value(&w, &val));
 
 	put_ch(&w, '\0');

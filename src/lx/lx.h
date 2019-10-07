@@ -53,6 +53,7 @@
 #define lx_equals MANGLE(equals)
 #define lx_read MANGLE(read)
 #define lx_write MANGLE(write)
+#define lx_write_pretty MANGLE(write_pretty)
 
 /* list API */
 #define lx_empty_list MANGLE(empty_list)
@@ -212,6 +213,7 @@ struct lxread lx_read(struct lxmem *mem, char const *str);
 
 /* serialize value to string */
 union lxvalue lx_write(struct lxmem *mem, union lxvalue value);
+union lxvalue lx_write_pretty(struct lxmem *mem, union lxvalue value);
 
 /* prepend an element to a list */
 struct lxlist lx_cons(struct lxmem *, union lxvalue, struct lxlist);

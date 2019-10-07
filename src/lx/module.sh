@@ -45,3 +45,4 @@ define_ok_test test/heap.c
 define_ok_test test/modify.c
 define_ok_test test/read.c
 define_ok_test test/write.c
+define_ok_test test/pretty.c
