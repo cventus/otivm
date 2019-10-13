@@ -14,9 +14,7 @@ union lxcell
 {
 	lxtag t[CELL_SIZE];
 	lxint i;
-#ifdef lxfloat
 	lxfloat f;
-#endif
 };
 
 /* Struct lxalloc contains pointers into a memory region for allocating memory

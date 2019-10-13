@@ -3,8 +3,7 @@
 #endif
 
 #if LX_BITS == 16
-/* No 16-bit floating point number support */
-#undef lxfloat
+#define lxfloat float
 #elif LX_BITS == 32
 #define lxfloat float
 #elif LX_BITS == 64
@@ -164,9 +163,7 @@ union lxvalue
 			bool b;
 			lxint i;
 			char const *s;
-#ifdef lxfloat
 			lxfloat f;
-#endif
 		};
 	};
 };
@@ -224,6 +221,7 @@ struct lxlist lx_triple(struct lxmem *,
 	union lxvalue,
 	union lxvalue,
 	union lxvalue);
+
 /* get first element of (non-empty) list */
 union lxvalue lx_car(struct lxlist list);
 

@@ -49,6 +49,7 @@ int lx_reserve_tagged(struct lxalloc *alloc, size_t n, struct lxref *ref)
 void lx_set_cell_data(union lxcell *data, union lxvalue val)
 {
 	switch (val.tag) {
+	default: abort();
 	case lx_list_tag:
 	case lx_tree_tag:
 		setref(data, val.list.ref);
@@ -56,10 +57,6 @@ void lx_set_cell_data(union lxcell *data, union lxvalue val)
 	case lx_string_tag: setref(data, string_to_ref(val)); break;
 	case lx_bool_tag: data->i = val.b; break;
 	case lx_int_tag: data->i = val.i; break;
-	case lx_float_tag:
-#if lxfloat
-		data->f = val.f; break;
-#endif
-	default: abort();
+	case lx_float_tag: data->f = val.f; break;
 	}
 }

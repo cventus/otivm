@@ -73,7 +73,6 @@ bool lx_equals(union lxvalue a, union lxvalue b)
 	case lx_int_tag:
 		switch (b.tag) {
 		case lx_int_tag: return a.i == b.i;
-#ifdef lxfloat
 		case lx_float_tag: return (lxfloat)a.i == b.f;
 		default: return false;
 		}
@@ -81,7 +80,6 @@ bool lx_equals(union lxvalue a, union lxvalue b)
 		switch (b.tag) {
 		case lx_int_tag: return a.f == (lxfloat)b.i;
 		case lx_float_tag: return a.f == b.f;
-#endif
 		default: return false;
 		}
 	default: return false;
