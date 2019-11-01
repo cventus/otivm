@@ -9,17 +9,17 @@
 #include "lx32x4.h"
 
 union lxcell cells[25];
-struct lxref a, b, c, d, e, f, g, h;
-struct lxref i, j, k, l, m, n, o, p;
-struct lxref q, r, s, t;
+struct lxvalue a, b, c, d, e, f, g, h;
+struct lxvalue i, j, k, l, m, n, o, p;
+struct lxvalue q, r, s, t;
 
 void before_each_test(void)
 {
-	a.cell = b.cell = c.cell = d.cell = cells + 0;
-	e.cell = f.cell = g.cell = h.cell = cells + 5;
-	i.cell = j.cell = k.cell = l.cell = cells + 10;
-	m.cell = n.cell = o.cell = p.cell = cells + 15;
-	q.cell = r.cell = s.cell = t.cell = cells + 20;
+	a.s = b.s = c.s = d.s = (char *)(cells + 0);
+	e.s = f.s = g.s = h.s = (char *)(cells + 5);
+	i.s = j.s = k.s = l.s = (char *)(cells + 10);
+	m.s = n.s = o.s = p.s = (char *)(cells + 15);
+	q.s = r.s = s.s = t.s = (char *)(cells + 20);
 
 	a.offset = e.offset = i.offset = m.offset = q.offset = 0;
 	b.offset = f.offset = j.offset = n.offset = r.offset = 1;

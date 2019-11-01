@@ -23,7 +23,7 @@ void before_each_test(void)
 
 int test_car(void)
 {
-	return assert_eq(lx_car(list), lx_int(ALPHA));
+	return assert_eq(lx_car(list), lx_valuei(ALPHA));
 }
 
 int test_cdr(void)
@@ -33,7 +33,7 @@ int test_cdr(void)
 
 int test_cadr(void)
 {
-	return assert_eq(lx_car(list_cdr), lx_int(BETA));
+	return assert_eq(lx_car(list_cdr), lx_valuei(BETA));
 }
 
 int test_cddr(void)
@@ -43,7 +43,7 @@ int test_cddr(void)
 
 int test_caddr(void)
 {
-	return assert_eq(lx_car(list_cddr), lx_int(GAMMA));
+	return assert_eq(lx_car(list_cddr), lx_valuei(GAMMA));
 }
 
 int test_cdddr(void)

@@ -13,10 +13,11 @@
 #include "lx.h"
 #include "memory.h"
 #include "ref.h"
+#include "alloc.h"
 #include "str.h"
 #include "list.h"
 
-int lx_reserve_tagged(struct lxalloc *alloc, size_t n, struct lxref *ref)
+int lx_reserve_tagged(struct lxalloc *alloc, size_t n, struct lxvalue *ref)
 {
 	size_t new_cells, new_span_cells, new_offset;
 
@@ -39,22 +40,23 @@ int lx_reserve_tagged(struct lxalloc *alloc, size_t n, struct lxref *ref)
 
 	/* Move free pointer */
 	new_offset = (CELL_SPAN - (new_cells % CELL_SPAN)) % CELL_SPAN;
-	alloc->tag_free.cell -= new_span_cells;
-	alloc->tag_free.offset = new_offset;
+	*ref = alloc->tag_free = mkref(
+		alloc->tag_free.tag,
+		new_offset,
+		ref_cell(alloc->tag_free) - new_span_cells);
 
-	*ref = alloc->tag_free;
 	return 0;
 }
 
-void lx_set_cell_data(union lxcell *data, union lxvalue val)
+void lx_set_cell_data(union lxcell *data, struct lxvalue val)
 {
 	switch (val.tag) {
 	default: abort();
 	case lx_list_tag:
 	case lx_tree_tag:
-		setref(data, val.list.ref);
+	case lx_string_tag:
+		setref(data, val);
 		break;
-	case lx_string_tag: setref(data, string_to_ref(val)); break;
 	case lx_bool_tag: data->i = val.b; break;
 	case lx_int_tag: data->i = val.i; break;
 	case lx_float_tag: data->f = val.f; break;

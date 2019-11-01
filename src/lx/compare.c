@@ -40,17 +40,17 @@ static int listcmp(struct lxlist a, struct lxlist b)
 	p = a;
 	q = b;
 	if (list_eq(p, q)) { return 0; }
-	if (!p.ref.cell) { return -1; }
-	if (!q.ref.cell) { return 1; }
+	if (!p.value.s) { return -1; }
+	if (!q.value.s) { return 1; }
 	do {
 		cmp = lx_compare(lx_car(p), lx_car(q));
 		if (cmp != 0) return cmp;
 		p = lx_cdr(p);
 		q = lx_cdr(q);
-	} while (p.ref.cell && q.ref.cell);
-	if (!p.ref.cell && !q.ref.cell) {
+	} while (p.value.s && q.value.s);
+	if (!p.value.s && !q.value.s) {
 		return 0;
-	} else if (!p.ref.cell) {
+	} else if (!p.value.s) {
 		return -1;
 	} else {
 	 	return 1;
@@ -67,8 +67,8 @@ static int treecmp(struct lxtree a, struct lxtree b)
 	q = b;
 
 	if (tree_eq(p, q)) { return 0; }
-	if (!p.ref.cell) { return -1; }
-	if (!q.ref.cell) { return 1; }
+	if (!p.value.s) { return -1; }
+	if (!q.value.s) { return 1; }
 
 	asz = lx_tree_size(a);
 	bsz = lx_tree_size(b);
@@ -82,7 +82,7 @@ static int treecmp(struct lxtree a, struct lxtree b)
 	return asz == bsz ? 0 : icmp(asz, bsz);
 }
 
-int lx_compare(union lxvalue a, union lxvalue b)
+int lx_compare(struct lxvalue a, struct lxvalue b)
 {
 	switch (TYPEPAIR(a.tag, b.tag)) {
 	/* bool */
@@ -107,11 +107,11 @@ int lx_compare(union lxvalue a, union lxvalue b)
 
 	/* list */
 	case SAMETYPE(lx_list_tag):
-		return listcmp(a.list, b.list);
+		return listcmp(lx_list(a), lx_list(b));
 
 	/* tree */
 	case SAMETYPE(lx_tree_tag):
-		return treecmp(a.tree, b.tree);
+		return treecmp(lx_tree(a), lx_tree(b));
 
 	/* type precedence: bool < number < string < list < tree */
 	case TYPEPAIR(lx_bool_tag, lx_int_tag):

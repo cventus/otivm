@@ -34,7 +34,7 @@ size_t compacted_size_D = 10;
 
 struct lxalloc to;
 
-union lxvalue root_X, root_A, root_B, root_C, root_d, root_D;
+struct lxvalue root_X, root_A, root_B, root_C, root_d, root_D;
 
 union lxcell stack_buf[50], *stack;
 
@@ -49,28 +49,28 @@ void before_each_test(void)
 	init_tospace(&to, to_buf, length_of(to_buf));
 	stack = stack_buf + length_of(stack_buf);
 
-	root_X = lx_list(mklist(from_buf + list_X_cell, list_X_offset));
-	root_A = lx_list(mklist(from_buf + list_A_cell, list_A_offset));
-	root_B = lx_list(mklist(from_buf + list_B_cell, list_B_offset));
-	root_C = lx_list(mklist(from_buf + list_C_cell, list_C_offset));
-	root_d = lx_list(mklist(from_buf + list_d_cell, list_d_offset));
-	root_D = lx_list(mklist(from_buf + list_D_cell, list_D_offset));
+	root_X = mklist(from_buf + list_X_cell, list_X_offset).value;
+	root_A = mklist(from_buf + list_A_cell, list_A_offset).value;
+	root_B = mklist(from_buf + list_B_cell, list_B_offset).value;
+	root_C = mklist(from_buf + list_C_cell, list_C_offset).value;
+	root_d = mklist(from_buf + list_d_cell, list_d_offset).value;
+	root_D = mklist(from_buf + list_D_cell, list_D_offset).value;
 }
 
 int test_A_count_refs_should_mark_shared_cells_twice(void)
 {
-	struct lxref ref;
+	struct lxvalue ref;
 
 	lx_count_refs(root_A, from_buf, stack, bitset);
 
 	// list X is shared by different elements of list A
-	mark_shared_bits(expected, ref_offset(from_buf, ref = root_X.list.ref));
+	mark_shared_bits(expected, ref_offset(from_buf, ref = root_X));
 	mark_shared_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_shared_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_shared_bits(expected, ref_offset(from_buf, forward(ref)));
 
 	// list A is only referenced once
-	mark_bits(expected, ref_offset(from_buf, ref = root_A.list.ref));
+	mark_bits(expected, ref_offset(from_buf, ref = root_A));
 	mark_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_bits(expected, ref_offset(from_buf, forward(ref)));
@@ -105,18 +105,18 @@ int test_A_compacted_tree_is_smaller(void)
 
 int test_B_count_refs_should_mark_shared_cells_twice(void)
 {
-	struct lxref ref;
+	struct lxvalue ref;
 
 	lx_count_refs(root_B, from_buf, stack, bitset);
 
 	// list X is shared by different elements of list B
-	mark_shared_bits(expected, ref_offset(from_buf, ref = root_X.list.ref));
+	mark_shared_bits(expected, ref_offset(from_buf, ref = root_X));
 	mark_shared_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_shared_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_shared_bits(expected, ref_offset(from_buf, forward(ref)));
 
 	// list B is only referenced once
-	mark_bits(expected, ref_offset(from_buf, ref = root_B.list.ref));
+	mark_bits(expected, ref_offset(from_buf, ref = root_B));
 	mark_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_bits(expected, ref_offset(from_buf, forward(ref)));
@@ -152,18 +152,18 @@ int test_B_compacted_tree_is_smaller(void)
 
 int test_C_count_refs_should_mark_shared_cells_twice(void)
 {
-	struct lxref ref;
+	struct lxvalue ref;
 
 	lx_count_refs(root_C, from_buf, stack, bitset);
 
 	// cdr(list X) is shared by different elements of list C
-	ref = root_X.list.ref;
+	ref = root_X;
 	mark_shared_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_shared_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_shared_bits(expected, ref_offset(from_buf, forward(ref)));
 
 	// list C is only referenced once
-	mark_bits(expected, ref_offset(from_buf, ref = root_C.list.ref));
+	mark_bits(expected, ref_offset(from_buf, ref = root_C));
 	mark_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_bits(expected, ref_offset(from_buf, forward(ref)));
 
@@ -198,22 +198,22 @@ int test_C_compacted_tree_is_smaller(void)
 
 int test_D_count_refs_should_mark_shared_cells_twice(void)
 {
-	struct lxref ref;
+	struct lxvalue ref;
 
 	lx_count_refs(root_D, from_buf, stack, bitset);
 
 	// list X is shared by different elements of list A
-	ref = root_X.list.ref;
+	ref = root_X;
 	mark_shared_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_shared_bits(expected, ref_offset(from_buf, ref = forward(ref)));
 	mark_shared_bits(expected, ref_offset(from_buf, forward(ref)));
 
 	// list d is only referenced once
-	mark_bits(expected, ref_offset(from_buf, ref = root_d.list.ref));
+	mark_bits(expected, ref_offset(from_buf, ref = root_d));
 	mark_bits(expected, ref_offset(from_buf, forward(ref)));
 
 	// list D is only referenced once
-	mark_bits(expected, ref_offset(from_buf, ref = root_D.list.ref));
+	mark_bits(expected, ref_offset(from_buf, ref = root_D));
 	mark_bits(expected, ref_offset(from_buf, forward(ref)));
 
 	assert_mem_eq(bitset, expected, sizeof expected);

@@ -1,6 +1,6 @@
-static inline struct lxtree ref_to_tree(struct lxref ref)
+static inline struct lxtree ref_to_tree(struct lxvalue ref)
 {
-	return (struct lxtree) { .ref = ref };
+	return (struct lxtree) { .value = ref };
 }
 
 static inline struct lxtree deref_tree(union lxcell const *c)
@@ -10,7 +10,7 @@ static inline struct lxtree deref_tree(union lxcell const *c)
 
 static inline bool tree_eq(struct lxtree a, struct lxtree b)
 {
-	return ref_eq(a.ref, b.ref);
+	return ref_eq(a.value, b.value);
 }
 
 static inline bool is_leaf_node(struct lxtree tree)

@@ -15,16 +15,16 @@
 #include "list.h"
 #include "tree.h"
 
-union lxvalue lx_car(struct lxlist list)
+struct lxvalue lx_car(struct lxlist list)
 {
 	switch (list_car_tag(list)) {
-	case lx_list_tag: return lx_list(deref_list(list_car(list)));
-	case lx_tree_tag: return lx_tree(deref_tree(list_car(list)));
-	case lx_string_tag: return ref_to_string(deref_string(list_car(list)));
-	case lx_bool_tag: return lx_bool(list_car(list)->i);
-	case lx_int_tag: return lx_int(list_car(list)->i);
-	case lx_float_tag: return lx_float(list_car(list)->f);
 	default: abort();
+	case lx_list_tag: return deref_list(list_car(list)).value;
+	case lx_tree_tag: return deref_tree(list_car(list)).value;
+	case lx_string_tag: return deref_string(list_car(list)).value;
+	case lx_bool_tag: return lx_valueb(list_car(list)->i);
+	case lx_int_tag: return lx_valuei(list_car(list)->i);
+	case lx_float_tag: return lx_valuef(list_car(list)->f);
 	}
 }
 
@@ -32,34 +32,34 @@ struct lxlist lx_cdr(struct lxlist list)
 {
 	switch (list_cdr_code(list)) {
 	case cdr_nil: return lx_empty_list();
-	case cdr_link: return deref_list(ref_data(forward(list.ref)));
-	case cdr_adjacent: return list_forward(list);
+	case cdr_link: return deref_list(ref_data(forward(list.value)));
+	case cdr_adjacent: return ref_to_list(forward(list.value));
 	default: abort();
 	}
 }
 
 struct lxlist lx_drop(struct lxlist list, lxint i)
 {
-	struct lxlist p;
+	struct lxvalue ref;
 	size_t raw_len, len;
 
 	if (i <= 0) {
 		return list;
 	}
-	p = list;
-	while (!lx_is_empty_list(p)) {
-		raw_len = lxtag_len(*ref_tag(list.ref));
+	ref = list.value;
+	while (!ref_is_nil(ref)) {
+		raw_len = lxtag_len(*ref_tag(ref));
 		len = raw_len == 0 ? 1 : raw_len;
 
 		if ((size_t)i < len) {
-			p.ref = ref_advance(p.ref, i);
-			return p;
+			ref = ref_advance(ref, i);
+			break;
 		} else {
-			p.ref = ref_advance(p.ref, len - 1);
-			switch (lxtag_len(*ref_tag(p.ref))) {
+			ref = ref_advance(ref, len - 1);
+			switch (lxtag_len(*ref_tag(ref))) {
 			case 0:
 				/* Follow link to next segment */
-				p = deref_list(ref_data(forward(p.ref)));
+				ref = deref_list(ref_data(forward(ref))).value;
 				i -= len;
 				break;
 			case 1:
@@ -72,12 +72,12 @@ struct lxlist lx_drop(struct lxlist list, lxint i)
 			}
 		}
 	}
-	return p;
+	return ref_to_list(ref);
 }
 
-union lxvalue lx_nth(struct lxlist list, lxint i)
+struct lxvalue lx_nth(struct lxlist l, lxint i)
 {
-	return lx_car(lx_drop(list, i));
+	return lx_car(lx_drop(l, i));
 }
 
 lxint lx_length(struct lxlist list)
@@ -85,7 +85,7 @@ lxint lx_length(struct lxlist list)
 	struct lxlist p = list;
 	lxint sz = 0;
 
-	while (p.ref.cell) {
+	while (!lx_is_empty_list(p)) {
 		sz += 1;
 		p = lx_cdr(p);
 	}
@@ -94,17 +94,18 @@ lxint lx_length(struct lxlist list)
 
 struct lxlist lx_cons(
 	struct lxmem *mem,
-	union lxvalue val,
+	struct lxvalue val,
 	struct lxlist list)
 {
-	struct lxref ref, cdr;
+	struct lxvalue ref, cdr;
 	size_t len;
 
 	if (lx_is_empty_list(list)) {
 		/* singleton */
 		len = 1;
-	} else if (ref_eq(list.ref, mem->alloc.tag_free)) {
-		len = lxtag_len(*ref_tag(list.ref));
+	} else if (ref_eq(list.value, mem->alloc.tag_free)) {
+		/* create compact list */
+		len = lxtag_len(*ref_tag(list.value));
 		if (len == 0) {
 			len = 2;
 		} else if (len < MAX_SEGMENT_LENGTH) {
@@ -122,7 +123,7 @@ struct lxlist lx_cons(
 	if (len == 0) {
 		cdr = forward(ref);
 		*ref_tag(cdr) = mktag(1, lx_list_tag);
-		setref(ref_data(cdr), list.ref);
+		setref(ref_data(cdr), list.value);
 	}
 	ref.tag = lx_list_tag;
 	return ref_to_list(ref);
@@ -141,21 +142,21 @@ struct lxlist lx_reverse(struct lxmem *mem, struct lxlist list)
 	return res;
 }
 
-struct lxlist lx_single(struct lxmem *mem, union lxvalue a)
+struct lxlist lx_single(struct lxmem *mem, struct lxvalue a)
 {
 	return lx_cons(mem, a, lx_empty_list());
 }
 
-struct lxlist lx_pair(struct lxmem *mem, union lxvalue a, union lxvalue b)
+struct lxlist lx_pair(struct lxmem *mem, struct lxvalue a, struct lxvalue b)
 {
 	return lx_cons(mem, a, lx_single(mem, b));
 }
 
 struct lxlist lx_triple(
 	struct lxmem *mem,
-	union lxvalue a,
-	union lxvalue b,
-	union lxvalue c)
+	struct lxvalue a,
+	struct lxvalue b,
+	struct lxvalue c)
 {
 	return lx_cons(mem, a, lx_pair(mem, b, c));
 }

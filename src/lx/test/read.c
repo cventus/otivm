@@ -21,7 +21,7 @@ void after_each_test(void)
 	lx_free_heap(heap);
 }
 
-static union lxvalue read_it(struct lxmem *mem, union lxvalue val, va_list ap)
+static struct lxvalue read_it(struct lxmem *mem, struct lxvalue val, va_list ap)
 {
 	char const *str;
 	struct lxread *r;
@@ -44,28 +44,28 @@ static void do_read(char const *str, enum lx_tag expected)
 int test_read_true(void)
 {
 	do_read("#t", lx_bool_tag);
-	assert_eq(result.value, lx_bool(1));
+	assert_eq(result.value, lx_valueb(1));
 	return 0;
 }
 
 int test_read_false(void)
 {
 	do_read("#f", lx_bool_tag);
-	assert_eq(result.value, lx_bool(0));
+	assert_eq(result.value, lx_valueb(0));
 	return 0;
 }
 
 int test_read_int_1(void)
 {
 	do_read("1", lx_int_tag);
-	assert_eq(result.value, lx_int(1));
+	assert_eq(result.value, lx_valuei(1));
 	return 0;
 }
 
 int test_read_int_minus_1(void)
 {
 	do_read("-1", lx_int_tag);
-	assert_eq(result.value, lx_int(-1));
+	assert_eq(result.value, lx_valuei(-1));
 	return 0;
 }
 
@@ -79,7 +79,7 @@ int test_read_int_max(void)
 	snprintf(int_max, sizeof int_max - 1, "%" JOIN(PRId, LX_BITS), max);
 
 	do_read(int_max, lx_int_tag);
-	assert_eq(result.value, lx_int(max));
+	assert_eq(result.value, lx_valuei(max));
 	return 0;
 }
 
@@ -93,7 +93,7 @@ int test_read_int_min(void)
 	snprintf(int_min, sizeof int_min - 1, "%" JOIN(PRId, LX_BITS), min);
 
 	do_read(int_min, lx_int_tag);
-	assert_eq(result.value, lx_int(min));
+	assert_eq(result.value, lx_valuei(min));
 	return 0;
 }
 
@@ -115,7 +115,7 @@ int test_read_one_token(void)
 int test_read_empty_list(void)
 {
 	do_read("()", lx_list_tag);
-	assert_eq(result.value, lx_list(lx_empty_list()));
+	assert_eq(result.value, lx_empty_list().value);
 	return 0;
 }
 
@@ -124,7 +124,7 @@ int test_read_list(void)
 	struct lxlist l;
 
 	do_read("(a b c)", lx_list_tag);
-	l = result.value.list;
+	l = lx_list(result.value);
 	assert_int_eq(lx_length(l), 3);
 	assert_str_eq(lx_nth(l, 0).s, "a");
 	assert_str_eq(lx_nth(l, 1).s, "b");
@@ -135,7 +135,7 @@ int test_read_list(void)
 int test_read_empty_tree(void)
 {
 	do_read("{}", lx_tree_tag);
-	assert_eq(result.value, lx_tree(lx_empty_tree()));
+	assert_eq(result.value, lx_empty_tree().value);
 	return 0;
 }
 
@@ -145,22 +145,22 @@ int test_read_tree(void)
 	struct lxlist l;
 
 	do_read("{(1 a) (2 b) (3 c)}", lx_tree_tag);
-	t = result.value.tree;
+	t = lx_tree(result.value);
 	assert_int_eq(lx_tree_size(t), 3);
 
 	l = lx_tree_nth(t, 0);
 	assert_int_eq(lx_length(l), 2);
-	assert_eq(lx_nth(l, 0), lx_int(1));
+	assert_eq(lx_nth(l, 0), lx_valuei(1));
 	assert_str_eq(lx_nth(l, 1).s, "a");
 
 	l = lx_tree_nth(t, 1);
 	assert_int_eq(lx_length(l), 2);
-	assert_eq(lx_nth(l, 0), lx_int(2));
+	assert_eq(lx_nth(l, 0), lx_valuei(2));
 	assert_str_eq(lx_nth(l, 1).s, "b");
 
 	l = lx_tree_nth(t, 2);
 	assert_int_eq(lx_length(l), 2);
-	assert_eq(lx_nth(l, 0), lx_int(3));
+	assert_eq(lx_nth(l, 0), lx_valuei(3));
 	assert_str_eq(lx_nth(l, 1).s, "c");
 
 	return 0;

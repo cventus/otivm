@@ -13,20 +13,17 @@
 #include "lx.h"
 #include "memory.h"
 #include "ref.h"
+#include "alloc.h"
 #include "str.h"
 #include "list.h"
 
-size_t lx_strlen(union lxvalue string)
+size_t lx_strlen(struct lxstring string)
 {
-	if (string.tag != lx_string_tag || string.s == NULL) {
-		return 0;
-	} else {
-		return string_to_ref(string).cell->i;
-	}
+	return ((union lxcell const *)string.value.s)[-1].i;
 }
 
 /* create a string of exactly n bytes (which are not null) from src */
-static union lxvalue strdup_exact(struct lxmem *mem, char const *src, size_t n)
+static struct lxstring strdup_exact(struct lxmem *mem, char const *src, size_t n)
 {
 	size_t free_bytes;
 	char *dest;
@@ -34,7 +31,7 @@ static union lxvalue strdup_exact(struct lxmem *mem, char const *src, size_t n)
 
 	/* check available space */
 	free_bytes = alloc_free_count(&mem->alloc) * sizeof (union lxcell);
-	if (n + sizeof (union lxcell) >= free_bytes) {
+	if (n + sizeof (union lxcell) + 1 >= free_bytes) {
 		longjmp(mem->escape, mem->oom);
 	}
 
@@ -48,18 +45,18 @@ static union lxvalue strdup_exact(struct lxmem *mem, char const *src, size_t n)
 	dest[n] = 0;
 	sz->i = n;
 
-	return (union lxvalue) {
-		.tag = lx_string_tag,
-		.s = dest,
+	return (struct lxstring) {
+		.value.tag = lx_string_tag,
+		.value.s = dest,
 	};
 }
 
-union lxvalue lx_strdup(struct lxmem *mem, char const *src)
+struct lxstring lx_strdup(struct lxmem *mem, char const *src)
 {
 	return strdup_exact(mem, src, strlen(src));
 }
 
-union lxvalue lx_strndup(struct lxmem *mem, char const *src, size_t n)
+struct lxstring lx_strndup(struct lxmem *mem, char const *src, size_t n)
 {
 	char const *p;
 
@@ -72,7 +69,7 @@ union lxvalue lx_strndup(struct lxmem *mem, char const *src, size_t n)
 	}
 }
 
-union lxvalue lx_vsprintf(struct lxmem *mem, char const *fmt, va_list ap)
+struct lxstring lx_vsprintf(struct lxmem *mem, char const *fmt, va_list ap)
 {
 	size_t cells, free_bytes;
 	union lxcell *sz = mem->alloc.raw_free;
@@ -97,16 +94,16 @@ union lxvalue lx_vsprintf(struct lxmem *mem, char const *fmt, va_list ap)
 
 	mem->alloc.raw_free += ceil_div(n + 1, sizeof (union lxcell)) + 1;
 
-	return (union lxvalue) {
-		.tag = lx_string_tag,
-		.s = dest,
+	return (struct lxstring) {
+		.value.tag = lx_string_tag,
+		.value.s = dest,
 	};
 }
 
-union lxvalue lx_sprintf(struct lxmem *mem, char const *fmt, ...)
+struct lxstring lx_sprintf(struct lxmem *mem, char const *fmt, ...)
 {
 	va_list ap;
-	union lxvalue result;
+	struct lxstring result;
 
 	va_start(ap, fmt);
 	result = lx_vsprintf(mem, fmt, ap);

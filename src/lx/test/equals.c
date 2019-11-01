@@ -9,7 +9,7 @@
 
 enum symbols { LAMBDA, X, Y };
 
-union lxvalue
+struct lxvalue
 int_one,
 int_zero,
 #ifdef lxfloat
@@ -28,23 +28,21 @@ list_c;
 
 void before_each_test(void)
 {
-	list_a = lx_list(mklist(state + list_a_cell, list_a_offset));
+	list_a = mklist(state + list_a_cell, list_a_offset).value;
 
-	list_a_copy = lx_list(mklist(state + list_a_copy_cell, list_a_copy_offset));
+	list_a_copy = mklist(state + list_a_copy_cell, list_a_copy_offset).value;
 
-	list_b = lx_list(mklist(state + list_b_cell, list_b_offset));
-	list_b_copy = lx_list(mklist(state + list_b_copy_cell, list_b_copy_offset));
+	list_b = mklist(state + list_b_cell, list_b_offset).value;
+	list_b_copy = mklist(state + list_b_copy_cell, list_b_copy_offset).value;
 
-	list_c = lx_list(mklist(state + list_c_cell, list_c_offset));
+	list_c = mklist(state + list_c_cell, list_c_offset).value;
 
-	int_one = lx_int(1);
-	int_zero = lx_int(0);
-#ifdef lxfloat
-	float_one = lx_float(1);
-	float_zero = lx_float(0);
-#endif
-	bool_true = lx_bool(true);
-	bool_false = lx_bool(false);
+	int_one = lx_valuei(1);
+	int_zero = lx_valuei(0);
+	float_one = lx_valuef(1);
+	float_zero = lx_valuef(0);
+	bool_true = lx_valueb(true);
+	bool_false = lx_valueb(false);
 }
 
 int test_int_one_equals_self(void)

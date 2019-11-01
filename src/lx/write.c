@@ -22,7 +22,7 @@
 #define SHORT_LIST 40
 
 struct wstate {
-	struct lxref stack;
+	struct lxvalue stack;
 	struct lxmem *mem;
 	char *p;
 	lxint n, indent;
@@ -33,24 +33,26 @@ static void out_of_memory(struct wstate *w)
 	longjmp(w->mem->escape, w->mem->oom); 
 }
 
-static void push(struct wstate *w, union lxvalue val)
+static void push(struct wstate *w, struct lxvalue val)
 {
+	union lxcell const *c;
+
 	if (w->stack.offset) {
 		w->stack.offset--;
 	} else if (w->n > SPAN_LENGTH*CELL_SIZE) {
-		w->stack.offset = OFFSET_MASK;
-		w->stack.cell -= SPAN_LENGTH;
+		c = ref_cell(w->stack) - SPAN_LENGTH;
+		w->stack = mkref(lx_list_tag, OFFSET_MASK, c);
 		w->n -= SPAN_LENGTH*CELL_SIZE;
 	} else {
 		out_of_memory(w);
 	}
-	lx_set_cell_data(ref_data(w->stack), val);
 	*ref_tag(w->stack) = val.tag;
+	lx_set_cell_data(ref_data(w->stack), val);
 }
 
-static union lxvalue pop(struct wstate *w)
+static struct lxvalue pop(struct wstate *w)
 {
-	union lxvalue result;
+	struct lxvalue result;
 	result = lx_car(ref_to_list(w->stack));
 	w->stack = forward(w->stack);
 	if (w->stack.offset == 0) {
@@ -70,7 +72,7 @@ static void push_tree_min(struct wstate *w, struct lxtree tree)
 
 	t = tree;
 	while (!lx_is_empty_tree(t)) {
-		push(w, lx_tree(t));
+		push(w, t.value);
 		t = lx_tree_left(t);
 	}
 }
@@ -186,10 +188,11 @@ static bool put_str(struct wstate *w, lxint n, char const *q)
 	return res && put_ch(w, '"');
 }
 
-static bool write_brief(struct wstate *w, union lxvalue val, int maxdepth)
+static bool write_brief(struct wstate *w, struct lxvalue val, int maxdepth)
 {
 	bool res;
-	struct lxlist lst;
+	struct lxlist list;
+	struct lxtree tree;
 
 	if (maxdepth == 0) {
 		return false;
@@ -199,31 +202,32 @@ static bool write_brief(struct wstate *w, union lxvalue val, int maxdepth)
 		return abort(), false;
 
 	case lx_list_tag:
-		if (lx_is_empty_list(val.list)) {
+		list = ref_to_list(val);
+		if (lx_is_empty_list(list)) {
 			return put_raw_str(w, 2, "()");
 		} else {
-			lst = val.list;
-			val = lx_car(lst);
+			val = lx_car(list);
 			res = put_ch(w, '(') &&
 				write_brief(w, val, maxdepth - 1);
-			lst = lx_cdr(lst);
-			while (res && !lx_is_empty_list(lst)) {
-				val = lx_car(lst);
+			list = lx_cdr(list);
+			while (res && !lx_is_empty_list(list)) {
+				val = lx_car(list);
 				res = put_ch(w, ' ') &&
 					write_brief(w, val, maxdepth - 1);
-				lst = lx_cdr(lst);
+				list = lx_cdr(list);
 			}
 			return res && put_ch(w, ')');
 		}
 
 	case lx_tree_tag:
-		if (lx_is_empty_tree(val.tree)) {
+		tree = ref_to_tree(val);
+		if (lx_is_empty_tree(tree)) {
 			return put_raw_str(w, 2, "{}");
-		} else if (lx_tree_size(val.tree) == 1) {
+		} else if (lx_tree_size(tree) == 1) {
 			return put_ch(w, '{') &&
 				write_brief(
 					w,
-					lx_list(lx_tree_entry(val.tree)),
+					lx_tree_entry(tree).value,
 					maxdepth - 1) &&
 				put_ch(w, '}');
 		}
@@ -239,13 +243,16 @@ static bool write_brief(struct wstate *w, union lxvalue val, int maxdepth)
 		return put_float(w, val.f);
 
 	case lx_string_tag:
-		return put_str(w, lx_strlen(val), val.s);
+		assert(val.offset == 0);
+		return put_str(w, lx_strlen(ref_to_string(val)), val.s);
 	}
 }
 
-static void write_value(struct wstate *w, union lxvalue val, bool break_lines)
+static void write_value(struct wstate *w, struct lxvalue val, bool break_lines)
 {
 	struct wstate u;
+	struct lxlist list;
+	struct lxtree tree;
 
 	if (w->indent > 0) {
 		if (break_lines) {
@@ -265,7 +272,8 @@ next:
 	default: abort();
 
 	case lx_list_tag:
-		if (lx_is_empty_list(val.list)) {
+		list = ref_to_list(val);
+		if (lx_is_empty_list(list)) {
 			if (!put_raw_str(w, 2, "()")) { out_of_memory(w); }
 			break;
 		} else {
@@ -283,25 +291,27 @@ tree_entry:
 			}
 			if (!put_ch(w, '(')) { out_of_memory(w); }
 			w->indent++;
-			push(w, lx_list(lx_cdr(val.list)));
-			val = lx_car(val.list);
+			push(w, lx_cdr(list).value);
+			val = lx_car(list);
 			goto next;
 		}
 
 	case lx_tree_tag:
-		if (lx_is_empty_tree(val.tree)) {
+		tree = ref_to_tree(val);
+		if (lx_is_empty_tree(tree)) {
 			if (!put_raw_str(w, 2, "{}")) { out_of_memory(w); }
 			break;
 		} else {
 			if (!put_ch(w, '{')) { out_of_memory(w); }
 			w->indent++;
-			push(w, lx_tree(lx_empty_tree()));
-			push_tree_min(w, val.tree);
+			push(w, lx_empty_tree().value);
+			push_tree_min(w, tree);
 			val = pop(w);
-			assert(val.tag == lx_tree_tag);
-			push_tree_min(w, lx_tree_right(val.tree));
-			val.list = lx_tree_entry(val.tree);
-			assert(!lx_is_empty_list(val.list));
+			tree = lx_tree(val);
+			push_tree_min(w, lx_tree_right(tree));
+			list = lx_tree_entry(tree);
+			val = list.value;
+			assert(!lx_is_empty_list(list));
 			goto tree_entry;
 		}
 
@@ -320,35 +330,42 @@ tree_entry:
 		break;
 
 	case lx_string_tag:
-		if (!put_str(w, lx_strlen(val), val.s)) { out_of_memory(w); }
+		assert(val.offset == 0);
+		if (!put_str(w, lx_strlen(ref_to_string(val)), val.s)) {
+			out_of_memory(w);
+		}
 		break;
 	}
 }
 
 /* fetch the next list or tree element, if any, from stack and write closing
    bracket(s) along the way */
-static bool next_value(struct wstate *w, union lxvalue *next)
+static bool next_value(struct wstate *w, struct lxvalue *next)
 {
-	union lxvalue top;
+	struct lxvalue top;
+	struct lxlist list;
+	struct lxtree tree;
 
 	while (!is_empty_stack(w)) {
 		top = pop(w);
 		if (top.tag == lx_list_tag) {
-			if (!lx_is_empty_list(top.list)) {
-				*next = lx_car(top.list);
-				push(w, lx_list(lx_cdr(top.list)));
+			list = ref_to_list(top);
+			if (!lx_is_empty_list(list)) {
+				*next = lx_car(list);
+				push(w, lx_cdr(list).value);
 				return true;
 			}
 			if (!put_ch(w, ')')) { out_of_memory(w); }
 			w->indent--;
 		} else {
 			assert(top.tag == lx_tree_tag);
-			if (!lx_is_empty_tree(top.tree)) {
+			tree = ref_to_tree(top);
+			if (!lx_is_empty_tree(tree)) {
 				/* we've visited the left sub-tree: visit this
 				   entry next, and push everything up until the
 				   minimum value of the right sub-tree */ 
-				*next = lx_list(lx_tree_entry(top.tree));
-				push_tree_min(w, lx_tree_right(top.tree));
+				*next = lx_tree_entry(tree).value;
+				push_tree_min(w, lx_tree_right(tree));
 				return true;
 			}
 			/* add closing bracket and pop more */
@@ -359,22 +376,20 @@ static bool next_value(struct wstate *w, union lxvalue *next)
 	return false;
 }
 
-union lxvalue lx_write(struct lxmem *mem, union lxvalue value)
+struct lxstring lx_write(struct lxmem *mem, struct lxvalue value)
 {
-	struct lxref ref;
-	union lxvalue val;
+	struct lxvalue ref;
+	struct lxvalue val;
 	struct wstate w;
 	char *begin;
 
 	w.mem = mem;
 	w.stack = mem->alloc.tag_free;
 	w.p = begin = (char *)(mem->alloc.raw_free + 1);
-	w.n = ((char *)mem->alloc.tag_free.cell - w.p) - 1;
+	w.n = ((char *)ref_cell(mem->alloc.tag_free) - begin) - 1;
 	w.indent = 0;
 
-	ref.tag = lx_string_tag;
-	ref.offset = 0;
-	ref.cell = mem->alloc.raw_free;
+	ref = mkref(lx_string_tag, 0, mem->alloc.raw_free + 1);
 
 	val = value;
 	do write_value(&w, val, false);
@@ -386,27 +401,25 @@ union lxvalue lx_write(struct lxmem *mem, union lxvalue value)
 	mem->alloc.raw_free->i = w.p - begin - 1;
 
 	/* advance raw free pointer */
-	mem->alloc.raw_free += 1 + ceil_div(mem->alloc.raw_free->i, CELL_SIZE);
+	mem->alloc.raw_free += 1 + ceil_div(mem->alloc.raw_free->i + 1, CELL_SIZE);
 
 	return ref_to_string(ref);
 }
 
-union lxvalue lx_write_pretty(struct lxmem *mem, union lxvalue value)
+struct lxstring lx_write_pretty(struct lxmem *mem, struct lxvalue value)
 {
-	struct lxref ref;
-	union lxvalue val;
+	struct lxvalue ref;
+	struct lxvalue val;
 	struct wstate w;
 	char *begin;
 
 	w.mem = mem;
 	w.stack = mem->alloc.tag_free;
 	w.p = begin = (char *)(mem->alloc.raw_free + 1);
-	w.n = ((char *)mem->alloc.tag_free.cell - w.p) - 1;
+	w.n = ((char *)ref_cell(mem->alloc.tag_free) - begin) - 1;
 	w.indent = 0;
 
-	ref.tag = lx_string_tag;
-	ref.offset = 0;
-	ref.cell = mem->alloc.raw_free;
+	ref = mkref(lx_string_tag, 0, mem->alloc.raw_free + 1);
 
 	val = value;
 	do write_value(&w, val, true);
@@ -418,7 +431,7 @@ union lxvalue lx_write_pretty(struct lxmem *mem, union lxvalue value)
 	mem->alloc.raw_free->i = w.p - begin - 1;
 
 	/* advance raw free pointer */
-	mem->alloc.raw_free += 1 + ceil_div(mem->alloc.raw_free->i, CELL_SIZE);
+	mem->alloc.raw_free += 1 + ceil_div(mem->alloc.raw_free->i + 1, CELL_SIZE);
 
 	return ref_to_string(ref);
 }

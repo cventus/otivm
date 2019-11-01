@@ -12,6 +12,7 @@
 #include "lx.h"
 #include "memory.h"
 #include "ref.h"
+#include "alloc.h"
 #include "str.h"
 #include "list.h"
 #include "tree.h"
@@ -27,40 +28,41 @@ static bool is_shared(void *bitset, size_t i)
 	return get_bits(bitset, i) != 0x1;
 }
 
-static struct lxref copy_string(struct lxref string, struct lxalloc *to)
+static struct lxvalue copy_string(struct lxvalue string, struct lxalloc *to)
 {
-	struct lxref copy;
+	struct lxvalue copy;
 	union lxcell *src, *dest;
-	lxint length = string.cell->i;
+	lxint length;
 
+	length = lx_strlen(ref_to_string(string));
 	if (length < 0) {
 		/* already copied */
-		copy = dexref(string.cell + 1, to->min_addr, lx_string_tag);
+		copy = dexref(ref_cell(string), to->min_addr, lx_string_tag);
 	} else {
 		/* move string allocation pointer backwards */
 		to->raw_free -= ceil_div(length + 1, CELL_SIZE) + 1;
-		src = (union lxcell *)string.cell;
+		src = ref_cell(string);
 		dest = to->raw_free;
-		copy = mkref(lx_string_tag, 0, dest);
+		copy = mkref(lx_string_tag, 0, dest + 1);
 
 		/* copy string into to-space */
 		dest->i = length;
-		memcpy(dest + 1, src + 1, length + 1);
+		memcpy(dest + 1, src, length + 1);
 
 		/* store forward cross refereence in source string */
-		src->i = -1;
-		setxref(src + 1, to->min_addr, copy);
+		src[-1].i = -1;
+		setxref(src, to->min_addr, copy);
 	}
 	return copy;
 }
 
 static void copy_data(
-	struct lxref dest,
-	struct lxref src,
+	struct lxvalue dest,
+	struct lxvalue src,
 	union lxcell *from,
 	struct lxalloc *to)
 {
-	struct lxref car;
+	struct lxvalue car;
 	enum lx_tag tag;
 
 	tag = lxtag_tag(*ref_tag(src));
@@ -89,7 +91,7 @@ static void copy_data(
 	}
 }
 
-static void adjust_segment_lengths(struct lxref ref)
+static void adjust_segment_lengths(struct lxvalue ref)
 {
 	size_t i;
 	lxtag tag;
@@ -108,13 +110,13 @@ static void adjust_segment_lengths(struct lxref ref)
    forward-pointer (the copy's offset in to-space) in the CAR. `list` is a list
    structure in from-space. Return the copied and possibly compacted list in
    to-space. */
-static struct lxref copy_list(
-	struct lxref list,
+static struct lxvalue copy_list(
+	struct lxvalue list,
 	union lxcell *from,
 	struct lxalloc *to,
 	void *bitset)
 {
-	struct lxref src, dest, result;
+	struct lxvalue src, dest, result;
 	lxtag meta;
 	enum lx_tag type;
 	bool shared;
@@ -184,17 +186,17 @@ static struct lxref copy_list(
 
 /* Adapted from: Cheney, C. J. (November 1970). "A Nonrecursive List Compacting
    Algorithm", Communications of the ACM. 13 (11): 677-678. */
-static union lxvalue cheney70(
-	union lxvalue root,
+static struct lxvalue cheney70(
+	struct lxvalue root,
 	union lxcell *from,
 	struct lxalloc *to,
 	void *bitset)
 {
 	size_t i;
 	union lxcell *from_data, *to_data;
-	struct lxref ref, scan;
+	struct lxvalue ref, scan;
 	enum lx_tag tag;
-	union lxvalue result;
+	struct lxvalue result;
 
 	/* allocate one cell as a sentinel value when scanning backwards in
 	   lx_shared_head() - note that the latest allocation in the other end
@@ -203,13 +205,13 @@ static union lxvalue cheney70(
 	ref_data(to->tag_free)->i = 0;
 	to->tag_free = forward(to->tag_free);
 
-	if (root.tag == lx_list_tag || is_leaf_node(root.tree)) {
-		scan = copy_list(root.list.ref, from, to, bitset);
-		result.list.ref = scan;
+	if (root.tag == lx_list_tag || is_leaf_node(lx_tree(root))) {
+		scan = copy_list(root, from, to, bitset);
+		result = scan;
 	} else {
-		ref = backward(backward(root.tree.ref));
+		ref = backward(backward(root));
 		scan = copy_list(ref, from, to, bitset);
-		result.tree.ref = forward(forward(scan));
+		result = forward(forward(scan));
 	}
 
 	/* update references until the free pointer has been reached */
@@ -259,8 +261,8 @@ static union lxvalue cheney70(
    order to find lists which are shared and which only have one reference (i.e.
    can be compacted through cdr-coding) and use to-space as a stack. Second,
    copy lists breadth-first using Cheney's algorithm. */
-union lxvalue lx_compact(
-	union lxvalue root,
+struct lxvalue lx_compact(
+	struct lxvalue root,
 	union lxcell *from,
 	struct lxalloc *to,
 	void *bitset,
@@ -274,17 +276,14 @@ union lxvalue lx_compact(
 		return root;
 
 	case lx_string_tag:
-		return ref_to_string(copy_string(string_to_ref(root), to));
+		return copy_string(root, to);
 
 	case lx_list_tag:
-		if (lx_is_empty_list(root.list)) {
-			return root;
-		}
+		if (lx_is_empty_list(ref_to_list(root))) { return root; }
 		break;
+
 	case lx_tree_tag:
-		if (lx_is_empty_tree(root.tree)) {
-			return root;
-		}
+		if (lx_is_empty_tree(ref_to_tree(root))) { return root; }
 		break;
 	}
 

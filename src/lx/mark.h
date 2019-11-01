@@ -64,21 +64,21 @@ static inline unsigned get_bits(void const *bitset, size_t i)
 }
 
 /* Get cell bit offset. */
-static inline size_t ref_offset(union lxcell const *space, struct lxref ref)
+static inline size_t ref_offset(union lxcell const *space, struct lxvalue ref)
 {
 	/* two unused bits in case of a span */
-	return (ref.cell - space) + ref.offset;
+	return (ref_cell(ref) - space) + ref.offset;
 }
 
-struct lxref lx_shared_head(
-	struct lxref segment,
+struct lxvalue lx_shared_head(
+	struct lxvalue segment,
 	union lxcell const *from,
 	void const *bitset);
 
 /* Recursively mark reachable nodes with two bits to find shared list
    structure. */
 void lx_count_refs(
-	union lxvalue root,
+	struct lxvalue root,
 	union lxcell const *from,
 	union lxcell *stack_max,
 	void *bitset);

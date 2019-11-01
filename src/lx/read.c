@@ -13,16 +13,17 @@
 #include "lx.h"
 #include "memory.h"
 #include "ref.h"
+#include "alloc.h"
 #include "str.h"
 #include "list.h"
 #include "tree.h"
 
-static struct lxread read_ok(union lxvalue result, char const *where) {
+static struct lxread read_ok(struct lxvalue result, char const *where) {
 	return (struct lxread) { LX_READ_OK, where, result };
 }
 
 static struct lxread read_err(enum lx_read_error err, char const *where) {
-	return (struct lxread) { err, where, lx_bool(0) };
+	return (struct lxread) { err, where, lx_valueb(false) };
 }
 
 #define WHITESPACE " \t\v\r\n"
@@ -44,7 +45,7 @@ static int read_string(
 	struct lxmem *mem,
 	char const *str,
 	char const **end,
-	union lxvalue *val)
+	struct lxvalue *val)
 {
 	size_t cells, free_bytes;
 	char const *q;
@@ -81,11 +82,10 @@ static int read_string(
 	}
 	*s = '\0';
 	n = s - smin;
+	*val = mkref(lx_string_tag, 0, mem->alloc.raw_free + 1);
 	mem->alloc.raw_free->i = s - smin;
 	mem->alloc.raw_free += ceil_div(n + 1, sizeof (union lxcell)) + 1;
 
-	val->tag = lx_string_tag;
-	val->s = smin;
 	*end = q + 1;
 	return 0;
 }
@@ -93,7 +93,7 @@ static int read_string(
 static int read_int(
 	char const *str,
 	char const **end,
-	union lxvalue *val,
+	struct lxvalue *val,
 	int base)
 {
 	intmax_t i;
@@ -103,14 +103,14 @@ static int read_int(
 	if (*end == str || !is_separator(**end)) {
 		return -1;
 	}
-	*val = lx_int(i);
+	*val = lx_valuei(i);
 	return 0;
 }
 
 static int read_float(
 	char const *str,
 	char const **end,
-	union lxvalue *val)
+	struct lxvalue *val)
 {
 	double f;
 
@@ -119,7 +119,7 @@ static int read_float(
 	if (*end == str || !is_separator(**end)) {
 		return -1;
 	}
-	*val = lx_float(f);
+	*val = lx_valuef(f);
 	return 0;
 }
 
@@ -127,7 +127,7 @@ static int read_atom(
 	struct lxmem *mem,
 	char const *str,
 	char const **end,
-	union lxvalue *val)
+	struct lxvalue *val)
 {
 	size_t n;
 
@@ -135,7 +135,7 @@ static int read_atom(
 	if (read_int(str, end, val, 10) && read_float(str, end, val)) {
 		n = strcspn(str, SEPARATORS);
 		assert(n > 0);
-		*val = lx_strndup(mem, str, n);
+		*val = lx_strndup(mem, str, n).value;
 		*end = str + n;
 		return 0;
 	}
@@ -145,7 +145,7 @@ static int read_atom(
 struct lxread lx_read(struct lxmem *mem, char const *str)
 {
 	char const *p, *q;
-	union lxvalue val, top;
+	struct lxvalue val, top;
 	struct lxlist stack;
 	enum lx_tag tag;
 	int err;
@@ -160,7 +160,7 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 			return read_err(LX_READ_INCOMPLETE, str);
 
 		case '(':
-			val = lx_list(lx_empty_list());
+			val = lx_empty_list().value;
 			q = skip_ws(p + 1);
 
 			if (*q == ')') {
@@ -177,7 +177,7 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 			}
 
 		case '{':
-			val = lx_tree(lx_empty_tree());
+			val = lx_empty_tree().value;
 			q = skip_ws(p + 1);
 
 			if (*q == '}') {
@@ -206,7 +206,7 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 			if (tag == lx_list_tag) {
 				/* lists are built in reverse; reverse the
 				   result and get it linearized as a bonus */
-				val = lx_list(lx_reverse(mem, val.list));
+				val = lx_reverse(mem, lx_list(val)).value;
 			}
 			stack = lx_cdr(stack); /* pop stack */
 			q = p + 1;
@@ -214,7 +214,7 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 
 		case '#':
 			if (strchr("tf", p[1]) && is_separator(p[2])) {
-				val = lx_bool(p[1] == 't');
+				val = lx_valueb(p[1] == 't');
 				q = p + 2;
 				break;
 			}
@@ -239,17 +239,21 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 		}
 		top = lx_car(stack);
 		if (top.tag == lx_list_tag) {
-			top.list = lx_cons(mem, val, top.list);
+			/* build new list in reverse */
+			top = lx_cons(mem, val, lx_list(top)).value;
 		} else {
 			assert(top.tag == lx_tree_tag);
 			if (val.tag != lx_list_tag) {
 				return read_err(LX_READ_ENTRY, p);
 			}
-			if (lx_is_empty_list(top.list)) {
+			if (lx_is_empty_list(lx_list(val))) {
 				return read_err(LX_READ_ENTRY, p);
 			}
-			top.tree = lx_tree_cons(mem, val.list, top.tree);
+			top = lx_tree_cons(mem,
+				lx_list(val),
+				lx_tree(top)).value;
 		}
+		/* replace top of stack with new list or tree */
 		stack = lx_cons(mem, top, lx_cdr(stack));
 		p = q;
 	}
