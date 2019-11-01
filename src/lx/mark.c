@@ -22,7 +22,7 @@ static bool is_ref(enum lx_tag tag)
 }
 
 static void push_ref(
-	struct lxref ref,
+	struct lxvalue ref,
 	union lxcell const *from,
 	union lxcell **stack)
 {
@@ -32,18 +32,18 @@ static void push_ref(
 	setxref(--(*stack), from, ref);
 }
 
-static struct lxref pop_ref(union lxcell **stack, union lxcell const *from)
+static struct lxvalue pop_ref(union lxcell **stack, union lxcell const *from)
 {
 	return dexref((*stack)++, from, lx_list_tag);
 }
 
 static void mark_shared_head(
-	struct lxref segment,
+	struct lxvalue segment,
 	union lxcell const *from,
 	void *bitset)
 {
 	lxint i;
-	struct lxref ref;
+	struct lxvalue ref;
 
 	ref = lx_shared_head(segment, from, bitset);
 	do {
@@ -60,12 +60,12 @@ static void mark_shared_head(
 
 /* trace backwards from `list` to the first cell in the same segment of
    adjacent list cells that is marked */
-struct lxref lx_shared_head(
-	struct lxref list,
+struct lxvalue lx_shared_head(
+	struct lxvalue list,
 	union lxcell const *from,
 	void const *bitset)
 {
-	struct lxref p, q;
+	struct lxvalue p, q;
 
 	p = list;
 	do {
@@ -85,21 +85,21 @@ struct lxref lx_shared_head(
 
 /* Recursively mark reachable nodes to find shared list structure. */
 void lx_count_refs(
-	union lxvalue root,
+	struct lxvalue root,
 	union lxcell const *from,
 	union lxcell *stack_max,
 	void *bitset)
 {
 	union lxcell *stack, *d;
-	struct lxref ref, head;
+	struct lxvalue ref, head;
 	lxuint i;
 	lxtag meta;
 	enum lx_tag tag;
 
-	if (!is_ref(root.tag) || !root.list.ref.cell) { return; }
+	if (!is_ref(root.tag) || ref_is_nil(root)) { return; }
 
 	stack = stack_max;
-	push_ref(root.list.ref, from, &stack);
+	push_ref(root, from, &stack);
 
 	while (stack < stack_max) {
 		ref = head = pop_ref(&stack, from);
@@ -129,7 +129,7 @@ void lx_count_refs(
 				break;
 			}
 
-			/* Traverse only within segment using list_forward()
+			/* Traverse only within segment using forward()
 			   instead of lx_cdr(). */
 			ref = forward(ref);
 		} while (true);

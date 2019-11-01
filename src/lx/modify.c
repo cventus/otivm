@@ -16,12 +16,12 @@
 
 static struct lxresult err_result(int err)
 {
-	return (struct lxresult) { err, lx_list(lx_empty_list()) };
+	return (struct lxresult){ err, lx_empty_list().value };
 }
 
-static struct lxresult ok_result(union lxvalue result)
+static struct lxresult ok_result(struct lxvalue result)
 {
-	return (struct lxresult) { 0, result };
+	return (struct lxresult){ 0, result };
 }
 
 /* modifyl - Modify the root value of the heap through the callback `modify`
@@ -48,12 +48,12 @@ static struct lxresult ok_result(union lxvalue result)
  */
 struct lxresult lx_modifyl(
 	struct lxheap *heap,
-	union lxvalue vmodify(struct lxmem *, union lxvalue, va_list),
+	struct lxvalue vmodify(struct lxmem *, struct lxvalue, va_list),
 	...)
 {
 	va_list ap, ap_copy;
 	struct lxmem mem;
-	union lxvalue newval;
+	struct lxvalue newval;
 	struct lxresult result;
 	bool retry;
 	int err;
@@ -99,12 +99,12 @@ finish:
 	return result;
 }
 
-static union lxvalue vpmodify(
+static struct lxvalue vpmodify(
 	struct lxmem *mem,
-	union lxvalue root,
+	struct lxvalue root,
 	va_list ap)
 {
-	typedef union lxvalue f(struct lxmem *, union lxvalue, void *);
+	typedef struct lxvalue f(struct lxmem *, struct lxvalue, void *);
 
 	f *modify;
 	void *param;
@@ -117,7 +117,7 @@ static union lxvalue vpmodify(
 /* traditional callback+context pointer interface */
 struct lxresult lx_modify(
 	struct lxheap *heap,
-	union lxvalue modify(struct lxmem *, union lxvalue, void *),
+	struct lxvalue modify(struct lxmem *, struct lxvalue, void *),
 	void *param)
 {
 	return lx_modifyl(heap, vpmodify, modify, param);

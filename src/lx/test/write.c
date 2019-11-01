@@ -21,9 +21,9 @@ void after_each_test(void)
 	lx_free_heap(heap);
 }
 
-static union lxvalue write_it(struct lxmem *mem, union lxvalue val, va_list ap)
+static struct lxvalue write_it(struct lxmem *mem, struct lxvalue val, va_list ap)
 {
-	union lxvalue str; 
+	struct lxstring str;
 	struct lxread result;
 	char const *p;
 
@@ -32,9 +32,9 @@ static union lxvalue write_it(struct lxmem *mem, union lxvalue val, va_list ap)
 
 	result = lx_read(mem, p);
 	str = lx_write(mem, result.value);
-	string = str.s;
+	string = str.value.s;
 
-	return str;
+	return str.value;
 }
 
 static void do_write(char const *str)

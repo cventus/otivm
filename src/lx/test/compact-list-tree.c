@@ -43,14 +43,14 @@ union lxcell from_buf[length_of(state)], to_buf[length_of(state)];
 char bitset[80];
 struct lxalloc to;
 
-union lxvalue root;
+struct lxvalue root;
 
 void before_each_test(void)
 {
 	memset(bitset, 0, sizeof bitset);
 	memcpy(from_buf, state, sizeof state);
 	init_tospace(&to, to_buf, length_of(to_buf));
-	root = lx_list(mklist(from_buf, root_offset));
+	root = mklist(from_buf, root_offset).value;
 }
 
 int test_expected_fromspace_structure(void)

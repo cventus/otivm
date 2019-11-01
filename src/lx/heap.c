@@ -11,6 +11,7 @@
 #include "lx.h"
 #include "memory.h"
 #include "ref.h"
+#include "alloc.h"
 #include "list.h"
 #include "heap.h"
 
@@ -19,6 +20,21 @@
 /* minimum space size is one complete span, plus one word for mark bits */
 #define MIN_SPACE_SIZE (sizeof (union lxcell) * (SPAN_LENGTH + 1))
 #define MIN_SIZE (4 * MIN_SPACE_SIZE)
+
+/* member_ptr describes a `union lxcell *` or `char *` pointer field within
+   a `struct lxheap` object which point into the heap and needs to be updated
+   if the heap is reallocated */
+struct member_ptr {
+	size_t offset;
+	/* `char *` is found within `struct lxvalue` and `union cell *` are
+	   used elsewhere. Since these types aren't compatible according to the
+	   C standard, it's necessary to cast them appropriately before
+	   accessing them */
+	enum { CHAR, CELL } type;
+};
+
+static union lxcell *get_ptr_at(struct lxheap *, struct member_ptr);
+static void set_ptr_at(struct lxheap *, struct member_ptr, union lxcell *);
 
 static struct lx_config const default_config = {
 	.max_size = SIZE_MAX,
@@ -88,7 +104,7 @@ struct lxheap *lx_make_heap(size_t init_size, struct lx_config const *config)
 		free(heap);
 		return NULL;
 	}
-	heap->root = lx_list(lx_empty_list());
+	heap->root = lx_empty_list().value;
 	semispace_cells = heap->second - heap->first;
 	init_cons(&heap->alloc, heap->first, semispace_cells);
 
@@ -106,7 +122,7 @@ void lx_free_heap(struct lxheap *heap)
 	}
 }
 
-union lxvalue lx_heap_value(struct lxheap const *heap)
+struct lxvalue lx_heap_value(struct lxheap const *heap)
 {
 	return heap->root;
 }
@@ -121,16 +137,40 @@ static size_t semispace_size(struct lxheap const *heap)
 	return (unsigned char *)heap->second - (unsigned char *)heap->first;
 }
 
-static union lxcell **ptr_at(struct lxheap *heap, size_t offset)
+static union lxcell *get_ptr_at(struct lxheap *heap, struct member_ptr ptr)
 {
-	return (union lxcell **)((unsigned char *)heap + offset);
+	unsigned char *field;
+
+	field = (unsigned char *)heap + ptr.offset;
+	/* both branches likely generate the same code, but an implementations
+	   might theoretically do some conversion when casting pointer typess */
+	if (ptr.type == CHAR) {
+		return (union lxcell *)*(char **)field;
+	} else {
+		return *(union lxcell **)field;
+	}
 }
 
-static bool is_ref_value(union lxvalue val)
+static void set_ptr_at(
+	struct lxheap *heap,
+	struct member_ptr ptr,
+	union lxcell *value)
+{
+	unsigned char *field;
+
+	field = (unsigned char *)heap + ptr.offset;
+	if (ptr.type == CHAR) {
+		*(char **)field = (char *)value;
+	} else {
+		*(union lxcell **)field = value;
+	}
+}
+
+static bool is_ref_value(struct lxvalue val)
 {
 	switch (val.tag) {
-	case lx_list_tag: return !lx_is_empty_list(val.list);
-	case lx_tree_tag: return !lx_is_empty_tree(val.tree);
+	case lx_list_tag: return !lx_is_empty_list(lx_list(val));
+	case lx_tree_tag: return !lx_is_empty_tree(lx_tree(val));
 	case lx_string_tag: return true;
 	default: return false;
 	}
@@ -140,11 +180,12 @@ static bool is_ref_value(union lxvalue val)
    allocating again */
 int lx_resize_heap(struct lxheap *heap, size_t new_size)
 {
-	static size_t const member_offsets[] = {
-		offsetof(struct lxheap, alloc.max_addr),
-		offsetof(struct lxheap, alloc.tag_free.cell),
-		offsetof(struct lxheap, alloc.raw_free),
-		offsetof(struct lxheap, root.list.ref.cell),
+	/* list of external pointers that need to be updated */
+	static struct member_ptr const member_offsets[] = {
+		{ offsetof(struct lxheap, alloc.max_addr), CELL },
+		{ offsetof(struct lxheap, alloc.tag_free.s), CHAR },
+		{ offsetof(struct lxheap, alloc.raw_free), CELL },
+		{ offsetof(struct lxheap, root.s), CHAR },
 	};
 #define MEMBERS_MAX (sizeof member_offsets / sizeof member_offsets[0])
 
@@ -168,7 +209,7 @@ int lx_resize_heap(struct lxheap *heap, size_t new_size)
 	}
 	offset = *min_addr - heap->first;
 	for (i = 0; i < max_member; i++) {
-		save[i] = *ptr_at(heap, member_offsets[i]) - *min_addr;
+		save[i] = get_ptr_at(heap, member_offsets[i]) - *min_addr;
 	}
 
 	/* which space is currently used for allocation? */
@@ -186,10 +227,23 @@ int lx_resize_heap(struct lxheap *heap, size_t new_size)
 		*min_addr = heap->first + offset;
 	}
 	for (i = 0; i < max_member; i++) {
-		*ptr_at(heap, member_offsets[i]) = *min_addr + save[i];
+		set_ptr_at(heap, member_offsets[i], *min_addr + save[i]);
 	}
 
 	return 0;
+}
+
+/* swap raw_free and tag_free */
+static inline void swap_allocation_pointers(struct lxalloc *alloc)
+{
+	union lxcell *cell;
+
+	cell = alloc->raw_free;
+	alloc->raw_free = ref_cell(alloc->tag_free);
+	if (alloc->tag_free.offset) {
+		alloc->raw_free += 1 + alloc->tag_free.offset;
+	}
+	alloc->tag_free = mkref(0, 0, cell);
 }
 
 /* semi-space garbage collection */

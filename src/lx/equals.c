@@ -9,8 +9,8 @@
 
 #include "common.h"
 #include "lx.h"
-#include "memory.h"
 #include "ref.h"
+#include "memory.h"
 #include "list.h"
 #include "tree.h"
 
@@ -21,14 +21,14 @@ static bool list_equals(struct lxlist a, struct lxlist b)
 	p = a;
 	q = b;
 	if (list_eq(p, q)) { return true; }
-	if (!p.ref.cell || !q.ref.cell) { return false; }
+	if (!p.value.s || !q.value.s) { return false; }
 	do {
 		if (!lx_equals(lx_car(p), lx_car(q))) {
 			return false;
 		}
 		p = lx_cdr(p);
 		q = lx_cdr(q);
-	} while (p.ref.cell && q.ref.cell);
+	} while (p.value.s && q.value.s);
 	return list_eq(p, q);
 }
 
@@ -41,7 +41,7 @@ static bool tree_equals(struct lxtree a, struct lxtree b)
 	q = b;
 
 	if (tree_eq(p, q)) { return true; }
-	if (!p.ref.cell || !q.ref.cell) { return false; }
+	if (!p.value.s || !q.value.s) { return false; }
 
 	sz = lx_tree_size(a);
 	if (sz != lx_tree_size(b)) { return false; }
@@ -55,15 +55,16 @@ static bool tree_equals(struct lxtree a, struct lxtree b)
 	return true;
 }
 
-bool lx_equals(union lxvalue a, union lxvalue b)
+bool lx_equals(struct lxvalue a, struct lxvalue b)
 {
 	switch (a.tag) {
+	default: abort();
 	case lx_list_tag:
 		if (b.tag != lx_list_tag) { return false; }
-		return list_equals(a.list, b.list);
+		return list_equals(lx_list(a), lx_list(b));
 	case lx_tree_tag:
 		if (b.tag != lx_tree_tag) { return false; }
-		return tree_equals(a.tree, b.tree);
+		return tree_equals(lx_tree(a), lx_tree(b));
 	case lx_string_tag:
 		if (b.tag != lx_string_tag) { return false; }
 		return a.s == b.s || strcmp(a.s, b.s) == 0;
@@ -82,6 +83,5 @@ bool lx_equals(union lxvalue a, union lxvalue b)
 		case lx_float_tag: return a.f == b.f;
 		default: return false;
 		}
-	default: return false;
 	}
 }

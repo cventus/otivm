@@ -20,46 +20,36 @@ struct split {
 	struct lxlist e;
 };
 
-static struct lxlist as_list(struct lxtree tree)
+static struct lxlist tree_as_list(struct lxtree tree)
 {
-	return (struct lxlist) {
-		.ref.tag = lx_list_tag,
-		.ref.offset = tree.ref.offset,
-		.ref.cell = tree.ref.cell,
-	};
-}
-
-static struct lxtree as_tree(struct lxlist list)
-{
-	return (struct lxtree) {
-		.ref.tag = lx_tree_tag,
-		.ref.offset = list.ref.offset,
-		.ref.cell = list.ref.cell,
-	};
+	struct lxlist result;
+	result.value = tree.value;
+	result.value.tag = lx_list_tag;
+	return result;
 }
 
 size_t lx_tree_size(struct lxtree tree)
 {
-	return lx_is_empty_tree(tree) ? 0 : (size_t)ref_data(tree.ref)->i;
+	return lx_is_empty_tree(tree) ? 0 : (size_t)ref_data(tree.value)->i;
 }
 
 struct lxlist lx_tree_entry(struct lxtree tree)
 {
-	return lx_cdr(as_list(tree));
+	return lx_cdr(tree_as_list(tree));
 }
 
 struct lxtree lx_tree_left(struct lxtree tree)
 {
 	return is_leaf_node(tree)
 		? lx_empty_tree()
-		: deref_tree(ref_data(backward(backward(tree.ref))));
+		: deref_tree(ref_data(backward(backward(tree.value))));
 }
 
 struct lxtree lx_tree_right(struct lxtree tree)
 {
 	return is_leaf_node(tree)
 		? lx_empty_tree()
-		: deref_tree(ref_data(backward(tree.ref)));
+		: deref_tree(ref_data(backward(tree.value)));
 }
 
 static void destructure(
@@ -71,16 +61,16 @@ static void destructure(
 	struct lxlist list;
 	union lxcell const *sz;
 	assert(!lx_is_empty_tree(tree));
-	list = as_list(tree);
+	list = tree_as_list(tree);
 	*entry = lx_cdr(list);
 	if (is_leaf_node(tree)) {
 		*left = *right = lx_empty_tree();
 	} else {
-		list.ref = backward(list.ref);
-		sz = ref_data(list.ref);
+		list.value = backward(list.value);
+		sz = ref_data(list.value);
 		*right = isnilref(sz) ? lx_empty_tree() : deref_tree(sz);
-		list.ref = backward(list.ref);
-		sz = ref_data(list.ref);
+		list.value = backward(list.value);
+		sz = ref_data(list.value);
 		*left = isnilref(sz) ? lx_empty_tree() : deref_tree(sz);
 	}
 }
@@ -111,7 +101,7 @@ struct lxlist lx_tree_nth(struct lxtree tree, lxint n)
 	return e;
 }
 
-struct lxlist lx_tree_assoc(union lxvalue key, struct lxtree tree)
+struct lxlist lx_tree_assoc(struct lxvalue key, struct lxtree tree)
 {
 	int cmp;
 	struct lxtree t, l, r;
@@ -158,8 +148,11 @@ static bool is_single(struct lxtree a, struct lxtree b)
 
 static struct lxtree make_leaf_node(struct lxmem *mem, struct lxlist entry)
 {
+	struct lxvalue tuple;
 	assert(!lx_is_empty_list(entry));
-	return as_tree(lx_cons(mem, lx_int(1), entry));
+	tuple = lx_cons(mem, lx_valuei(1), entry).value;
+	tuple.tag = lx_tree_tag;
+	return ref_to_tree(tuple);
 }
 
 static inline lxtag next_length(lxtag len) {
@@ -181,63 +174,63 @@ static struct lxtree make_node(
 	struct lxtree size, left, right, data;
 	lxint len, entry_len;
 	bool is_adjacent;
-	union lxvalue car;
+	struct lxvalue car;
 
 	assert(!lx_is_empty_list(e));
-	assert(l.tag == lx_tree_tag);
-	assert(r.tag == lx_tree_tag);
-	assert(e.tag == lx_list_tag);
+	assert(l.value.tag == lx_tree_tag);
+	assert(r.value.tag == lx_tree_tag);
+	assert(e.value.tag == lx_list_tag);
 
 	if (lx_is_empty_tree(l) && lx_is_empty_tree(r)) {
 		return make_leaf_node(mem, e);
 	}
 
 	/* allocate node */
-	is_adjacent = ref_eq(e.ref, mem->alloc.tag_free);
-	if (lx_reserve_tagged(&mem->alloc, is_adjacent ? 3 : 4, &left.ref)) {
+	is_adjacent = ref_eq(e.value, mem->alloc.tag_free);
+	if (lx_reserve_tagged(&mem->alloc, is_adjacent ? 3 : 4, &left.value)) {
 		longjmp(mem->escape, mem->oom);
 	}
 
 	/* initialize tree structure fields */
-	left.ref.tag = lx_tree_tag;
-	right.ref = forward(left.ref);
-	size.ref = forward(right.ref);
-	ref_data(size.ref)->i = 1 + lx_tree_size(l) + lx_tree_size(r);
+	left.value.tag = lx_tree_tag;
+	right.value = forward(left.value);
+	size.value = forward(right.value);
+	ref_data(size.value)->i = 1 + lx_tree_size(l) + lx_tree_size(r);
 	if (lx_is_empty_tree(l)) {
-		setnilref(ref_data(left.ref));
+		setnilref(ref_data(left.value));
 	} else {
-		setref(ref_data(left.ref), l.ref);
+		setref(ref_data(left.value), l.value);
 	}
 	if (lx_is_empty_tree(r)) {
-		setnilref(ref_data(right.ref));
+		setnilref(ref_data(right.value));
 	} else {
-		setref(ref_data(right.ref), r.ref);
+		setref(ref_data(right.value), r.value);
 	}
 
 	/* handle entry */
-	entry_len = lxtag_len(*ref_tag(e.ref));
+	entry_len = lxtag_len(*ref_tag(e.value));
 	if (is_adjacent) {
 		len = next_length(entry_len);
 	} else if (entry_len == 1) {
 		/* copy entry */
-		data.ref = forward(size.ref);
+		data.value = forward(size.value);
 		car = lx_car(e);
-		lx_set_cell_data(ref_data(data.ref), car);
-		*ref_tag(data.ref) = mktag(1, car.tag);
+		lx_set_cell_data(ref_data(data.value), car);
+		*ref_tag(data.value) = mktag(1, car.tag);
 		len = 2;
 	} else {
 		/* link to entry */
-		data.ref = forward(size.ref);
-		setref(ref_data(data.ref), e.ref);
-		*ref_tag(data.ref) = mktag(1, lx_list_tag);
+		data.value = forward(size.value);
+		setref(ref_data(data.value), e.value);
+		*ref_tag(data.value) = mktag(1, lx_list_tag);
 		len = 0;
 	}
 
-	*ref_tag(size.ref) = mktag(len, lx_int_tag);
+	*ref_tag(size.value) = mktag(len, lx_int_tag);
 	len = next_length(len);
-	*ref_tag(right.ref) = mktag(len, lx_tree_tag);
+	*ref_tag(right.value) = mktag(len, lx_tree_tag);
 	len = next_length(len);
-	*ref_tag(left.ref) = mktag(len, lx_tree_tag);
+	*ref_tag(left.value) = mktag(len, lx_tree_tag);
 
 	return size;
 }
@@ -409,7 +402,7 @@ static struct lxtree extract_max(
 
 static struct lxtree remove_rec(
 	struct lxmem *mem,
-	union lxvalue key,
+	struct lxvalue key,
 	struct lxtree tree,
 	jmp_buf not_found)
 {
@@ -447,7 +440,7 @@ static struct lxtree remove_rec(
 
 struct lxtree lx_tree_remove(
 	struct lxmem *mem,
-	union lxvalue key,
+	struct lxvalue key,
 	struct lxtree tree)
 {
 	jmp_buf not_found;
@@ -534,7 +527,7 @@ static struct lxtree join2(struct lxmem *mem, struct lxtree l, struct lxtree r)
 static struct split split(
 	struct lxmem *mem,
 	struct lxtree tree,
-	union lxvalue key)
+	struct lxvalue key)
 {
 	struct split s;
 	struct lxtree l, r;

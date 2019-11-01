@@ -1,20 +1,9 @@
-static inline union lxvalue ref_to_string(struct lxref ref)
+static inline struct lxstring ref_to_string(struct lxvalue ref)
 {
-	assert(ref.tag == lx_string_tag);
-	assert(ref.offset == 0);
-	return (union lxvalue) {
-		.tag = lx_string_tag,
-		.s = (char const *)(ref.cell + 1)
-	};
+	return (struct lxstring) { .value = ref };
 }
 
-static inline struct lxref string_to_ref(union lxvalue val)
+static inline struct lxstring deref_string(union lxcell const *c)
 {
-	assert(val.tag == lx_string_tag);
-	return mkref(lx_string_tag, 0, (union lxcell *)val.s - 1);
-}
-
-static inline struct lxref deref_string(union lxcell const *c)
-{
-	return deref(c, lx_string_tag);
+	return ref_to_string(deref(c, lx_string_tag));
 }

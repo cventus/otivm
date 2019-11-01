@@ -7,7 +7,7 @@
 #include "ok/ok.h"
 #include "lx32x4.h"
 
-union lxvalue
+struct lxvalue
 int_one,
 int_zero,
 float_one,
@@ -34,30 +34,30 @@ tree_124;
 
 void before_each_test(void)
 {
-	int_one = lx_int(1);
-	int_zero = lx_int(0);
-	float_one = lx_float(1);
-	float_zero = lx_float(0);
-	bool_true = lx_bool(true);
-	bool_false = lx_bool(false);
+	int_one = lx_valuei(1);
+	int_zero = lx_valuei(0);
+	float_one = lx_valuef(1);
+	float_zero = lx_valuef(0);
+	bool_true = lx_valueb(true);
+	bool_false = lx_valueb(false);
 
-	str_hello_world = mkstr(state + str_hello_world_cell);
-	str_goodbye_world = mkstr(state + str_goodbye_world_cell);
+	str_hello_world = mkstr(state + str_hello_world_cell).value;
+	str_goodbye_world = mkstr(state + str_goodbye_world_cell).value;
 
-	list_0 = lx_list(mklist(state + list_0_cell, list_0_offset));
-	list_1223 = lx_list(mklist(state + list_1223_cell, list_1223_offset));
-	list_1227 = lx_list(mklist(state + list_1227_cell, list_1227_offset));
-	list_123 = lx_list(mklist(state + list_123_cell, list_123_offset));
-	list_1234 = lx_list(mklist(state + list_1234_cell, list_1234_offset));
-	list_2 = lx_list(mklist(state + list_2_cell, list_2_offset));
+	list_0 = mklist(state + list_0_cell, list_0_offset).value;
+	list_1223 = mklist(state + list_1223_cell, list_1223_offset).value;
+	list_1227 = mklist(state + list_1227_cell, list_1227_offset).value;
+	list_123 = mklist(state + list_123_cell, list_123_offset).value;
+	list_1234 = mklist(state + list_1234_cell, list_1234_offset).value;
+	list_2 = mklist(state + list_2_cell, list_2_offset).value;
 
-	tree_1 = lx_tree(mktree(state + tree_1_cell, tree_1_offset));
-	tree_3 = lx_tree(mktree(state + tree_3_cell, tree_3_offset));
-	tree_4 = lx_tree(mktree(state + tree_4_cell, tree_4_offset));
-	tree_1234_a = lx_tree(mktree(state + tree_1234_a_cell, tree_1234_a_offset));
-	tree_1234_b = lx_tree(mktree(state + tree_1234_b_cell, tree_1234_b_offset));
-	tree_123 = lx_tree(mktree(state + tree_123_cell, tree_123_offset));
-	tree_124 = lx_tree(mktree(state + tree_124_cell, tree_124_offset));
+	tree_1 = mktree(state + tree_1_cell, tree_1_offset).value;
+	tree_3 = mktree(state + tree_3_cell, tree_3_offset).value;
+	tree_4 = mktree(state + tree_4_cell, tree_4_offset).value;
+	tree_1234_a = mktree(state + tree_1234_a_cell, tree_1234_a_offset).value;
+	tree_1234_b = mktree(state + tree_1234_b_cell, tree_1234_b_offset).value;
+	tree_123 = mktree(state + tree_123_cell, tree_123_offset).value;
+	tree_124 = mktree(state + tree_124_cell, tree_124_offset).value;
 }
 
 #define assert_order(lt, gt) \

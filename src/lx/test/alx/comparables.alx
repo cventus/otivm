@@ -1,9 +1,9 @@
-str_hello_world:
 	int 12
+str_hello_world:
 	char "hello, world"
 
-str_goodbye_world:
 	int 15
+str_goodbye_world:
 	char "goodbye, world"
 
 	1 int 42

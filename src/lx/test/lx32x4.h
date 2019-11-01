@@ -11,6 +11,7 @@
 #include "../lx.h"
 #include "../memory.h"
 #include "../ref.h"
+#include "../alloc.h"
 #include "../list.h"
 #include "../tree.h"
 #include "../str.h"
@@ -19,13 +20,13 @@
 #define QUOTE(x) QUOTE_(x)
 
 #define mklist(cell, offset) \
-       ref_to_list((struct lxref) { lx_list_tag, offset, cell })
+       ref_to_list(mkref(lx_list_tag, offset, cell))
 
 #define mktree(cell, offset) \
-       ref_to_tree((struct lxref) { lx_tree_tag, offset, cell })
+       ref_to_tree(mkref(lx_tree_tag, offset, cell))
 
 #define mkstr(cell) \
-       ref_to_string((struct lxref) { lx_string_tag, 0, cell })
+       ref_to_string(mkref(lx_string_tag, 0, cell))
 
 #define length_of(x) (sizeof (x) / sizeof *(x))
 
@@ -49,6 +50,10 @@ struct assert_ctx
 
 #define assertion_failed(ctx) \
 	printf("%s:%s:%u: Assertion %s == %s failed!\n", \
+		ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected)
+
+#define neq_assertion_failed(ctx) \
+	printf("%s:%s:%u: Assertion %s != %s failed!\n", \
 		ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected)
 
 static inline int _assert_int_eq(
@@ -127,17 +132,17 @@ static inline int _assert_ptr_eq(
 	_call_assert(_assert_ptr_eq, value, expected)
 
 static inline int _assert_ref_eq(
-	struct lxref a,
-	struct lxref b,
+	struct lxvalue a,
+	struct lxvalue b,
 	struct assert_ctx ctx)
 {
-	if (a.cell == b.cell && a.offset == b.offset) {
+	if (a.s == b.s && a.offset == b.offset) {
 		return 0;
 	}
 	assertion_failed(ctx);
 	printf("Got: (%p, %d)\nExpected: (%p, %d)\n",
-		(void *)a.cell, a.offset,
-		(void *)b.cell, b.offset);
+		(void *)a.s, a.offset,
+		(void *)b.s, b.offset);
 	fail_test(0);
 	return -1;
 }
@@ -145,7 +150,7 @@ static inline int _assert_ref_eq(
 #define assert_ref_eq(value, expected) \
 	_call_assert(_assert_ref_eq, value, expected)
 
-static void _print_value(union lxvalue val)
+static void _print_value(struct lxvalue val)
 {
 	struct lxlist l;
 	struct lxtree t;
@@ -154,7 +159,7 @@ static void _print_value(union lxvalue val)
 	default: abort();
 	case lx_list_tag:
 		printf("(");
-		l = val.list;
+		l = ref_to_list(val);
 		while (!lx_is_empty_list(l)) {
 			_print_value(lx_car(l));
 			l = lx_cdr(l);
@@ -164,10 +169,10 @@ static void _print_value(union lxvalue val)
 		break;
 	case lx_tree_tag:
 		printf("{");
-		t = val.tree;
+		t = ref_to_tree(val);
 		for (i = 0; i < lx_tree_size(t); i++) {
 			if (i > 0) { printf(" "); }
-			_print_value(lx_list(lx_tree_nth(t, i)));
+			_print_value(lx_tree_nth(t, i).value);
 		}
 		printf("}");
 		break;
@@ -184,12 +189,15 @@ static void _print_value(union lxvalue val)
 	case lx_float_tag:
 		printf("%f", val.f);
 		break;
+	case lx_string_tag:
+		printf("%s", (char const *)val.s);
+		break;
 	}
 }
 
 static inline int _assert_eq(
-	union lxvalue a,
-	union lxvalue b,
+	struct lxvalue a,
+	struct lxvalue b,
 	struct assert_ctx ctx)
 {
 	if (lx_equals(a, b)) {
@@ -210,8 +218,8 @@ static inline int _assert_eq(
 	_call_assert(_assert_eq, value, expected)
 
 static inline int _assert_neq(
-	union lxvalue a,
-	union lxvalue b,
+	struct lxvalue a,
+	struct lxvalue b,
 	struct assert_ctx ctx)
 {
 	if (!lx_equals(a, b)) {
@@ -235,21 +243,21 @@ static inline int _assert_list_eq(
 	struct lxlist b,
 	struct assert_ctx ctx)
 {
-	if (a.tag != lx_list_tag) {
+	if (a.value.tag != lx_list_tag) {
 		assertion_failed(ctx);
-		printf("%s is not a list (got %d)\n", ctx.value, (int)a.tag);
+		printf("%s is not a list (got %d)\n", ctx.value, (int)a.value.tag);
 		fail_test(0);
 	}
-	if (b.tag != lx_list_tag) {
+	if (b.value.tag != lx_list_tag) {
 		assertion_failed(ctx);
-		printf("%s is not a list (got %d)\n", ctx.expected, (int)b.tag);
+		printf("%s is not a list (got %d)\n", ctx.expected, (int)b.value.tag);
 		fail_test(0);
 	}
 	if (!list_eq(a, b)) {
 		assertion_failed(ctx);
 		printf("Got: (%p, %d)\nExpected: (%p, %d)\n",
-			(void *)a.ref.cell, a.ref.offset,
-			(void *)b.ref.cell, b.ref.offset);
+			(void *)a.value.s, a.value.offset,
+			(void *)b.value.s, b.value.offset);
 		fail_test(0);
 	}
 	return 0;
@@ -263,21 +271,18 @@ static inline int _assert_list_neq(
 	struct lxlist b,
 	struct assert_ctx ctx)
 {
-	if (a.tag != lx_list_tag) {
-		printf("%s:%s:%u: Assertion %s != %s  failed!\n",
-			ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected);
-		printf("%s is not a list (got %d)\n", ctx.value, (int)a.tag);
+	if (a.value.tag != lx_list_tag) {
+		neq_assertion_failed(ctx);
+		printf("%s is not a list (got %d)\n", ctx.value, (int)a.value.tag);
 		fail_test(0);
 	}
-	if (b.tag != lx_list_tag) {
-		printf("%s:%s:%u: Assertion %s != %s  failed!\n",
-			ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected);
-		printf("%s is not a list (got %d)\n", ctx.expected, (int)b.tag);
+	if (b.value.tag != lx_list_tag) {
+		neq_assertion_failed(ctx);
+		printf("%s is not a list (got %d)\n", ctx.expected, (int)b.value.tag);
 		fail_test(0);
 	}
-	if (a.ref.cell == b.ref.cell && a.ref.offset == b.ref.offset) {
-		printf("%s:%s:%u: Assertion %s != %s  failed!\n",
-			ctx.file, ctx.func, ctx.line, ctx.value, ctx.expected);
+	if (a.value.s == b.value.s && a.value.offset == b.value.offset) {
+		neq_assertion_failed(ctx);
 		fail_test(0);
 	}
 	return 0;
@@ -296,7 +301,7 @@ static inline void _append_char(int ch, char **p, size_t *size)
 	}
 }
 
-static inline void serialize_rec(union lxvalue value, char **p, size_t *size)
+static inline void serialize_rec(struct lxvalue value, char **p, size_t *size)
 {
 	struct lxlist l;
 	int n;
@@ -306,12 +311,13 @@ static inline void serialize_rec(union lxvalue value, char **p, size_t *size)
 	switch (value.tag) {
 	case lx_list_tag:
 		_append_char('(', p, size);
-		if (lx_is_empty_list(value.list)) {
+		l = ref_to_list(value);
+		if (lx_is_empty_list(l)) {
 			_append_char(')', p, size);
 			break;
 		}
-		serialize_rec(lx_car(value.list), p, size);
-		l = lx_cdr(value.list);
+		serialize_rec(lx_car(l), p, size);
+		l = lx_cdr(l);
 		while (!lx_is_empty_list(l)) {
 			_append_char(' ', p, size);
 			serialize_rec(lx_car(l), p, size);
@@ -332,7 +338,7 @@ static inline void serialize_rec(union lxvalue value, char **p, size_t *size)
 	}
 }
 
-static inline char *serialize(union lxvalue value, char *p, size_t size)
+static inline char *serialize(struct lxvalue value, char *p, size_t size)
 {
 	size_t sz = size;
 	char *q = p;
@@ -343,7 +349,7 @@ static inline char *serialize(union lxvalue value, char *p, size_t size)
 }
 
 static inline void _assert_serialize_eq(
-	union lxvalue a,
+	struct lxvalue a,
 	char const *str,
 	struct assert_ctx ctx)
 {

@@ -25,19 +25,30 @@
 #define lxcell MANGLE(cell)
 #define lxmem MANGLE(mem)
 #define lxvalue MANGLE(value)
-#define lxref MANGLE(ref)
 #define lxlist MANGLE(list)
 #define lxtree MANGLE(tree)
 #define lxresult MANGLE(result)
 #define lxalloc MANGLE(alloc)
 #define lxread MANGLE(read)
 
+/* value constructors */
+#define lx_valueb MANGLE(valueb)
+#define lx_valuei MANGLE(valuei)
+#define lx_valuef MANGLE(valuef)
+
 /* conversion functions */
 #define lx_list MANGLE(list)
+#define lx_is_list MANGLE(is_list)
 #define lx_tree MANGLE(tree)
+#define lx_is_tree MANGLE(is_tree)
+#define lx_string MANGLE(string)
+#define lx_is_string MANGLE(is_string)
 #define lx_bool MANGLE(bool)
+#define lx_is_bool MANGLE(is_bool)
 #define lx_int MANGLE(int)
+#define lx_is_int MANGLE(is_int)
 #define lx_float MANGLE(float)
+#define lx_is_float MANGLE(is_float)
 
 /* heap API */
 #define lx_make_heap MANGLE(make_heap)
@@ -47,9 +58,12 @@
 #define lx_modify MANGLE(modify)
 #define lx_modifyl MANGLE(modifyl)
 #define lx_gc MANGLE(gc)
+#define lx_init_cons MANGLE(init_cons)
+#define lx_init_tospace MANGLE(init_tospace)
 
 /* generic API */
 #define lx_equals MANGLE(equals)
+#define lx_compare MANGLE(compare)
 #define lx_read MANGLE(read)
 #define lx_write MANGLE(write)
 #define lx_write_pretty MANGLE(write_pretty)
@@ -122,108 +136,96 @@
 /* LSB of a reference holding the offset of the tag and cell */
 #define OFFSET_MASK (CELL_SPAN - 1)
 
-union lxcell;
 struct lxmem;
 struct lxheap;
+
+typedef unsigned char lxtag;
+
+union lxcell
+{
+	lxtag t[CELL_SIZE];
+	lxint i;
+	lxfloat f;
+};
 
 struct lx_config
 {
 	size_t max_size;
 };
 
-struct lxref
+struct lxvalue
 {
 	unsigned char tag, offset;
-	union lxcell const *cell;
-};
-
-struct lxlist
-{
 	union {
-		unsigned char tag;
-		struct lxref ref;
+		bool b;
+		lxint i;
+		lxfloat f;
+		char const *s;
 	};
 };
 
-struct lxtree
-{
-	union {
-		unsigned char tag;
-		struct lxref ref;
-	};
-};
-
-union lxvalue
-{
-	struct lxlist list;
-	struct lxtree tree;
-	struct {
-		unsigned char tag;
-		union {
-			bool b;
-			lxint i;
-			char const *s;
-			lxfloat f;
-		};
-	};
-};
+struct lxlist { struct lxvalue value; };
+struct lxtree { struct lxvalue value; };
+struct lxstring { struct lxvalue value; };
 
 struct lxresult
 {
 	int status;
-	union lxvalue value;
+	struct lxvalue value;
 };
 
 struct lxread {
 	enum lx_read_error err;
 	char const *where;
-	union lxvalue value;
+	struct lxvalue value;
 };
 
 struct lxheap *lx_make_heap(size_t init_size, struct lx_config const *config);
 void lx_free_heap(struct lxheap *heap);
 
 size_t lx_heap_size(struct lxheap const *heap);
-union lxvalue lx_heap_value(struct lxheap const *heap);
+struct lxvalue lx_heap_value(struct lxheap const *heap);
 
 struct lxresult lx_modify(
 	struct lxheap *heap,
-	union lxvalue modify(struct lxmem *, union lxvalue, void *),
+	struct lxvalue modify(struct lxmem *, struct lxvalue, void *),
 	void *param);
 
 /* pass arbitrary parameters to callback retrievable with va_arg(3) */
 struct lxresult lx_modifyl(
 	struct lxheap *heap,
-	union lxvalue vmodify(struct lxmem *, union lxvalue, va_list),
+	struct lxvalue vmodify(struct lxmem *, struct lxvalue, va_list),
 	...);
 
 int lx_gc(struct lxheap *heap);
 
 /* recursively compare values for equality */
-bool lx_equals(union lxvalue a, union lxvalue b);
+bool lx_equals(struct lxvalue a, struct lxvalue b);
 
 /* compare values by built-in ordering */
-int lx_compare(union lxvalue a, union lxvalue b);
+int lx_compare(struct lxvalue a, struct lxvalue b);
 
-/* deserialize string to value */
+/* deserialize lx string to value */
 struct lxread lx_read(struct lxmem *mem, char const *str);
 
-/* serialize value to string */
-union lxvalue lx_write(struct lxmem *mem, union lxvalue value);
-union lxvalue lx_write_pretty(struct lxmem *mem, union lxvalue value);
+/* serialize value to lx string */
+struct lxstring lx_write(struct lxmem *mem, struct lxvalue value);
+
+/* pretty print value into string */
+struct lxstring lx_write_pretty(struct lxmem *mem, struct lxvalue value);
 
 /* prepend an element to a list */
-struct lxlist lx_cons(struct lxmem *, union lxvalue, struct lxlist);
+struct lxlist lx_cons(struct lxmem *, struct lxvalue, struct lxlist);
 
-struct lxlist lx_single(struct lxmem *, union lxvalue);
-struct lxlist lx_pair(struct lxmem *, union lxvalue, union lxvalue);
+struct lxlist lx_single(struct lxmem *, struct lxvalue);
+struct lxlist lx_pair(struct lxmem *, struct lxvalue, struct lxvalue);
 struct lxlist lx_triple(struct lxmem *,
-	union lxvalue,
-	union lxvalue,
-	union lxvalue);
+	struct lxvalue,
+	struct lxvalue,
+	struct lxvalue);
 
 /* get first element of (non-empty) list */
-union lxvalue lx_car(struct lxlist list);
+struct lxvalue lx_car(struct lxlist list);
 
 /* remove first element from (non-empty) list */
 struct lxlist lx_cdr(struct lxlist list);
@@ -232,90 +234,149 @@ struct lxlist lx_cdr(struct lxlist list);
 struct lxlist lx_drop(struct lxlist list, lxint i);
 
 /* equivalent of `car(drop(list, i))` */
-union lxvalue lx_nth(struct lxlist list, lxint i);
+struct lxvalue lx_nth(struct lxlist list, lxint i);
 
+/* reverse list */
 struct lxlist lx_reverse(struct lxmem *, struct lxlist list);
 
 /* number of elements in list */
 lxint lx_length(struct lxlist list);
 
 /* strlen(3) of string value */
-size_t lx_strlen(union lxvalue string);
+size_t lx_strlen(struct lxstring string);
 
 /* copy the first n bytes of s into a heap */
-union lxvalue lx_strndup(struct lxmem *, char const *s, size_t n);
+struct lxstring lx_strndup(struct lxmem *, char const *s, size_t n);
 
 /* copy s into a heap */
-union lxvalue lx_strdup(struct lxmem *mem, char const *s);
+struct lxstring lx_strdup(struct lxmem *mem, char const *s);
 
 /* allocate a new formatted string in the heap */
-union lxvalue lx_sprintf(struct lxmem *, char const *fmt, ...);
+struct lxstring lx_sprintf(struct lxmem *, char const *fmt, ...);
 
 /* allocate a new formatted string in the heap */
-union lxvalue lx_vsprintf(struct lxmem *, char const *fmt, va_list ap);
+struct lxstring lx_vsprintf(struct lxmem *, char const *fmt, va_list ap);
 
-/* wrap a list in a tagged union */
-static inline union lxvalue lx_list(struct lxlist list)
+/* conversion functions */
+static inline struct lxlist lx_list(struct lxvalue value)
 {
-	return (union lxvalue) { .list = list };
+	assert(value.tag == lx_list_tag);
+	return (struct lxlist) { .value = value };
 }
 
-/* wrap a tree in a tagged union */
-static inline union lxvalue lx_tree(struct lxtree tree)
+static inline struct lxtree lx_tree(struct lxvalue value)
 {
-	return (union lxvalue) { .tree = tree };
+	assert(value.tag == lx_tree_tag);
+	return (struct lxtree) { .value = value };
+}
+
+static inline bool lx_bool(struct lxvalue value)
+{
+	assert(value.tag == lx_bool_tag);
+	return value.b;
+}
+
+static inline lxint lx_int(struct lxvalue value)
+{
+	assert(value.tag == lx_int_tag);
+	return value.i;
+}
+
+static inline lxfloat lx_float(struct lxvalue value)
+{
+	assert(value.tag == lx_float_tag);
+	return value.f;
+}
+
+static inline struct lxstring lx_string(struct lxvalue value)
+{
+	assert(value.tag == lx_string_tag);
+	assert(value.offset == 0);
+	return (struct lxstring) { .value = value };
+}
+
+static inline bool lx_is_list(struct lxvalue value, struct lxlist *out)
+{
+	return value.tag == lx_list_tag && (*out = lx_list(value), 1);
+}
+
+static inline bool lx_is_tree(struct lxvalue value, struct lxtree *out)
+{
+	return value.tag == lx_tree_tag && (*out = lx_tree(value), 1);
+}
+
+static inline bool lx_is_bool(struct lxvalue value, bool *out)
+{
+	return value.tag == lx_bool_tag && (*out = lx_bool(value), 1);
+}
+
+static inline bool lx_is_int(struct lxvalue value, lxint *out)
+{
+	return value.tag == lx_int_tag && (*out = lx_int(value), 1);
+}
+
+static inline bool lx_is_float(struct lxvalue value, lxfloat *out)
+{
+	return value.tag == lx_float_tag && (*out = lx_float(value), 1);
+}
+
+static inline bool lx_is_string(struct lxvalue value, struct lxstring *out)
+{
+	return value.tag == lx_string_tag && (*out = lx_string(value), 1);
 }
 
 /* wrap a boolean in a tagged union */
-static inline union lxvalue lx_bool(bool b)
+static inline struct lxvalue lx_valueb(bool b)
 {
-	return (union lxvalue) { .tag = lx_bool_tag, .b = b };
+	return (struct lxvalue) { .tag = lx_bool_tag, .offset = 0, .b = b };
 }
 
 /* wrap an integer in a tagged union */
-static inline union lxvalue lx_int(lxint i)
+static inline struct lxvalue lx_valuei(lxint i)
 {
-	return (union lxvalue) { .tag = lx_int_tag, .i = i };
+	return (struct lxvalue) { .tag = lx_int_tag, .offset = 0, .i = i };
 }
-#ifdef lxfloat
 
 /* wrap a floating point number in a tagged union */
-static inline union lxvalue lx_float(lxfloat f)
+static inline struct lxvalue lx_valuef(lxfloat f)
 {
-	return (union lxvalue) { .tag = lx_float_tag, .f = f };
+	return (struct lxvalue) { .tag = lx_float_tag, .offset = 0, .f = f };
 }
-#endif
 
 /* create an empty list value */
 static inline struct lxlist lx_empty_list(void)
 {
-	return (struct lxlist) { .ref = { lx_list_tag, 0, 0 } };
+	return (struct lxlist) {
+		.value = { .tag = lx_list_tag, .offset = 0, .s = 0 }
+	};
 }
 
 /* compare a list against the empty list */
 static inline bool lx_is_empty_list(struct lxlist list)
 {
-	return list.tag == lx_list_tag && list.ref.cell == NULL;
+	return list.value.s == NULL;
 }
 
 /* create an empty list value */
 static inline struct lxtree lx_empty_tree(void)
 {
-	return (struct lxtree) { .ref = { lx_tree_tag, 0, 0 } };
+	return (struct lxtree) {
+		.value = { .tag = lx_tree_tag, .offset = 0, .s = 0 }
+	};
 }
 
 /* compare a list against the empty list */
 static inline bool lx_is_empty_tree(struct lxtree tree)
 {
-	return tree.tag == lx_tree_tag && tree.ref.cell == NULL;
+	return tree.value.s == NULL;
 }
 
 size_t lx_tree_size(struct lxtree);
 
 struct lxtree lx_tree_cons(struct lxmem *, struct lxlist entry, struct lxtree);
-struct lxtree lx_tree_remove(struct lxmem *, union lxvalue key, struct lxtree);
+struct lxtree lx_tree_remove(struct lxmem *, struct lxvalue key, struct lxtree);
 
-struct lxlist lx_tree_assoc(union lxvalue key, struct lxtree tree);
+struct lxlist lx_tree_assoc(struct lxvalue key, struct lxtree tree);
 struct lxlist lx_tree_nth(struct lxtree tree, lxint n);
 
 /* set operations */
@@ -333,4 +394,3 @@ struct lxtree lx_tree_filter(
 	struct lxtree tree,
 	bool predicate(struct lxlist, void *),
 	void *param);
-
