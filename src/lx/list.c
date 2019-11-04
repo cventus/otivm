@@ -28,6 +28,10 @@ struct lxvalue lx_car(struct lxlist list)
 	}
 }
 
+bool lx_carb(struct lxlist list) { return list_car(list)->i; }
+lxint lx_cari(struct lxlist list) { return list_car(list)->i; }
+lxfloat lx_carf(struct lxlist list) { return list_car(list)->f; }
+
 struct lxlist lx_cdr(struct lxlist list)
 {
 	switch (list_cdr_code(list)) {
@@ -79,6 +83,10 @@ struct lxvalue lx_nth(struct lxlist l, lxint i)
 {
 	return lx_car(lx_drop(l, i));
 }
+
+bool lx_nthb(struct lxlist l, lxint i) { return lx_carb(lx_drop(l, i)); }
+lxint lx_nthi(struct lxlist l, lxint i) { return lx_cari(lx_drop(l, i)); }
+lxfloat lx_nthf(struct lxlist l, lxint i) { return lx_carf(lx_drop(l, i)); }
 
 lxint lx_length(struct lxlist list)
 {

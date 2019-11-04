@@ -73,9 +73,15 @@
 #define lx_is_empty_list MANGLE(is_empty_list)
 #define lx_cons MANGLE(cons)
 #define lx_car MANGLE(car)
+#define lx_carb MANGLE(carb)
+#define lx_cari MANGLE(cari)
+#define lx_carf MANGLE(carf)
 #define lx_cdr MANGLE(cdr)
 #define lx_drop MANGLE(drop)
 #define lx_nth MANGLE(nth)
+#define lx_nthb MANGLE(nthb)
+#define lx_nthi MANGLE(nthi)
+#define lx_nthf MANGLE(nthf)
 #define lx_length MANGLE(length)
 #define lx_reverse MANGLE(reverse)
 
@@ -226,6 +232,9 @@ struct lxlist lx_triple(struct lxmem *,
 
 /* get first element of (non-empty) list */
 struct lxvalue lx_car(struct lxlist list);
+bool lx_carb(struct lxlist list);
+lxint lx_cari(struct lxlist list);
+lxfloat lx_carf(struct lxlist list);
 
 /* remove first element from (non-empty) list */
 struct lxlist lx_cdr(struct lxlist list);
@@ -235,6 +244,9 @@ struct lxlist lx_drop(struct lxlist list, lxint i);
 
 /* equivalent of `car(drop(list, i))` */
 struct lxvalue lx_nth(struct lxlist list, lxint i);
+bool lx_nthb(struct lxlist list, lxint i);
+lxint lx_nthi(struct lxlist list, lxint i);
+lxfloat lx_nthf(struct lxlist list, lxint i);
 
 /* reverse list */
 struct lxlist lx_reverse(struct lxmem *, struct lxlist list);
