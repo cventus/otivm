@@ -42,7 +42,7 @@ static bool is_separator(int ch)
 }
 
 static int read_string(
-	struct lxmem *mem,
+	struct lxstate *state,
 	char const *str,
 	char const **end,
 	struct lxvalue *val)
@@ -53,9 +53,9 @@ static int read_string(
 	size_t n;
 
 	q = str;
-	cells = alloc_free_count(&mem->alloc);
+	cells = alloc_free_count(&state->alloc);
 	if (cells > 0) {
-		smin = s = (char *)(mem->alloc.raw_free + 1);
+		smin = s = (char *)(state->alloc.raw_free + 1);
 		/* reserve one cell for length */
 		cells--;
 	}
@@ -64,7 +64,7 @@ static int read_string(
 	while (*q != '\"') {
 		if (*q == '\0') { return LX_READ_INCOMPLETE; }
 		if (s == smax) {
-			longjmp(mem->escape, mem->oom);
+			longjmp(state->escape, state->oom);
 		}
 		if (*q == '\\') {
 			switch (*++q) {
@@ -82,9 +82,9 @@ static int read_string(
 	}
 	*s = '\0';
 	n = s - smin;
-	*val = mkref(lx_string_tag, 0, mem->alloc.raw_free + 1);
-	mem->alloc.raw_free->i = s - smin;
-	mem->alloc.raw_free += ceil_div(n + 1, sizeof (union lxcell)) + 1;
+	*val = mkref(lx_string_tag, 0, state->alloc.raw_free + 1);
+	state->alloc.raw_free->i = s - smin;
+	state->alloc.raw_free += ceil_div(n + 1, sizeof (union lxcell)) + 1;
 
 	*end = q + 1;
 	return 0;
@@ -124,7 +124,7 @@ static int read_float(
 }
 
 static int read_atom(
-	struct lxmem *mem,
+	struct lxstate *s,
 	char const *str,
 	char const **end,
 	struct lxvalue *val)
@@ -135,13 +135,13 @@ static int read_atom(
 	if (read_int(str, end, val, 10) && read_float(str, end, val)) {
 		n = strcspn(str, SEPARATORS);
 		assert(n > 0);
-		*val = lx_strndup(mem, str, n).value;
+		*val = lx_strndup(s, str, n).value;
 		*end = str + n;
 	}
 	return 0;
 }
 
-struct lxread lx_read(struct lxmem *mem, char const *str)
+struct lxread lx_read(struct lxstate *s, char const *str)
 {
 	char const *p, *q;
 	struct lxvalue val, top;
@@ -170,7 +170,7 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 			} else {
 				/* push new list on top of stack and start
 				   parsing the next value */
-				stack = lx_cons(mem, val, stack);
+				stack = lx_cons(s, val, stack);
 				p = q;
 				continue;
 			}
@@ -187,7 +187,7 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 			} else {
 				/* push new tree on top of stack and start
 				   parsing the first entry */
-				stack = lx_cons(mem, val, stack);
+				stack = lx_cons(s, val, stack);
 				p = q;
 				continue;
 			}
@@ -205,7 +205,7 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 			if (tag == lx_list_tag) {
 				/* lists are built in reverse; reverse the
 				   result and get it linearized as a bonus */
-				val = lx_reverse(mem, lx_list(val)).value;
+				val = lx_reverse(s, lx_list(val)).value;
 			}
 			stack = lx_cdr(stack); /* pop stack */
 			q = p + 1;
@@ -220,13 +220,13 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 			return read_err(LX_READ_SHARP, p);
 
 		case '"':
-			err = read_string(mem, p + 1, &q, &val);
+			err = read_string(s, p + 1, &q, &val);
 			if (err) { return read_err(err, p); }
 			break;
 
 		default:
 			/* atom: string, integer, float */
-			err = read_atom(mem, p, &q, &val);
+			err = read_atom(s, p, &q, &val);
 			if (err) { return read_err(err, p); }
 			break;
 		}
@@ -239,7 +239,7 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 		top = lx_car(stack);
 		if (top.tag == lx_list_tag) {
 			/* build new list in reverse */
-			top = lx_cons(mem, val, lx_list(top)).value;
+			top = lx_cons(s, val, lx_list(top)).value;
 		} else {
 			assert(top.tag == lx_tree_tag);
 			if (val.tag != lx_list_tag) {
@@ -248,17 +248,17 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 			if (lx_is_empty_list(lx_list(val))) {
 				return read_err(LX_READ_ENTRY, p);
 			}
-			top = lx_tree_cons(mem,
+			top = lx_tree_cons(s,
 				lx_list(val),
 				lx_tree(top)).value;
 		}
 		/* replace top of stack with new list or tree */
-		stack = lx_cons(mem, top, lx_cdr(stack));
+		stack = lx_cons(s, top, lx_cdr(stack));
 		p = q;
 	}
 }
 
-static struct lxvalue read_it(struct lxmem *mem, struct lxvalue val, va_list ap)
+static struct lxvalue read_it(struct lxstate *s, struct lxvalue val, va_list ap)
 {
 	char const *str;
 	struct lxread *r;
@@ -267,7 +267,7 @@ static struct lxvalue read_it(struct lxmem *mem, struct lxvalue val, va_list ap)
 	r = va_arg(ap, struct lxread *);
 	str = va_arg(ap, char const *);
 
-	*r = lx_read(mem, str);
+	*r = lx_read(s, str);
 	return r->value;
 }
 

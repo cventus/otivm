@@ -48,19 +48,19 @@ static struct lxresult ok_result(struct lxvalue result)
  */
 struct lxresult lx_modifyl(
 	struct lxheap *heap,
-	struct lxvalue vmodify(struct lxmem *, struct lxvalue, va_list),
+	struct lxvalue vmodify(struct lxstate *, struct lxvalue, va_list),
 	...)
 {
 	va_list ap, ap_copy;
-	struct lxmem mem;
+	struct lxstate s;
 	struct lxvalue newval;
 	struct lxresult result;
 	bool retry;
 	int err;
 
 	va_start(ap, vmodify);
-	mem.oom = OOM_COMPACT;
-	switch (setjmp(mem.escape)) {
+	s.oom = OOM_COMPACT;
+	switch (setjmp(s.escape)) {
 	default: abort();
 	case OOM_GROW:
 		err = lx_resize_heap(heap, lx_heap_size(heap)*2);
@@ -71,7 +71,7 @@ struct lxresult lx_modifyl(
 		}
 		/* fallthrough */
 	case OOM_COMPACT:
-		mem.oom = OOM_GROW;
+		s.oom = OOM_GROW;
 		err = lx_gc(heap);
 		if (err) { result = err_result(err); }
 		/* Whether retrying or not, we need to call va_end(3) on
@@ -85,11 +85,11 @@ struct lxresult lx_modifyl(
 		do {
 			retry = false;
 			va_copy(ap_copy, ap);
-			mem.alloc = heap->alloc;
-			newval = vmodify(&mem, heap->root, ap_copy);
+			s.alloc = heap->alloc;
+			newval = vmodify(&s, heap->root, ap_copy);
 			result = ok_result(newval);
 			heap->root = newval;
-			heap->alloc = mem.alloc; /* commit new allocations */
+			heap->alloc = s.alloc; /* commit new allocations */
 finish:
 			va_end(ap_copy);
 		} while (retry);
@@ -100,24 +100,24 @@ finish:
 }
 
 static struct lxvalue vpmodify(
-	struct lxmem *mem,
+	struct lxstate *s,
 	struct lxvalue root,
 	va_list ap)
 {
-	typedef struct lxvalue f(struct lxmem *, struct lxvalue, void *);
+	typedef struct lxvalue f(struct lxstate *, struct lxvalue, void *);
 
 	f *modify;
 	void *param;
 
 	modify = va_arg(ap, f *);
 	param = va_arg(ap, void *);
-	return modify(mem, root, param);
+	return modify(s, root, param);
 }
 
 /* traditional callback+context pointer interface */
 struct lxresult lx_modify(
 	struct lxheap *heap,
-	struct lxvalue modify(struct lxmem *, struct lxvalue, void *),
+	struct lxvalue modify(struct lxstate *, struct lxvalue, void *),
 	void *param)
 {
 	return lx_modifyl(heap, vpmodify, modify, param);

@@ -25,7 +25,7 @@ struct lxalloc
 	struct lxvalue tag_free;
 };
 
-struct lxmem
+struct lxstate
 {
 	jmp_buf escape;
 	struct lxalloc alloc;

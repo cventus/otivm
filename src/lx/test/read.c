@@ -21,7 +21,7 @@ void after_each_test(void)
 	lx_free_heap(heap);
 }
 
-static struct lxvalue read_it(struct lxmem *mem, struct lxvalue val, va_list ap)
+static struct lxvalue read_it(struct lxstate *s, struct lxvalue val, va_list ap)
 {
 	char const *str;
 	struct lxread *r;
@@ -30,7 +30,7 @@ static struct lxvalue read_it(struct lxmem *mem, struct lxvalue val, va_list ap)
 	r = va_arg(ap, struct lxread *);
 	str = va_arg(ap, char const *);
 
-	*r = lx_read(mem, str);
+	*r = lx_read(s, str);
 	return r->value;
 }
 

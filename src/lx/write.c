@@ -23,14 +23,14 @@
 
 struct wstate {
 	struct lxvalue stack;
-	struct lxmem *mem;
+	struct lxstate *s;
 	char *p;
 	lxint n, indent;
 };
 
 static void out_of_memory(struct wstate *w)
 {
-	longjmp(w->mem->escape, w->mem->oom); 
+	longjmp(w->s->escape, w->s->oom);
 }
 
 static void push(struct wstate *w, struct lxvalue val)
@@ -63,7 +63,7 @@ static struct lxvalue pop(struct wstate *w)
 
 static bool is_empty_stack(struct wstate *w)
 {
-	return ref_eq(w->mem->alloc.tag_free, w->stack);
+	return ref_eq(w->s->alloc.tag_free, w->stack);
 }
 
 static void push_tree_min(struct wstate *w, struct lxtree tree)
@@ -376,20 +376,20 @@ static bool next_value(struct wstate *w, struct lxvalue *next)
 	return false;
 }
 
-struct lxstring lx_write(struct lxmem *mem, struct lxvalue value)
+struct lxstring lx_write(struct lxstate *s, struct lxvalue value)
 {
 	struct lxvalue ref;
 	struct lxvalue val;
 	struct wstate w;
 	char *begin;
 
-	w.mem = mem;
-	w.stack = mem->alloc.tag_free;
-	w.p = begin = (char *)(mem->alloc.raw_free + 1);
-	w.n = ((char *)ref_cell(mem->alloc.tag_free) - begin) - 1;
+	w.s = s;
+	w.stack = s->alloc.tag_free;
+	w.p = begin = (char *)(s->alloc.raw_free + 1);
+	w.n = ((char *)ref_cell(s->alloc.tag_free) - begin) - 1;
 	w.indent = 0;
 
-	ref = mkref(lx_string_tag, 0, mem->alloc.raw_free + 1);
+	ref = mkref(lx_string_tag, 0, s->alloc.raw_free + 1);
 
 	val = value;
 	do write_value(&w, val, false);
@@ -398,28 +398,28 @@ struct lxstring lx_write(struct lxmem *mem, struct lxvalue value)
 	put_ch(&w, '\0');
 
 	/* store string length */
-	mem->alloc.raw_free->i = w.p - begin - 1;
+	s->alloc.raw_free->i = w.p - begin - 1;
 
 	/* advance raw free pointer */
-	mem->alloc.raw_free += 1 + ceil_div(mem->alloc.raw_free->i + 1, CELL_SIZE);
+	s->alloc.raw_free += 1 + ceil_div(s->alloc.raw_free->i + 1, CELL_SIZE);
 
 	return ref_to_string(ref);
 }
 
-struct lxstring lx_write_pretty(struct lxmem *mem, struct lxvalue value)
+struct lxstring lx_write_pretty(struct lxstate *s, struct lxvalue value)
 {
 	struct lxvalue ref;
 	struct lxvalue val;
 	struct wstate w;
 	char *begin;
 
-	w.mem = mem;
-	w.stack = mem->alloc.tag_free;
-	w.p = begin = (char *)(mem->alloc.raw_free + 1);
-	w.n = ((char *)ref_cell(mem->alloc.tag_free) - begin) - 1;
+	w.s = s;
+	w.stack = s->alloc.tag_free;
+	w.p = begin = (char *)(s->alloc.raw_free + 1);
+	w.n = ((char *)ref_cell(s->alloc.tag_free) - begin) - 1;
 	w.indent = 0;
 
-	ref = mkref(lx_string_tag, 0, mem->alloc.raw_free + 1);
+	ref = mkref(lx_string_tag, 0, s->alloc.raw_free + 1);
 
 	val = value;
 	do write_value(&w, val, true);
@@ -428,10 +428,10 @@ struct lxstring lx_write_pretty(struct lxmem *mem, struct lxvalue value)
 	put_ch(&w, '\0');
 
 	/* store string length */
-	mem->alloc.raw_free->i = w.p - begin - 1;
+	s->alloc.raw_free->i = w.p - begin - 1;
 
 	/* advance raw free pointer */
-	mem->alloc.raw_free += 1 + ceil_div(mem->alloc.raw_free->i + 1, CELL_SIZE);
+	s->alloc.raw_free += 1 + ceil_div(s->alloc.raw_free->i + 1, CELL_SIZE);
 
 	return ref_to_string(ref);
 }

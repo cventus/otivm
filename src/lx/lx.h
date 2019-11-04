@@ -23,7 +23,7 @@
 /* primitive types */
 #define lxheap MANGLE(heap)
 #define lxcell MANGLE(cell)
-#define lxmem MANGLE(mem)
+#define lxstate MANGLE(state)
 #define lxvalue MANGLE(value)
 #define lxlist MANGLE(list)
 #define lxtree MANGLE(tree)
@@ -143,7 +143,7 @@
 /* LSB of a reference holding the offset of the tag and cell */
 #define OFFSET_MASK (CELL_SPAN - 1)
 
-struct lxmem;
+struct lxstate;
 struct lxheap;
 
 typedef unsigned char lxtag;
@@ -196,13 +196,13 @@ struct lxread lx_heap_read(struct lxheap *heap, char const *str);
 
 struct lxresult lx_modify(
 	struct lxheap *heap,
-	struct lxvalue modify(struct lxmem *, struct lxvalue, void *),
+	struct lxvalue modify(struct lxstate *, struct lxvalue, void *),
 	void *param);
 
 /* pass arbitrary parameters to callback retrievable with va_arg(3) */
 struct lxresult lx_modifyl(
 	struct lxheap *heap,
-	struct lxvalue vmodify(struct lxmem *, struct lxvalue, va_list),
+	struct lxvalue vmodify(struct lxstate *, struct lxvalue, va_list),
 	...);
 
 int lx_gc(struct lxheap *heap);
@@ -214,20 +214,20 @@ bool lx_equals(struct lxvalue a, struct lxvalue b);
 int lx_compare(struct lxvalue a, struct lxvalue b);
 
 /* deserialize lx string to value */
-struct lxread lx_read(struct lxmem *mem, char const *str);
+struct lxread lx_read(struct lxstate *, char const *str);
 
 /* serialize value to lx string */
-struct lxstring lx_write(struct lxmem *mem, struct lxvalue value);
+struct lxstring lx_write(struct lxstate *, struct lxvalue value);
 
 /* pretty print value into string */
-struct lxstring lx_write_pretty(struct lxmem *mem, struct lxvalue value);
+struct lxstring lx_write_pretty(struct lxstate *, struct lxvalue value);
 
 /* prepend an element to a list */
-struct lxlist lx_cons(struct lxmem *, struct lxvalue, struct lxlist);
+struct lxlist lx_cons(struct lxstate *, struct lxvalue, struct lxlist);
 
-struct lxlist lx_single(struct lxmem *, struct lxvalue);
-struct lxlist lx_pair(struct lxmem *, struct lxvalue, struct lxvalue);
-struct lxlist lx_triple(struct lxmem *,
+struct lxlist lx_single(struct lxstate *, struct lxvalue);
+struct lxlist lx_pair(struct lxstate *, struct lxvalue, struct lxvalue);
+struct lxlist lx_triple(struct lxstate *,
 	struct lxvalue,
 	struct lxvalue,
 	struct lxvalue);
@@ -251,7 +251,7 @@ lxint lx_nthi(struct lxlist list, lxint i);
 lxfloat lx_nthf(struct lxlist list, lxint i);
 
 /* reverse list */
-struct lxlist lx_reverse(struct lxmem *, struct lxlist list);
+struct lxlist lx_reverse(struct lxstate *, struct lxlist list);
 
 /* number of elements in list */
 lxint lx_length(struct lxlist list);
@@ -260,16 +260,16 @@ lxint lx_length(struct lxlist list);
 size_t lx_strlen(struct lxstring string);
 
 /* copy the first n bytes of s into a heap */
-struct lxstring lx_strndup(struct lxmem *, char const *s, size_t n);
+struct lxstring lx_strndup(struct lxstate *, char const *s, size_t n);
 
 /* copy s into a heap */
-struct lxstring lx_strdup(struct lxmem *mem, char const *s);
+struct lxstring lx_strdup(struct lxstate *, char const *s);
 
 /* allocate a new formatted string in the heap */
-struct lxstring lx_sprintf(struct lxmem *, char const *fmt, ...);
+struct lxstring lx_sprintf(struct lxstate *, char const *fmt, ...);
 
 /* allocate a new formatted string in the heap */
-struct lxstring lx_vsprintf(struct lxmem *, char const *fmt, va_list ap);
+struct lxstring lx_vsprintf(struct lxstate *, char const *fmt, va_list ap);
 
 /* conversion functions */
 static inline struct lxlist lx_list(struct lxvalue value)
@@ -387,16 +387,16 @@ static inline bool lx_is_empty_tree(struct lxtree tree)
 
 size_t lx_tree_size(struct lxtree);
 
-struct lxtree lx_tree_cons(struct lxmem *, struct lxlist entry, struct lxtree);
-struct lxtree lx_tree_remove(struct lxmem *, struct lxvalue key, struct lxtree);
+struct lxtree lx_tree_cons(struct lxstate *, struct lxlist entry, struct lxtree);
+struct lxtree lx_tree_remove(struct lxstate *, struct lxvalue key, struct lxtree);
 
 struct lxlist lx_tree_assoc(struct lxvalue key, struct lxtree tree);
 struct lxlist lx_tree_nth(struct lxtree tree, lxint n);
 
 /* set operations */
-struct lxtree lx_tree_union(struct lxmem *, struct lxtree, struct lxtree);
-struct lxtree lx_tree_isect(struct lxmem *, struct lxtree, struct lxtree);
-struct lxtree lx_tree_diff(struct lxmem *, struct lxtree, struct lxtree);
+struct lxtree lx_tree_union(struct lxstate *, struct lxtree, struct lxtree);
+struct lxtree lx_tree_isect(struct lxstate *, struct lxtree, struct lxtree);
+struct lxtree lx_tree_diff(struct lxstate *, struct lxtree, struct lxtree);
 
 /* low level API for traversal */
 struct lxlist lx_tree_entry(struct lxtree);
@@ -404,7 +404,7 @@ struct lxtree lx_tree_left(struct lxtree);
 struct lxtree lx_tree_right(struct lxtree);
 
 struct lxtree lx_tree_filter(
-	struct lxmem *mem,
+	struct lxstate *,
 	struct lxtree tree,
 	bool predicate(struct lxlist, void *),
 	void *param);

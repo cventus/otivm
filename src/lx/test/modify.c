@@ -11,7 +11,7 @@
 #include "lx32x4.h"
 
 static struct lxvalue
-list_integers(struct lxmem *mem, struct lxvalue root, void *param)
+list_integers(struct lxstate *s, struct lxvalue root, void *param)
 {
 	int n, i;
 	struct lxlist list;
@@ -21,22 +21,22 @@ list_integers(struct lxmem *mem, struct lxvalue root, void *param)
 	list = lx_empty_list();
 	i = n;
 	while (i --> 0) {
-		list = lx_cons(mem, lx_valuei(i), list);
+		list = lx_cons(s, lx_valuei(i), list);
 	}
 	return list.value;
 }
 
 static struct lxvalue
-set_nil(struct lxmem *mem, struct lxvalue root, void *param)
+set_nil(struct lxstate *s, struct lxvalue root, void *param)
 {
-	(void)mem;
+	(void)s;
 	(void)root;
 	(void)param;
 	return lx_empty_list().value;
 }
 
 static struct lxvalue
-push_integer(struct lxmem *mem, struct lxvalue root, void *param)
+push_integer(struct lxstate *s, struct lxvalue root, void *param)
 {
 	int n;
 	struct lxlist list;
@@ -44,16 +44,16 @@ push_integer(struct lxmem *mem, struct lxvalue root, void *param)
 	n = *(int *)param;
 	list = lx_list(root);
 
-	return lx_cons(mem, lx_valuei(n), list).value;
+	return lx_cons(s, lx_valuei(n), list).value;
 }
 
 static struct lxvalue
-pop_integers(struct lxmem *mem, struct lxvalue root, void *param)
+pop_integers(struct lxstate *s, struct lxvalue root, void *param)
 {
 	int n;
 	struct lxlist list;
 
-	(void)mem;
+	(void)s;
 	list = lx_list(root);
 	n = *(int *)param;
 
@@ -61,19 +61,19 @@ pop_integers(struct lxmem *mem, struct lxvalue root, void *param)
 }
 
 static struct lxvalue
-sprintf_an_integer(struct lxmem *mem, struct lxvalue root, void *param)
+sprintf_an_integer(struct lxstate *s, struct lxvalue root, void *param)
 {
 	(void)root;
-	return lx_sprintf(mem, "string-%d", *(int const *)param).value;
+	return lx_sprintf(s, "string-%d", *(int const *)param).value;
 }
 
 static struct lxvalue
-create_association_list(struct lxmem *mem, struct lxvalue root, void *param)
+create_association_list(struct lxstate *s, struct lxvalue root, void *param)
 {
 	struct lxlist list, elem;
 
 #define nil lx_empty_list()
-#define cons(a, b) lx_cons(mem, (a), (b))
+#define cons(a, b) lx_cons(s, (a), (b))
 #define pair(a, b) cons(a, cons(b, nil))
 
 	(void)param;
@@ -81,13 +81,13 @@ create_association_list(struct lxmem *mem, struct lxvalue root, void *param)
 
 	list = nil;
 
-	elem = pair(lx_strdup(mem, "c").value, lx_valuei(3));
+	elem = pair(lx_strdup(s, "c").value, lx_valuei(3));
 	list = cons(elem.value, list);
 
-	elem = pair(lx_strdup(mem, "b").value, lx_valuei(2));
+	elem = pair(lx_strdup(s, "b").value, lx_valuei(2));
 	list = cons(elem.value, list);
 
-	elem = pair(lx_strdup(mem, "a").value, lx_valuei(1));
+	elem = pair(lx_strdup(s, "a").value, lx_valuei(1));
 	list = cons(elem.value, list);
 
 #undef cons

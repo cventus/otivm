@@ -101,7 +101,7 @@ lxint lx_length(struct lxlist list)
 }
 
 struct lxlist lx_cons(
-	struct lxmem *mem,
+	struct lxstate *s,
 	struct lxvalue val,
 	struct lxlist list)
 {
@@ -111,7 +111,7 @@ struct lxlist lx_cons(
 	if (lx_is_empty_list(list)) {
 		/* singleton */
 		len = 1;
-	} else if (ref_eq(list.value, mem->alloc.tag_free)) {
+	} else if (ref_eq(list.value, s->alloc.tag_free)) {
 		/* create compact list */
 		len = lxtag_len(*ref_tag(list.value));
 		if (len == 0) {
@@ -123,8 +123,8 @@ struct lxlist lx_cons(
 		/* normal cons with a link reference */
 		len = 0;
 	}
-	if (lx_reserve_tagged(&mem->alloc, len == 0 ? 2 : 1, &ref)) {
-		longjmp(mem->escape, mem->oom);
+	if (lx_reserve_tagged(&s->alloc, len == 0 ? 2 : 1, &ref)) {
+		longjmp(s->escape, s->oom);
 	}
 	*ref_tag(ref) = mktag(len, val.tag);
 	lx_set_cell_data(ref_data(ref), val);
@@ -137,34 +137,34 @@ struct lxlist lx_cons(
 	return ref_to_list(ref);
 }
 
-struct lxlist lx_reverse(struct lxmem *mem, struct lxlist list)
+struct lxlist lx_reverse(struct lxstate *s, struct lxlist list)
 {
 	struct lxlist res, l;
 
 	l = list;
 	res = lx_empty_list();
 	while (!lx_is_empty_list(l)) {
-		res = lx_cons(mem, lx_car(l), res);
+		res = lx_cons(s, lx_car(l), res);
 		l = lx_cdr(l);
 	}
 	return res;
 }
 
-struct lxlist lx_single(struct lxmem *mem, struct lxvalue a)
+struct lxlist lx_single(struct lxstate *s, struct lxvalue a)
 {
-	return lx_cons(mem, a, lx_empty_list());
+	return lx_cons(s, a, lx_empty_list());
 }
 
-struct lxlist lx_pair(struct lxmem *mem, struct lxvalue a, struct lxvalue b)
+struct lxlist lx_pair(struct lxstate *s, struct lxvalue a, struct lxvalue b)
 {
-	return lx_cons(mem, a, lx_single(mem, b));
+	return lx_cons(s, a, lx_single(s, b));
 }
 
 struct lxlist lx_triple(
-	struct lxmem *mem,
+	struct lxstate *s,
 	struct lxvalue a,
 	struct lxvalue b,
 	struct lxvalue c)
 {
-	return lx_cons(mem, a, lx_pair(mem, b, c));
+	return lx_cons(s, a, lx_pair(s, b, c));
 }

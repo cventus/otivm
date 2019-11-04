@@ -9,14 +9,14 @@
 #include "lx32x4.h"
 
 union lxcell data[11];
-struct lxmem mem;
+struct lxstate s;
 struct lx_list list, list_tail;
 lxtag const *t;
 
 void before_each_test(void)
 {
-	mem.oom = OOM_COMPACT;
-	init_cons(&mem.alloc, data, length_of(data));
+	s.oom = OOM_COMPACT;
+	init_cons(&s.alloc, data, length_of(data));
 }
 
 int test_reserve_tagged(void)
@@ -42,9 +42,9 @@ int test_reserve_tagged(void)
 int test_cons_one_element(void)
 {
 	/* we should not run out of memory */
-	if (setjmp(mem.escape)) { fail_test(0); }
+	if (setjmp(s.escape)) { fail_test(0); }
 
-	list = lx_cons(&mem, lx_valuei(42), lx_empty_list());
+	list = lx_cons(&s, lx_valuei(42), lx_empty_list());
 
 	assert_eq(lx_car(list), lx_valuei(42));
 	assert_eq(lx_cdr(list).value, lx_empty_list().value);
@@ -55,10 +55,10 @@ int test_cons_one_element(void)
 int test_cons_should_make_two_subsequent_allocations_adjacent(void)
 {
 	/* we should not run out of memory */
-	if (setjmp(mem.escape)) { fail_test(0); }
+	if (setjmp(s.escape)) { fail_test(0); }
 
-	list_tail = lx_cons(&mem, lx_valuei(2), lx_empty_list());
-	list = lx_cons(&mem, lx_valuei(1), list_tail);
+	list_tail = lx_cons(&s, lx_valuei(2), lx_empty_list());
+	list = lx_cons(&s, lx_valuei(1), list_tail);
 
 	/* assert logical structure */
 	assert_eq(lx_car(list), lx_valuei(1));
@@ -67,7 +67,7 @@ int test_cons_should_make_two_subsequent_allocations_adjacent(void)
 	assert_eq(lx_cdr(list_tail).value, lx_empty_list().value);
 
 	/* assert physical structure */
-	assert_int_eq(mem.alloc.tag_free.offset, 2);
+	assert_int_eq(s.alloc.tag_free.offset, 2);
 
 	t = ref_cell(list.value)->t;
 	assert_int_eq(t[2], mktag(2, lx_int_tag));
@@ -79,14 +79,14 @@ int test_cons_should_make_two_subsequent_allocations_adjacent(void)
 int test_cons_should_link_two_non_adjacent_allocations(void)
 {
 	/* we should not run out of memory */
-	if (setjmp(mem.escape)) { fail_test(0); }
+	if (setjmp(s.escape)) { fail_test(0); }
 
-	list_tail = lx_cons(&mem, lx_valuei(2), lx_empty_list());
+	list_tail = lx_cons(&s, lx_valuei(2), lx_empty_list());
 
 	/* garbage allocation makes list segments to be non-adjacent */
-	lx_cons(&mem, lx_empty_list().value, lx_empty_list());
+	lx_cons(&s, lx_empty_list().value, lx_empty_list());
 
-	list = lx_cons(&mem, lx_valuei(1), list_tail);
+	list = lx_cons(&s, lx_valuei(1), list_tail);
 
 	/* assert logical structure */
 	assert_eq(lx_car(list), lx_valuei(1));
@@ -95,7 +95,7 @@ int test_cons_should_link_two_non_adjacent_allocations(void)
 	assert_eq(lx_cdr(list_tail).value, lx_empty_list().value);
 
 	/* assert physical structure */
-	assert_int_eq(mem.alloc.tag_free.offset, 0);
+	assert_int_eq(s.alloc.tag_free.offset, 0);
 
 	t = ref_cell(list.value)->t;
 	assert_int_eq(t[0], mktag(0, lx_int_tag));
@@ -112,7 +112,7 @@ int test_cons_calls_longjmp_when_it_runs_out_of_memory(void)
 	volatile int result;
 
 	/* we should not run out of memory */
-	if (setjmp(mem.escape)) {
+	if (setjmp(s.escape)) {
 		if (result) {
 			fail_test("ran out of memory too soon\n");
 		}
@@ -122,22 +122,22 @@ int test_cons_calls_longjmp_when_it_runs_out_of_memory(void)
 	/* eight singleton lists should fit */ 
 	result = -1;
 	for (i = 0; i < 8; i ++) {
-		list = lx_cons(&mem, lx_valuei(0), lx_empty_list());
+		list = lx_cons(&s, lx_valuei(0), lx_empty_list());
 	}
 	result = 0;
-	lx_cons(&mem, lx_valuei(0), lx_empty_list());
+	lx_cons(&s, lx_valuei(0), lx_empty_list());
 	return -1;
 }
 
 int test_cons_five_elements(void)
 {
 	/* we should not run out of memory */
-	if (setjmp(mem.escape)) { fail_test(0); }
+	if (setjmp(s.escape)) { fail_test(0); }
 
-	list = lx_cons(&mem, lx_valuei(4), lx_empty_list());
-	list = lx_cons(&mem, lx_valuei(3), list);
-	list = lx_cons(&mem, lx_valuei(2), list);
-	list = lx_cons(&mem, lx_valuei(1), list);
+	list = lx_cons(&s, lx_valuei(4), lx_empty_list());
+	list = lx_cons(&s, lx_valuei(3), list);
+	list = lx_cons(&s, lx_valuei(2), list);
+	list = lx_cons(&s, lx_valuei(1), list);
 
 	assert_eq(lx_car(list), lx_valuei(1));
 	assert_eq(lx_car(lx_cdr(list)), lx_valuei(2));

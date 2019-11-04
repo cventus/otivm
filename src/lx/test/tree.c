@@ -127,7 +127,7 @@ int test_tree_assoc(void)
 }
 
 static struct lxvalue
-insert_into_tree(struct lxmem *mem, struct lxvalue val, va_list ap)
+insert_into_tree(struct lxstate *s, struct lxvalue val, va_list ap)
 {
 	struct lx_list entry;
 	struct lx_tree tree;
@@ -140,15 +140,15 @@ insert_into_tree(struct lxmem *mem, struct lxvalue val, va_list ap)
 	tree = lx_empty_tree();
 
 	for (i = 0; i < n; i++) {
-		entry = lx_pair(mem, lx_valuei(keys[i]), lx_valuei(i));
-		tree = lx_tree_cons(mem, entry, tree);
+		entry = lx_pair(s, lx_valuei(keys[i]), lx_valuei(i));
+		tree = lx_tree_cons(s, entry, tree);
 	}
 
 	return tree.value;
 }
 
 static struct lxvalue
-remove_from_tree(struct lxmem *mem, struct lxvalue val, va_list ap)
+remove_from_tree(struct lxstate *s, struct lxvalue val, va_list ap)
 {
 	struct lxvalue key;
 	struct lxtree tree, modified_tree;
@@ -161,16 +161,16 @@ remove_from_tree(struct lxmem *mem, struct lxvalue val, va_list ap)
 
 	for (i = 0; i < n; i++) {
 		key = lx_valuei(keys[i]);
-		modified_tree = lx_tree_remove(mem, key, modified_tree);
+		modified_tree = lx_tree_remove(s, key, modified_tree);
 	}
-	return lx_pair(mem, tree.value, modified_tree.value).value;
+	return lx_pair(s, tree.value, modified_tree.value).value;
 }
 
 static struct lxvalue
-duplicate_root(struct lxmem *mem, struct lxvalue val, va_list ap)
+duplicate_root(struct lxstate *s, struct lxvalue val, va_list ap)
 {
 	(void)ap;
-	return lx_pair(mem, val, val).value;
+	return lx_pair(s, val, val).value;
 }
 
 int test_tree_cons(void)
@@ -268,19 +268,19 @@ int test_tree_remove(void)
 	return 0;
 }
 
-static struct lxvalue parse(struct lxmem *mem, struct lxvalue val, va_list ap)
+static struct lxvalue parse(struct lxstate *s, struct lxvalue val, va_list ap)
 {
 	struct lxread res;
 	char const *p;
 
 	p = va_arg(ap, char const *);
-	res = lx_read(mem, p);
-	return lx_cons(mem, res.value, lx_list(val)).value;
+	res = lx_read(s, p);
+	return lx_cons(s, res.value, lx_list(val)).value;
 }
 
-static struct lxvalue tree_op(struct lxmem *mem, struct lxvalue val, va_list ap)
+static struct lxvalue tree_op(struct lxstate *s, struct lxvalue val, va_list ap)
 {
-	typedef struct lxtree op(struct lxmem *, struct lxtree, struct lxtree);
+	typedef struct lxtree op(struct lxstate *, struct lxtree, struct lxtree);
 	struct lxtree a, b;
 	op *f;
 
@@ -288,10 +288,10 @@ static struct lxvalue tree_op(struct lxmem *mem, struct lxvalue val, va_list ap)
 	b = lx_tree(lx_nth(lx_list(val), 1));
 	f = va_arg(ap, op *);
 
-	return lx_cons(mem, f(mem, a, b).value, lx_drop(lx_list(val), 2)).value;
+	return lx_cons(s, f(s, a, b).value, lx_drop(lx_list(val), 2)).value;
 }
 
-static struct lxvalue filter_op(struct lxmem *mem, struct lxvalue val, va_list ap)
+static struct lxvalue filter_op(struct lxstate *s, struct lxvalue val, va_list ap)
 {
 	typedef bool op(struct lxlist, void *);
 	struct lxtree a, b;
@@ -302,17 +302,17 @@ static struct lxvalue filter_op(struct lxmem *mem, struct lxvalue val, va_list a
 	f = va_arg(ap, op *);
 	arg = va_arg(ap, void *);
 
-	b = lx_tree_filter(mem, a, f, arg);
+	b = lx_tree_filter(s, a, f, arg);
 
-	return lx_cons(mem, b.value, lx_cdr(lx_list(val))).value;
+	return lx_cons(s, b.value, lx_cdr(lx_list(val))).value;
 }
 
-static struct lxvalue stringify(struct lxmem *mem, struct lxvalue val, va_list ap)
+static struct lxvalue stringify(struct lxstate *s, struct lxvalue val, va_list ap)
 {
 	struct lxstring str;
 	(void)ap;
-	str = lx_write(mem, lx_car(lx_list(val)));
-	return lx_cons(mem, str.value, lx_cdr(lx_list(val))).value;
+	str = lx_write(s, lx_car(lx_list(val)));
+	return lx_cons(s, str.value, lx_cdr(lx_list(val))).value;
 }
 
 #define tree_a "{\n" \
