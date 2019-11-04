@@ -258,3 +258,109 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 		p = q;
 	}
 }
+
+bool lx_match(struct lxvalue v, char const *fmt, ...)
+{
+	(void)v;
+	(void)fmt;
+	return false;
+#if 0
+	typedef PASTE(int, PASTE(LX_BITS, _t)) inttype;
+	enum { LONG = 1, LONG_LONG = 2 };
+
+	bool result;
+
+	char const *p, *q;
+	struct lxvalue val, top;
+	struct lxlist stack;
+	enum lx_tag tag;
+	int err;
+	va_list ap;
+	unsigned int flags;
+
+	union lxcell stack_buf[100];
+
+
+
+	result = false;
+	va_start(ap, fmt);
+
+value:
+	p = skip_ws(p);
+	switch (*p++) {
+	case '\0': goto finish;
+	case '%': goto format;
+	case '(': goto list;
+
+	case ')':
+		/* is there a syntax error in the format? */
+		if (!pop_list(stack)) { goto finish; }
+		goto value_done;
+
+	case '{': goto map;
+	case '}':
+		if (!pop_tree(stack)) { goto finish; }
+		goto value_done;
+		/* end list */
+
+	case '#': goto hash;
+	case '"': goto string;
+	default: goto atom;
+	}
+
+format:
+	if (*p == '%') { goto atom; }
+	ignore = false;
+	dbl = false;
+	ldbl = false;
+next_option:
+	switch (*p++) {
+	case '*': ignore = true; goto next_option;
+	case 'l': dbl = true; goto next_option;
+	case 'L': ldbl = true; goto next_option;
+	case '(':
+		if (v.tag != lx_list_tag) { goto finish; }
+		if (!ignore) {
+			struct lx_list *l = va_arg(ap, struct lx_list *);
+			*l = value.list;
+		}
+		goto list2;
+
+	case '{':
+		if (v.tag != lx_tree_tag) { goto finish; }
+		if (!ignore) {
+			struct lx_tree *t = va_arg(ap, struct lx_tree *);
+			*l = value.tree;
+		}
+		goto tree2;
+
+	case 'd':
+	case 'i':
+	case 'f':
+		if (v.tag == lx_int_tag) {
+			goto finish;
+		} if (v.tag == lx_float_tag) {
+		}
+	case 'v': break;
+	default: goto finish;
+	}
+
+list:
+	if (v.tag != lx_list_tag) { goto finish; }
+list2:
+	push_list(lx_cdr(value.list));
+	value = lx_car(value.list);
+	goto value;
+
+tree:
+	if (v.tag != lx_tree_tag) { goto finish; }
+
+
+entry:
+	goto value;
+
+finish:
+	va_end(ap);
+	return result;
+#endif
+}

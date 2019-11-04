@@ -65,6 +65,7 @@
 #define lx_equals MANGLE(equals)
 #define lx_compare MANGLE(compare)
 #define lx_read MANGLE(read)
+#define lx_match MANGLE(match)
 #define lx_write MANGLE(write)
 #define lx_write_pretty MANGLE(write_pretty)
 
@@ -213,6 +214,9 @@ int lx_compare(struct lxvalue a, struct lxvalue b);
 
 /* deserialize lx string to value */
 struct lxread lx_read(struct lxmem *mem, char const *str);
+
+/* match value against lx string pattern */
+bool lx_match(struct lxvalue v, char const *fmt, ...);
 
 /* serialize value to lx string */
 struct lxstring lx_write(struct lxmem *mem, struct lxvalue value);
