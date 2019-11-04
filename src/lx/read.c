@@ -22,8 +22,8 @@ static struct lxread read_ok(struct lxvalue result, char const *where) {
 	return (struct lxread) { LX_READ_OK, where, result };
 }
 
-static struct lxread read_err(enum lx_read_error err, char const *where) {
-	return (struct lxread) { err, where, lx_valueb(false) };
+static struct lxread read_err(enum lx_read_status status, char const *where) {
+	return (struct lxread) { status, where, lx_valueb(false) };
 }
 
 #define WHITESPACE " \t\v\r\n"
@@ -137,7 +137,6 @@ static int read_atom(
 		assert(n > 0);
 		*val = lx_strndup(mem, str, n).value;
 		*end = str + n;
-		return 0;
 	}
 	return 0;
 }
@@ -257,4 +256,29 @@ struct lxread lx_read(struct lxmem *mem, char const *str)
 		stack = lx_cons(mem, top, lx_cdr(stack));
 		p = q;
 	}
+}
+
+static struct lxvalue read_it(struct lxmem *mem, struct lxvalue val, va_list ap)
+{
+	char const *str;
+	struct lxread *r;
+
+	(void)val;
+	r = va_arg(ap, struct lxread *);
+	str = va_arg(ap, char const *);
+
+	*r = lx_read(mem, str);
+	return r->value;
+}
+
+struct lxread lx_heap_read(struct lxheap *heap, char const *str)
+{
+	struct lxread read;
+
+	if (lx_modifyl(heap, read_it, &read, str).status) {
+		read.status = LX_READ_HEAP_SIZE;
+		read.where = str;
+		read.value = lx_valueb(false);
+	}
+	return read;
 }

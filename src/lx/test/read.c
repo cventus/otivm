@@ -37,7 +37,7 @@ static struct lxvalue read_it(struct lxmem *mem, struct lxvalue val, va_list ap)
 static void do_read(char const *str, enum lx_tag expected)
 {
 	lx_modifyl(heap, read_it, &result, str);
-	assert_int_eq(result.err, LX_READ_OK);
+	assert_int_eq(result.status, LX_READ_OK);
 	assert_tag_eq(result.value.tag, expected);
 }
 
@@ -162,6 +162,53 @@ int test_read_tree(void)
 	assert_int_eq(lx_length(l), 2);
 	assert_eq(lx_nth(l, 0), lx_valuei(3));
 	assert_str_eq(lx_nth(l, 1).s, "c");
+
+	return 0;
+}
+
+int test_heap_read_should_set_the_heaps_value(void)
+{
+	struct lxlist lst;
+
+	result = lx_heap_read(heap, "(0 1 2)");
+	assert_int_eq(result.status, LX_READ_OK);
+	assert_tag_eq(result.value.tag, lx_list_tag);
+	lst = lx_list(result.value);
+
+	/* heap value is set */
+	assert_eq(result.value, lx_heap_value(heap));
+
+	/* value is list */
+	assert_int_eq(lx_length(lst), 3);
+	assert_eq(lx_nth(lst, 0), lx_valuei(0));
+	assert_eq(lx_nth(lst, 1), lx_valuei(1));
+	assert_eq(lx_nth(lst, 2), lx_valuei(2));
+
+	return 0;
+}
+
+#define _stringify(x) #x
+#define stringify(x) _stringify(x)
+
+int test_heap_read_should_report_heap_size_limits(void)
+{
+	struct lxheap *small_heap;
+	struct lx_config cfg = { 0 };
+
+	static char const *big_expr = stringify(
+	  (let ((digits "123456789")
+	        (list ((quote a) (quote b) (quote c)))
+	        (number 42))
+	    (display digits)
+	    (display list)
+	    (display number))
+	);
+
+	small_heap = lx_make_heap(0, &cfg);
+	result = lx_heap_read(small_heap, big_expr);
+	assert_int_eq(result.status, LX_READ_HEAP_SIZE);
+
+	lx_free_heap(small_heap);
 
 	return 0;
 }

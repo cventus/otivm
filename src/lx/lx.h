@@ -55,6 +55,7 @@
 #define lx_free_heap MANGLE(free_heap)
 #define lx_heap_size MANGLE(heap_size)
 #define lx_heap_value MANGLE(heap_value)
+#define lx_heap_read MANGLE(heap_read)
 #define lx_modify MANGLE(modify)
 #define lx_modifyl MANGLE(modifyl)
 #define lx_gc MANGLE(gc)
@@ -181,7 +182,7 @@ struct lxresult
 };
 
 struct lxread {
-	enum lx_read_error err;
+	enum lx_read_status status;
 	char const *where;
 	struct lxvalue value;
 };
@@ -191,6 +192,7 @@ void lx_free_heap(struct lxheap *heap);
 
 size_t lx_heap_size(struct lxheap const *heap);
 struct lxvalue lx_heap_value(struct lxheap const *heap);
+struct lxread lx_heap_read(struct lxheap *heap, char const *str);
 
 struct lxresult lx_modify(
 	struct lxheap *heap,

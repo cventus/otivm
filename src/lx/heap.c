@@ -199,7 +199,9 @@ int lx_resize_heap(struct lxheap *heap, size_t new_size)
 	if (new_size < old_size) { return 0; }
 
 	adjusted_new_size = adjust_heap_size(&heap->config, new_size);
-	if (adjusted_new_size == old_size) { return 0; }
+	if (adjusted_new_size == old_size) {
+		return adjusted_new_size < new_size ? -1 : 0;
+	}
 
 	/* save allocation pointers */
 	min_addr = &heap->alloc.min_addr;
