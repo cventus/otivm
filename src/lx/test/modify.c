@@ -6,97 +6,21 @@
 #include <string.h>
 #include <stdbool.h>
 #include <setjmp.h>
+#include <signal.h>
 
 #include "ok/ok.h"
 #include "lx32x4.h"
 
-static struct lxvalue
-list_integers(struct lxstate *s, struct lxvalue root, void *param)
-{
-	int n, i;
-	struct lxlist list;
-
-	(void)root;
-	n = *(int const *)param;
-	list = lx_empty_list();
-	i = n;
-	while (i --> 0) {
-		list = lx_cons(s, lx_valuei(i), list);
-	}
-	return list.value;
-}
-
-static struct lxvalue
-set_nil(struct lxstate *s, struct lxvalue root, void *param)
-{
-	(void)s;
-	(void)root;
-	(void)param;
-	return lx_empty_list().value;
-}
-
-static struct lxvalue
-push_integer(struct lxstate *s, struct lxvalue root, void *param)
-{
-	int n;
-	struct lxlist list;
-
-	n = *(int *)param;
-	list = lx_list(root);
-
-	return lx_cons(s, lx_valuei(n), list).value;
-}
-
-static struct lxvalue
-pop_integers(struct lxstate *s, struct lxvalue root, void *param)
-{
-	int n;
-	struct lxlist list;
-
-	(void)s;
-	list = lx_list(root);
-	n = *(int *)param;
-
-	return lx_drop(list, n).value;
-}
-
-static struct lxvalue
-sprintf_an_integer(struct lxstate *s, struct lxvalue root, void *param)
-{
-	(void)root;
-	return lx_sprintf(s, "string-%d", *(int const *)param).value;
-}
-
-static struct lxvalue
-create_association_list(struct lxstate *s, struct lxvalue root, void *param)
-{
-	struct lxlist list, elem;
-
-#define nil lx_empty_list()
-#define cons(a, b) lx_cons(s, (a), (b))
-#define pair(a, b) cons(a, cons(b, nil))
-
-	(void)param;
-	(void)root;
-
-	list = nil;
-
-	elem = pair(lx_strdup(s, "c").value, lx_valuei(3));
-	list = cons(elem.value, list);
-
-	elem = pair(lx_strdup(s, "b").value, lx_valuei(2));
-	list = cons(elem.value, list);
-
-	elem = pair(lx_strdup(s, "a").value, lx_valuei(1));
-	list = cons(elem.value, list);
-
-#undef cons
-#undef nil
-
-	return list.value;
-}
-
 static struct lxheap *heap = NULL;
+static struct lxstate s[1];
+
+static jmp_buf return_from_signal;
+
+static void on_sigabrt(int sig)
+{
+	(void)sig;
+	longjmp(return_from_signal, 1);
+}
 
 void after_each_test(void)
 {
@@ -105,34 +29,78 @@ void after_each_test(void)
 
 int test_modify_should_set_nil(void)
 {
-	struct lxresult result;
-
 	heap = lx_make_heap(0, NULL);
 
-	result = lx_modify(heap, set_nil, NULL);
-	assert_status_eq(result.status, 0);
-	assert_tag_eq(result.value.tag, lx_list_tag);
-	assert_list_eq(lx_list(result.value), lx_empty_list());
+	lx_start(s, heap);
+	lx_end(s, lx_empty_list().value);
 
+	assert_eq(lx_heap_value(heap), lx_empty_list().value);
 	return 0;
+}
+
+int test_start_should_return_negative_on_heap_exhaustion(void)
+{
+	struct lx_config cfg = { .max_size = 1 };
+	struct lxlist lst;
+	int i;
+
+	heap = lx_make_heap(0, &cfg);
+	if (lx_start(s, heap) < 0) {
+		/* ok! */
+		assert_int_eq(s->status, lx_state_heap_size);
+		return 0;
+	}
+	lst = lx_empty_list();
+	for (i = 0; i < 10000; i++) {
+		lst = lx_cons(s, lx_valuei(42), lst);
+	}
+	lx_end(s, lx_empty_list().value);
+	fail_test("Managed to allocate too much\n");
+
+	return -1;
+}
+
+int test_modify_should_abort_if_heap_exhaustion_is_unhandled(void)
+{
+	struct lx_config cfg = { .max_size = 1 };
+	struct lxlist lst;
+	int i;
+
+	if (setjmp(return_from_signal)) {
+		return 0;
+	}
+	signal(SIGABRT, on_sigabrt);
+
+	heap = lx_make_heap(0, &cfg);
+	lx_start(s, heap);
+	lst = lx_empty_list();
+	for (i = 0; i < 10000; i++) {
+		lst = lx_cons(s, lx_valuei(42), lst);
+	}
+	lx_end(s, lx_empty_list().value);
+	fail_test("Managed to allocate too much\n");
+
+	return -1;
 }
 
 int test_basic_list_modification(void)
 {
-	struct lxresult result;
-	struct lxvalue root;
+	struct lxlist list;
+	int i;
 
 	heap = lx_make_heap(0, NULL);
 
-	result = lx_modify(heap, list_integers, (int []){ 2 });
-	if (result.status) {
-		fail_test("lx_modify returned: %d\n", result.status);
+	lx_start(s, heap);
+	list = lx_empty_list();
+	i = 2;
+	while (i --> 0) {
+		list = lx_cons(s, lx_valuei(i), list);
 	}
-	root = result.value;
+	lx_end(s, lx_empty_list().value);
 
-	assert_tag_eq(root.tag, lx_list_tag);
-	assert_eq(lx_nth(lx_list(root), 0), lx_valuei(0));
-	assert_eq(lx_nth(lx_list(root), 1), lx_valuei(1));
+	assert_tag_eq(list.value.tag, lx_list_tag);
+	assert_eq(lx_nth(list, 0), lx_valuei(0));
+	assert_eq(lx_nth(list, 1), lx_valuei(1));
 
 	return 0;
 }
@@ -140,32 +108,39 @@ int test_basic_list_modification(void)
 int test_modify_should_garbage_collect(void)
 {
 	int i, j;
-	struct lxresult result;
 	struct lxvalue root;
+	struct lxlist list;
 
 	/* room for four compact list cells (+ tag cell, mark bits) */
 	heap = lx_make_heap(sizeof (union lxcell) * 6 * 2, NULL);
 
-	result = lx_modify(heap, set_nil, NULL);
-	assert_status_eq(result.status, 0);
+	lx_start(s, heap);
+	list = lx_empty_list();
+	lx_end(s, list.value);
 
 	j = 0;
 
 	/* allocate 3 */
 	for (i = 0; i < 3; i++) {
-		result = lx_modify(heap, push_integer, &j);
-		assert_status_eq(result.status, 0);
+		lx_start(s, heap);
+		list.value = lx_heap_value(heap);
+		list = lx_cons(s, lx_valuei(j), list);
+		lx_end(s, list.value);
 		j++;
 	}
 
 	/* pop two */
-	result = lx_modify(heap, pop_integers, (int[]){ 2 });
-	assert_status_eq(result.status, 0);
+	lx_start(s, heap);
+	list.value = lx_heap_value(heap);
+	list = lx_drop(list, 2);
+	lx_end(s, list.value);
 
 	/* allocate 3 more */
 	for (i = 0; i < 3; i++) {
-		result = lx_modify(heap, push_integer, &j);
-		assert_status_eq(result.status, 0);
+		lx_start(s, heap);
+		list.value = lx_heap_value(heap);
+		list = lx_cons(s, lx_valuei(j), list);
+		lx_end(s, list.value);
 		j++;
 	}
 
@@ -177,22 +152,26 @@ int test_modify_should_garbage_collect(void)
 
 int test_modify_should_garbage_collect_many_times(void)
 {
-	int i, j, k;
-	struct lxresult result;
-	struct lxvalue root;
+	int i, j, k, n;
 	struct lxlist list;
 
 	heap = lx_make_heap(4096, NULL);
 
-	result = lx_modify(heap, set_nil, NULL);
-	assert_status_eq(result.status, 0);
+	lx_start(s, heap);
+	lx_end(s, lx_empty_list().value);
 
 	for (i = 1; i <= 10000; i++) {
 		k = rand() % i;
-		result = lx_modify(heap, list_integers, &k);
-		assert_status_eq(result.status, 0);
-		root = lx_heap_value(heap);
-		list = lx_list(root);
+
+		/* create (0 1 2 3 ... [k-1]) */
+		lx_start(s, heap);
+		list = lx_empty_list();
+		n = k;
+		while (n --> 0) {
+			list = lx_cons(s, lx_valuei(n), list);
+		}
+		lx_end(s, list.value);
+
 		for (j = 0; j < k; j++) {
 			assert_eq(lx_car(list), lx_valuei(j));
 			list = lx_cdr(list);
@@ -205,32 +184,35 @@ int test_modify_should_garbage_collect_many_times(void)
 
 int test_allocate_a_string(void)
 {
-	struct lxresult result;
+	struct lxstring string;
 
 	heap = lx_make_heap(0, NULL);
-	result = lx_modify(heap, sprintf_an_integer, (int[]){ 42 });
 
-	assert_status_eq(result.status, 0);
-	assert_tag_eq(result.value.tag, lx_string_tag);
-	assert_str_eq(result.value.s, "string-42");
-	assert_int_eq(lx_strlen(ref_to_string(result.value)), (sizeof "string-42") - 1);
+	lx_start(s, heap);
+	string = lx_sprintf(s, "string-%d", 42);
+
+	assert_tag_eq(string.value.tag, lx_string_tag);
+	assert_str_eq(string.value.s, "string-42");
+	assert_int_eq(lx_strlen(string), (sizeof "string-42") - 1);
 
 	return 0;
 }
 
 int test_allocate_100_strings(void)
 {
-	struct lxresult result;
+	struct lxstring string;
 	int i;
 
 	heap = lx_make_heap(0, NULL);
 	for (i = 1; i <= 100; i++) {
-		result = lx_modify(heap, sprintf_an_integer, &i);
-		assert_status_eq(result.status, 0);
-		assert_tag_eq(result.value.tag, lx_string_tag);
+		lx_start(s, heap);
+		string = lx_sprintf(s, "string-%d", i);
+		lx_end(s, string.value);
+
+		assert_tag_eq(string.value.tag, lx_string_tag);
 	}
-	assert_str_eq(result.value.s, "string-100");
-	assert_int_eq(lx_strlen(ref_to_string(result.value)), (sizeof "string-100") - 1);
+	assert_str_eq(string.value.s, "string-100");
+	assert_int_eq(lx_strlen(string), (sizeof "string-100") - 1);
 
 	return 0;
 }
@@ -238,56 +220,89 @@ int test_allocate_100_strings(void)
 int test_allocate_and_garbage_collect_a_string(void)
 {
 	struct lxvalue root;
+	struct lxstring string;
 
 	heap = lx_make_heap(0, NULL);
-	lx_modify(heap, sprintf_an_integer, (int[]){ 42 });
+
+	lx_start(s, heap);
+	string = lx_sprintf(s, "string-%d", 42);
+	lx_end(s, string.value);
+
 	lx_gc(heap);
 	root = lx_heap_value(heap);
 
 	assert_tag_eq(root.tag, lx_string_tag);
 	assert_str_eq(root.s, "string-42");
-	assert_int_eq(lx_strlen(ref_to_string(root)), (sizeof "string-42") - 1);
+	assert_int_eq(lx_strlen(lx_string(root)), (sizeof "string-42") - 1);
 
 	return 0;
 }
 
 int test_allocate_lists_and_strings(void)
 {
-	struct lxvalue root;
+	struct lxlist list, elem;
 
 	heap = lx_make_heap(0, NULL);
-	lx_modify(heap, create_association_list, (int[]){ 42 });
-	root = lx_heap_value(heap);
 
-	assert_str_eq(lx_nth(lx_list(lx_nth(lx_list(root), 0)), 0).s, "a");
-	assert_int_eq(lx_nth(lx_list(lx_nth(lx_list(root), 0)), 1).i, 1);
+	lx_start(s, heap);
 
-	assert_str_eq(lx_nth(lx_list(lx_nth(lx_list(root), 1)), 0).s, "b");
-	assert_int_eq(lx_nth(lx_list(lx_nth(lx_list(root), 1)), 1).i, 2);
+	list = lx_empty_list();
 
-	assert_str_eq(lx_nth(lx_list(lx_nth(lx_list(root), 2)), 0).s, "c");
-	assert_int_eq(lx_nth(lx_list(lx_nth(lx_list(root), 2)), 1).i, 3);
+	elem = lx_pair(s, lx_strdup(s, "c").value, lx_valuei(3));
+	list = lx_cons(s, elem.value, list);
+
+	elem = lx_pair(s, lx_strdup(s, "b").value, lx_valuei(2));
+	list = lx_cons(s, elem.value, list);
+
+	elem = lx_pair(s, lx_strdup(s, "a").value, lx_valuei(1));
+	list = lx_cons(s, elem.value, list);
+
+	lx_end(s, list.value);
+
+	assert_str_eq(lx_nth(lx_list(lx_nth(list, 0)), 0).s, "a");
+	assert_int_eq(lx_nth(lx_list(lx_nth(list, 0)), 1).i, 1);
+
+	assert_str_eq(lx_nth(lx_list(lx_nth(list, 1)), 0).s, "b");
+	assert_int_eq(lx_nth(lx_list(lx_nth(list, 1)), 1).i, 2);
+
+	assert_str_eq(lx_nth(lx_list(lx_nth(list, 2)), 0).s, "c");
+	assert_int_eq(lx_nth(lx_list(lx_nth(list, 2)), 1).i, 3);
 
 	return 0;
 }
 
 int test_garbage_collect_lists_and_strings(void)
 {
-	struct lxvalue root;
+	struct lxlist list, elem;
 
 	heap = lx_make_heap(0, NULL);
-	lx_modify(heap, create_association_list, (int[]){ 42 });
+
+	lx_start(s, heap);
+
+	list = lx_empty_list();
+
+	elem = lx_pair(s, lx_strdup(s, "c").value, lx_valuei(3));
+	list = lx_cons(s, elem.value, list);
+
+	elem = lx_pair(s, lx_strdup(s, "b").value, lx_valuei(2));
+	list = lx_cons(s, elem.value, list);
+
+	elem = lx_pair(s, lx_strdup(s, "a").value, lx_valuei(1));
+	list = lx_cons(s, elem.value, list);
+
+	lx_end(s, list.value);
+
 	lx_gc(heap);
-	root = lx_heap_value(heap);
+	list.value = lx_heap_value(heap);
 
-	assert_str_eq(lx_nth(lx_list(lx_nth(lx_list(root), 0)), 0).s, "a");
-	assert_int_eq(lx_nth(lx_list(lx_nth(lx_list(root), 0)), 1).i, 1);
+	assert_str_eq(lx_nth(lx_list(lx_nth(list, 0)), 0).s, "a");
+	assert_int_eq(lx_nth(lx_list(lx_nth(list, 0)), 1).i, 1);
 
-	assert_str_eq(lx_nth(lx_list(lx_nth(lx_list(root), 1)), 0).s, "b");
-	assert_int_eq(lx_nth(lx_list(lx_nth(lx_list(root), 1)), 1).i, 2);
+	assert_str_eq(lx_nth(lx_list(lx_nth(list, 1)), 0).s, "b");
+	assert_int_eq(lx_nth(lx_list(lx_nth(list, 1)), 1).i, 2);
 
-	assert_str_eq(lx_nth(lx_list(lx_nth(lx_list(root), 2)), 0).s, "c");
-	assert_int_eq(lx_nth(lx_list(lx_nth(lx_list(root), 2)), 1).i, 3);
+	assert_str_eq(lx_nth(lx_list(lx_nth(list, 2)), 0).s, "c");
+	assert_int_eq(lx_nth(lx_list(lx_nth(list, 2)), 1).i, 3);
 
 	return 0;
 }

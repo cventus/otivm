@@ -124,7 +124,7 @@ struct lxlist lx_cons(
 		len = 0;
 	}
 	if (lx_reserve_tagged(&s->alloc, len == 0 ? 2 : 1, &ref)) {
-		longjmp(s->escape, s->oom);
+		lx_handle_out_of_memory(s);
 	}
 	*ref_tag(ref) = mktag(len, val.tag);
 	lx_set_cell_data(ref_data(ref), val);

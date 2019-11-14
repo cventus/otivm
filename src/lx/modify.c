@@ -14,111 +14,40 @@
 #include "list.h"
 #include "heap.h"
 
-static struct lxresult err_result(int err)
+jmp_buf *lx_prepare_start(struct lxstate *state, struct lxheap *heap)
 {
-	return (struct lxresult){ err, lx_empty_list().value };
+	state->heap = heap;
+	state->alloc = heap->alloc;
+	state->iterations = 0;
+	state->status = lx_state_ok;
+	return &state->restart;
 }
 
-static struct lxresult ok_result(struct lxvalue result)
+/* commit new allocations */
+void lx_end(struct lxstate *state, struct lxvalue value)
 {
-	return (struct lxresult){ 0, result };
+	state->status = lx_state_ok;
+	state->heap->root = value;
+	state->heap->alloc = state->alloc;
 }
 
-/* modifyl - Modify the root value of the heap through the callback `modify`
- * which receives an arbitrariy number of arguments in the form of a va_list.
- * The l-suffix in the name is modeled after e.g. execl(3) indicating the
- * variable arguments.
- *
- * WARNING: the implementation is an abomination of a function and it's
- * debatable whether its complexity is justified:
- *  - setjmp/longjmp (essential)
- *  - va_list, va_copy/va_end
- *  - goto
- *
- * The use of the va_list is sometimes more conventient than the void context
- * pointer since there's no need to define an ad-hoc struct to hold the
- * additional parameters. It does, however, incur some nasty constraints. Since
- * the modification function will potentially be called multiple times (due to
- * garbage colletion) a copy of the original va_list must be passed in every
- * time. A strict reading of the C language standard and my manual pages
- * suggest that each use of va_copy(3) should not only be paired with va_end(3)
- * but there can only be one syntactic pairing and it must be in the same block
- * since long ago an exotic implementation included curly braces in these
- * macros.
- */
-struct lxresult lx_modifyl(
-	struct lxheap *heap,
-	struct lxvalue vmodify(struct lxstate *, struct lxvalue, va_list),
-	...)
+void lx_handle_out_of_memory(struct lxstate *state)
 {
-	va_list ap, ap_copy;
-	struct lxstate s;
-	struct lxvalue newval;
-	struct lxresult result;
-	bool retry;
-	int err;
+	enum { restart_block = 1, abort_block = -1 };
 
-	va_start(ap, vmodify);
-	s.oom = OOM_COMPACT;
-	switch (setjmp(s.escape)) {
-	default: abort();
-	case OOM_GROW:
-		err = lx_resize_heap(heap, lx_heap_size(heap)*2);
-		if (err) {
-			result = err_result(err);
-			retry = false; /* modified after setjmp */
-			goto finish;
-		}
-		/* fallthrough */
-	case OOM_COMPACT:
-		s.oom = OOM_GROW;
-		err = lx_gc(heap);
-		if (err) { result = err_result(err); }
-		/* Whether retrying or not, we need to call va_end(3) on
-		   ap_copy in the rare condition va_copy(3) allocates something
-		   and va_end(3) is not just a no-op. At the same time, there
-		   should *syntatically* only be one va_copy/va_end pair for a
-		   list, so we cannot call it here but have to `goto` it :( */
-		retry = err == 0;
-		goto finish;
-	case 0:
-		do {
-			retry = false;
-			va_copy(ap_copy, ap);
-			s.alloc = heap->alloc;
-			newval = vmodify(&s, heap->root, ap_copy);
-			result = ok_result(newval);
-			heap->root = newval;
-			heap->alloc = s.alloc; /* commit new allocations */
-finish:
-			va_end(ap_copy);
-		} while (retry);
-		break;
+	if (state->status == lx_state_heap_size) {
+		/* unhandled lx_start block - avoid infinite loop and abort */
+		abort();
 	}
-	va_end(ap);
-	return result;
-}
+	if (state->iterations > 0) {
+		if (lx_resize_heap(state->heap, lx_heap_size(state->heap)*2)) {
+			state->status = lx_state_heap_size;
+			longjmp(state->restart, abort_block);
+		}
+	}
 
-static struct lxvalue vpmodify(
-	struct lxstate *s,
-	struct lxvalue root,
-	va_list ap)
-{
-	typedef struct lxvalue f(struct lxstate *, struct lxvalue, void *);
-
-	f *modify;
-	void *param;
-
-	modify = va_arg(ap, f *);
-	param = va_arg(ap, void *);
-	return modify(s, root, param);
-}
-
-/* traditional callback+context pointer interface */
-struct lxresult lx_modify(
-	struct lxheap *heap,
-	struct lxvalue modify(struct lxstate *, struct lxvalue, void *),
-	void *param)
-{
-	return lx_modifyl(heap, vpmodify, modify, param);
+	lx_gc(state->heap);
+	state->iterations++;
+	state->alloc = state->heap->alloc;
+	longjmp(state->restart, restart_block);
 }

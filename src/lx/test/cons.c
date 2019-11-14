@@ -12,11 +12,25 @@ union lxcell data[11];
 struct lxstate s;
 struct lx_list list, list_tail;
 lxtag const *t;
+static bool should_run_out_of_memory;
+static jmp_buf on_oom;
+
+void lx_handle_out_of_memory(struct lxstate *state)
+{
+	(void)state;
+
+	if (should_run_out_of_memory) {
+		longjmp(on_oom, 1);
+	} else {
+		fail_test("unexpectedly ran out of memory\n");
+		abort();
+	}
+}
 
 void before_each_test(void)
 {
-	s.oom = OOM_COMPACT;
 	init_cons(&s.alloc, data, length_of(data));
+	should_run_out_of_memory = false;
 }
 
 int test_reserve_tagged(void)
@@ -41,9 +55,6 @@ int test_reserve_tagged(void)
 
 int test_cons_one_element(void)
 {
-	/* we should not run out of memory */
-	if (setjmp(s.escape)) { fail_test(0); }
-
 	list = lx_cons(&s, lx_valuei(42), lx_empty_list());
 
 	assert_eq(lx_car(list), lx_valuei(42));
@@ -54,9 +65,6 @@ int test_cons_one_element(void)
 
 int test_cons_should_make_two_subsequent_allocations_adjacent(void)
 {
-	/* we should not run out of memory */
-	if (setjmp(s.escape)) { fail_test(0); }
-
 	list_tail = lx_cons(&s, lx_valuei(2), lx_empty_list());
 	list = lx_cons(&s, lx_valuei(1), list_tail);
 
@@ -78,9 +86,6 @@ int test_cons_should_make_two_subsequent_allocations_adjacent(void)
 
 int test_cons_should_link_two_non_adjacent_allocations(void)
 {
-	/* we should not run out of memory */
-	if (setjmp(s.escape)) { fail_test(0); }
-
 	list_tail = lx_cons(&s, lx_valuei(2), lx_empty_list());
 
 	/* garbage allocation makes list segments to be non-adjacent */
@@ -109,31 +114,21 @@ int test_cons_should_link_two_non_adjacent_allocations(void)
 int test_cons_calls_longjmp_when_it_runs_out_of_memory(void)
 {
 	int i;
-	volatile int result;
 
-	/* we should not run out of memory */
-	if (setjmp(s.escape)) {
-		if (result) {
-			fail_test("ran out of memory too soon\n");
-		}
-		return result;
-	}
+	should_run_out_of_memory = false;
 
 	/* eight singleton lists should fit */ 
-	result = -1;
 	for (i = 0; i < 8; i ++) {
 		list = lx_cons(&s, lx_valuei(0), lx_empty_list());
 	}
-	result = 0;
+	if (setjmp(on_oom)) { return 0; }
+	should_run_out_of_memory = true;
 	lx_cons(&s, lx_valuei(0), lx_empty_list());
 	return -1;
 }
 
 int test_cons_five_elements(void)
 {
-	/* we should not run out of memory */
-	if (setjmp(s.escape)) { fail_test(0); }
-
 	list = lx_cons(&s, lx_valuei(4), lx_empty_list());
 	list = lx_cons(&s, lx_valuei(3), list);
 	list = lx_cons(&s, lx_valuei(2), list);

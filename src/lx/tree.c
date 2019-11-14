@@ -188,7 +188,7 @@ static struct lxtree make_node(
 	/* allocate node */
 	is_adjacent = ref_eq(e.value, s->alloc.tag_free);
 	if (lx_reserve_tagged(&s->alloc, is_adjacent ? 3 : 4, &left.value)) {
-		longjmp(s->escape, s->oom);
+		lx_handle_out_of_memory(s);
 	}
 
 	/* initialize tree structure fields */

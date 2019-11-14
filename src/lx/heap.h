@@ -8,4 +8,4 @@ struct lxheap
 };
 
 int lx_resize_heap(struct lxheap *heap, size_t new_size);
-int lx_gc(struct lxheap *heap);
+void lx_gc(struct lxheap *heap);

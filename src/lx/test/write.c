@@ -8,8 +8,9 @@
 #include "ok/ok.h"
 #include "lx32x4.h"
 
+
 static struct lxheap *heap;
-static char const *string;
+struct lxstate s[1];
 
 void before_each_test(void)
 {
@@ -21,59 +22,52 @@ void after_each_test(void)
 	lx_free_heap(heap);
 }
 
-static struct lxvalue write_it(struct lxstate *s, struct lxvalue val, va_list ap)
+static char const *do_write(char const *str)
 {
-	struct lxstring str;
 	struct lxread result;
-	char const *p;
+	struct lxvalue value;
 
-	(void)val;
-	p = va_arg(ap, char const *);
+	if (lx_start(s, heap) < 0) {
+		fail_test("Memory ran out!\n");
+	}
+	result = lx_read(s, str);
+	assert_int_eq(result.status, LX_READ_OK);
+	value = lx_write(s, result.value).value;
+	lx_end(s, value);
 
-	result = lx_read(s, p);
-	str = lx_write(s, result.value);
-	string = str.value.s;
+	assert_int_eq(s->status, lx_state_ok);
+	assert_tag_eq(value.tag, lx_string_tag);
 
-	return str.value;
+	return value.s;
 }
 
-static void do_write(char const *str)
+int test_write_true(void)
 {
-	string = lx_modifyl(heap, write_it, str).value.s;
-}
-
-int test_read_true(void)
-{
-	do_write("#t");
-	assert_str_eq(string, "#t");
+	assert_str_eq(do_write("#t"), "#t");
 	return 0;
 }
 
-int test_read_false(void)
+int test_write_false(void)
 {
-	do_write("#f");
-	assert_str_eq(string, "#f");
+	assert_str_eq(do_write("#f"), "#f");
 	return 0;
 }
 
 int test_write_int_0(void)
 {
-	do_write("0");
-	assert_str_eq(string, "0");
+	assert_str_eq(do_write("0"), "0");
 	return 0;
 }
 
 int test_write_int_1(void)
 {
-	do_write("1");
-	assert_str_eq(string, "1");
+	assert_str_eq(do_write("1"), "1");
 	return 0;
 }
 
 int test_write_int_minus_1(void)
 {
-	do_write("-1");
-	assert_str_eq(string, "-1");
+	assert_str_eq(do_write("-1"), "-1");
 	return 0;
 }
 
@@ -86,8 +80,7 @@ int test_write_int_max(void)
 	int_min[sizeof int_min - 1] = '\0';
 	snprintf(int_min, sizeof int_min - 1, "%" JOIN(PRId, LX_BITS), max);
 
-	do_write(int_min);
-	assert_str_eq(string, int_min);
+	assert_str_eq(do_write(int_min), int_min);
 	return 0;
 }
 
@@ -100,72 +93,62 @@ int test_write_int_min(void)
 	int_min[sizeof int_min - 1] = '\0';
 	snprintf(int_min, sizeof int_min - 1, "%" JOIN(PRId, LX_BITS), min);
 
-	do_write(int_min);
-	assert_str_eq(string, int_min);
+	assert_str_eq(do_write(int_min), int_min);
 	return 0;
 }
 
 int test_write_symbol_string(void)
 {
-	do_write("hello");
-	assert_str_eq(string, "hello");
+	assert_str_eq(do_write("hello"), "hello");
 	return 0;
 }
 
 int test_write_string_with_space(void)
 {
-	do_write("\"hello, world\"");
-	assert_str_eq(string, "\"hello, world\"");
+	assert_str_eq(do_write("\"hello, world\""), "\"hello, world\"");
 	return 0;
 }
 
 int test_write_string_with_sharp_sign(void)
 {
-	do_write("\"foo#bar\"");
-	assert_str_eq(string, "\"foo#bar\"");
+	assert_str_eq(do_write("\"foo#bar\""), "\"foo#bar\"");
 	return 0;
 }
 
 int test_write_string_with_escaped_char(void)
 {
-	do_write("\"foo\\Abar\"");
-	assert_str_eq(string, "fooAbar");
+	assert_str_eq(do_write("\"foo\\Abar\""), "fooAbar");
 	return 0;
 }
 
 int test_write_string_with_escaped_backslash(void)
 {
-	do_write("\"foo\\\\bar\"");
-	assert_str_eq(string, "\"foo\\\\bar\"");
+	assert_str_eq(do_write("\"foo\\\\bar\""), "\"foo\\\\bar\"");
 	return 0;
 }
 
 int test_write_string_with_quote(void)
 {
-	do_write("\"foo\\\"bar\"");
-	assert_str_eq(string, "\"foo\\\"bar\"");
+	assert_str_eq(do_write("\"foo\\\"bar\""), "\"foo\\\"bar\"");
 	return 0;
 }
 
 int test_write_string_with_parenthesis(void)
 {
-	do_write("\"foo(bar\"");
-	assert_str_eq(string, "\"foo(bar\"");
+	assert_str_eq(do_write("\"foo(bar\""), "\"foo(bar\"");
 	return 0;
 }
 
 int test_write_lists(void)
 {
 	char const *expr = "((lambda (x) (x x)) (lambda (y) (y y)))";
-	do_write(expr);
-	assert_str_eq(string, expr);
+	assert_str_eq(do_write(expr), expr);
 	return 0;
 }
 
 int test_write_trees(void)
 {
 	char const *expr = "(one () {(a {}) (b (string list)) (c {(x y)})})";
-	do_write(expr);
-	assert_str_eq(string, expr);
+	assert_str_eq(do_write(expr), expr);
 	return 0;
 }

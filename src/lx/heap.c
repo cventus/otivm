@@ -249,7 +249,7 @@ static inline void swap_allocation_pointers(struct lxalloc *alloc)
 }
 
 /* semi-space garbage collection */
-int lx_gc(struct lxheap *heap)
+void lx_gc(struct lxheap *heap)
 {
 	union lxcell *from, *to;
 	size_t semispace_cells, bitset_size;
@@ -266,6 +266,4 @@ int lx_gc(struct lxheap *heap)
 		heap->bitset,
 		bitset_size);
 	swap_allocation_pointers(&heap->alloc);
-
-	return 0;
 }

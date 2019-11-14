@@ -9,6 +9,7 @@
 #include "lx32x4.h"
 
 static struct lxheap *heap;
+static struct lxstate s[1];
 static char const *string;
 
 void before_each_test(void)
@@ -21,35 +22,29 @@ void after_each_test(void)
 	lx_free_heap(heap);
 }
 
-static struct lxvalue write_it(struct lxstate *s, struct lxvalue val, va_list ap)
+static char const *do_write(char const *str)
 {
-	struct lxstring str;
 	struct lxread result;
-	char const *p;
+	struct lxvalue value;
 
-	(void)val;
-	p = va_arg(ap, char const *);
+	if (lx_start(s, heap) < 0) {
+		fail_test("Memory ran out!\n");
+	}
+	result = lx_read(s, str);
+	assert_int_eq(result.status, LX_READ_OK);
+	value = lx_write_pretty(s, result.value).value;
+	lx_end(s, value);
 
-	result = lx_read(s, p);
-	str = lx_write_pretty(s, result.value);
+	assert_int_eq(s->status, lx_state_ok);
+	assert_tag_eq(value.tag, lx_string_tag);
 
-	return str.value;
-}
-
-static void do_write(char const *str)
-{
-	struct lxresult result;
-
-	result = lx_modifyl(heap, write_it, str);
-	assert_int_eq(result.status, 0);
-	string = result.value.s;
+	return value.s;
 }
 
 int test_short_lists_should_be_on_one_line(void)
 {
 	char const *expr = "((hello world) (foo bar))";
-	do_write(expr);
-	assert_str_eq(string, expr);
+	assert_str_eq(do_write(expr), expr);
 	return 0;
 }
 
@@ -64,16 +59,15 @@ int test_long_lists_should_break_into_several_lines(void)
 		" six\n"
 		" seven\n"
 		" eight)";
-	do_write(expr);
-	assert_str_eq(string, expected);
+
+	assert_str_eq(do_write(expr), expected);
 	return 0;
 }
 
 int test_single_element_trees_are_on_one_line(void)
 {
 	char const *expr = "{(foo bar)}";
-	do_write(expr);
-	assert_str_eq(string, expr);
+	assert_str_eq(do_write(expr), expr);
 	return 0;
 }
 
@@ -83,8 +77,7 @@ int test_each_tree_entry_should_go_on_their_own_line(void)
 	char const *expected =
 		"{(first line)\n"
 		" (second line)}";
-	do_write(expr);
-	assert_str_eq(string, expected);
+	assert_str_eq(do_write(expr), expected);
 	return 0;
 }
 
@@ -105,7 +98,6 @@ int test_nested_structure_accumulate_indentation(void)
 		"  of\n"
 		"  string\n"
 		"  elements)}";
-	do_write(expr);
-	assert_str_eq(string, expected);
+	assert_str_eq(do_write(expr), expected);
 	return 0;
 }

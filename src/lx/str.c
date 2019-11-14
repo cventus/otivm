@@ -32,7 +32,7 @@ static struct lxstring strdup_exact(struct lxstate *s, char const *src, size_t n
 	/* check available space */
 	free_bytes = alloc_free_count(&s->alloc) * sizeof (union lxcell);
 	if (n + sizeof (union lxcell) + 1 >= free_bytes) {
-		longjmp(s->escape, s->oom);
+		lx_handle_out_of_memory(s);
 	}
 
 	/* allocate string */
@@ -88,7 +88,7 @@ struct lxstring lx_vsprintf(struct lxstate *s, char const *fmt, va_list ap)
 		abort(); // FIXME
 	} else if ((size_t)n >= free_bytes) {
 		// FIXME: set resize hint based on "n"?
-		longjmp(s->escape, s->oom);
+		lx_handle_out_of_memory(s);
 	}
 	sz->i = n;
 

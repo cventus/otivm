@@ -30,7 +30,7 @@ struct wstate {
 
 static void out_of_memory(struct wstate *w)
 {
-	longjmp(w->s->escape, w->s->oom);
+	lx_handle_out_of_memory(w->s);
 }
 
 static void push(struct wstate *w, struct lxvalue val)

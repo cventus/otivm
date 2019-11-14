@@ -25,11 +25,13 @@
 #define lxcell MANGLE(cell)
 #define lxstate MANGLE(state)
 #define lxvalue MANGLE(value)
-#define lxlist MANGLE(list)
-#define lxtree MANGLE(tree)
-#define lxresult MANGLE(result)
 #define lxalloc MANGLE(alloc)
 #define lxread MANGLE(read)
+
+/* reference values */
+#define lxlist MANGLE(list)
+#define lxtree MANGLE(tree)
+#define lxstring MANGLE(string)
 
 /* value constructors */
 #define lx_valueb MANGLE(valueb)
@@ -56,8 +58,9 @@
 #define lx_heap_size MANGLE(heap_size)
 #define lx_heap_value MANGLE(heap_value)
 #define lx_heap_read MANGLE(heap_read)
-#define lx_modify MANGLE(modify)
-#define lx_modifyl MANGLE(modifyl)
+#define lx_handle_out_of_memory MANGLE(handle_out_of_memory)
+#define lx_prepare_start MANGLE(prepare_start)
+#define lx_end MANGLE(end)
 #define lx_gc MANGLE(gc)
 #define lx_init_cons MANGLE(init_cons)
 #define lx_init_tospace MANGLE(init_tospace)
@@ -175,12 +178,6 @@ struct lxlist { struct lxvalue value; };
 struct lxtree { struct lxvalue value; };
 struct lxstring { struct lxvalue value; };
 
-struct lxresult
-{
-	int status;
-	struct lxvalue value;
-};
-
 struct lxread {
 	enum lx_read_status status;
 	char const *where;
@@ -194,18 +191,54 @@ size_t lx_heap_size(struct lxheap const *heap);
 struct lxvalue lx_heap_value(struct lxheap const *heap);
 struct lxread lx_heap_read(struct lxheap *heap, char const *str);
 
-struct lxresult lx_modify(
-	struct lxheap *heap,
-	struct lxvalue modify(struct lxstate *, struct lxvalue, void *),
-	void *param);
+/*
+Memory can only be allocated from an LX heap within a region of code started by
+lx_start() and ended with lx_end(). lx_start() initializes an lxstate object,
+which is used to keep track of allocations, and marks the restart-point using
+setjmp(3) which is returned to after the heap has been garbage collected. The
+lx_end() function marks the end of the update and assigns a new value to the
+heap. Any reference into the heap becomes invalid at lx_start(). lx_start()
+returns a negative value on error and non-negative on success.
 
-/* pass arbitrary parameters to callback retrievable with va_arg(3) */
-struct lxresult lx_modifyl(
-	struct lxheap *heap,
-	struct lxvalue vmodify(struct lxstate *, struct lxvalue, va_list),
-	...);
+When allocation from the heap fails it will be garbage collected and an
+internal call to longjmp(3) will return control to the start of the loop and
+the code within the start/end region will run again. The since the code within
+the region might be executed more than once it is not advisable to perform I/O
+or allocate memory with malloc(3) or otherwise modify local or global variables.
 
-int lx_gc(struct lxheap *heap);
+lx_start() is essentially setjmp(3), which cannot be used as a general
+expression, and `lx_start` has the same limitations. It's possible there's a
+longjmp(3) back to the start until `lx_end` has been reached. Don't modify
+local variables within lx_start()/lx_end() that were initialized before it.
+Don't store the result of lx_start() in a variable; only call it within an
+if-statement and check if its value is less than zero or greater than or equal
+to zero.
+
+If lx_end() is not called, e.g. by returning from the function that contains
+the region, the heap remains in a consistent state and references to allocated
+object will stay valid until the heap is garbage collected.
+
+Example:
+
+    struct lxheap *heap = ...;
+    struct lxlist list;
+    struct lxstate state[1];
+
+    if (lx_start(state, heap) < 0) {
+        fprintf(stderr, "Failed to update heap\n");
+        return -1;
+    }
+
+    list = lx_cons(state, lx_valuei(42), lx_empty_list());
+    lx_end(heap, list.value);
+*/
+#define lx_start(state, heap) setjmp(*lx_prepare_start(state, heap))
+void lx_end(struct lxstate *, struct lxvalue);
+
+/* used internally by lx_start */
+jmp_buf *lx_prepare_start(struct lxstate *, struct lxheap *);
+
+void lx_gc(struct lxheap *heap);
 
 /* recursively compare values for equality */
 bool lx_equals(struct lxvalue a, struct lxvalue b);

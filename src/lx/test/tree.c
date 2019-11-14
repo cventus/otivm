@@ -126,75 +126,34 @@ int test_tree_assoc(void)
 	return 0;
 }
 
-static struct lxvalue
-insert_into_tree(struct lxstate *s, struct lxvalue val, va_list ap)
-{
-	struct lx_list entry;
-	struct lx_tree tree;
-	int const *keys;
-	int i, n;
-
-	(void)val;
-	n = va_arg(ap, int);
-	keys = va_arg(ap, int const *);
-	tree = lx_empty_tree();
-
-	for (i = 0; i < n; i++) {
-		entry = lx_pair(s, lx_valuei(keys[i]), lx_valuei(i));
-		tree = lx_tree_cons(s, entry, tree);
-	}
-
-	return tree.value;
-}
-
-static struct lxvalue
-remove_from_tree(struct lxstate *s, struct lxvalue val, va_list ap)
-{
-	struct lxvalue key;
-	struct lxtree tree, modified_tree;
-	int const *keys;
-	int i, n;
-
-	n = va_arg(ap, int);
-	keys = va_arg(ap, int const *);
-	modified_tree = tree = lx_tree(lx_car(lx_list(val)));
-
-	for (i = 0; i < n; i++) {
-		key = lx_valuei(keys[i]);
-		modified_tree = lx_tree_remove(s, key, modified_tree);
-	}
-	return lx_pair(s, tree.value, modified_tree.value).value;
-}
-
-static struct lxvalue
-duplicate_root(struct lxstate *s, struct lxvalue val, va_list ap)
-{
-	(void)ap;
-	return lx_pair(s, val, val).value;
-}
-
 int test_tree_cons(void)
 {
 	static int const numbers[] = { 0, 1, 2, 3, 4, 5, 6 };
 
 	struct lxheap *heap;
+	struct lxstate s[1];
 	struct lxvalue key, index;
-	struct lxresult result;
 	struct lxtree tree;
 	struct lxlist entry;
-	int i, j, k, n, a[length_of(numbers)];
+	int i, j, k, n, insert_order[length_of(numbers)];
 
 	heap = lx_make_heap(0, 0);
 	for (i = 1; i < (int)length_of(numbers); i++) {
-		memcpy(a, numbers, sizeof numbers);
+		memcpy(insert_order, numbers, sizeof numbers);
 		n = fact(i);
 		for (j = 0; j < n; j++) {
-			result = lx_modifyl(heap, insert_into_tree, i, a);
-			tree = lx_tree(result.value);
-			assert_tag_eq(tree.value.tag, lx_tree_tag);
+			lx_start(s, heap);
+			tree = lx_empty_tree();
+			for (k = 0; k < i; k++) {
+				key = lx_valuei(insert_order[k]);
+				index = lx_valuei(k);
+				entry = lx_pair(s, key, index);
+				tree = lx_tree_cons(s, entry, tree);
+			}
+			lx_end(s, tree.value);
 
 			for (k = 0; k < i; k++) {
-				key = lx_valuei(a[k]);
+				key = lx_valuei(insert_order[k]);
 				index = lx_valuei(k);
 
 				/* validate by key */
@@ -206,12 +165,44 @@ int test_tree_cons(void)
 				entry = lx_tree_nth(tree, k);
 				assert_eq(lx_car(entry), index);
 			}
-			int_permute(i, a);
+			int_permute(i, insert_order);
 		}
 	}
 	lx_free_heap(heap);
 
 	return 0;
+}
+
+static void remove_in_order(struct lxheap *heap, int n, int const keys[])
+{
+	int i, j;
+	struct lxvalue key;
+	struct lxtree tree;
+	struct lxlist entry;
+	struct lxstate s[1];
+
+	/* remove in every permutation */
+	for (i = 1; i <= n; i++) {
+		lx_start(s, heap);
+		tree.value = lx_heap_value(heap);
+		for (j = 0; j < i; j++) {
+			key = lx_valuei(keys[j]);
+			tree = lx_tree_remove(s, key, tree);
+		}
+		/* no end */
+
+		assert_int_eq(lx_tree_size(tree), n - i);
+		/* check deleted and remaining entries */
+		for (j = 0; j < n; j++) {
+			key = lx_valuei(keys[j]);
+			entry = lx_tree_assoc(key, tree);
+			if (j < i) {
+				assert_list_eq(lx_empty_list(), entry);
+			} else {
+				assert_eq(lx_car(entry), key);
+			}
+		}
+	}
 }
 
 int test_tree_remove(void)
@@ -219,100 +210,44 @@ int test_tree_remove(void)
 	static int const numbers[] = { 0, 1, 2, 3, 4, 5, 6 };
 
 	struct lxheap *heap;
+	struct lxstate s[1];
 	struct lxvalue key;
-	struct lxresult result;
 	struct lxtree tree;
-	struct lx_list entry;
-	int i, j, k, l, m, n, a[length_of(numbers)], b[length_of(numbers)];
+	struct lxlist entry;
+	int i, j, k, n;
+	int insert_order[length_of(numbers)];
+	int remove_order[length_of(numbers)];
 
 	heap = lx_make_heap(0, 0);
 	/* insert in every order, every length */
 	for (i = 1; i < (int)length_of(numbers); i++) {
-		memcpy(a, numbers, sizeof numbers);
+		memcpy(insert_order, numbers, sizeof numbers);
 		n = fact(i); /* number of permutations of length i */
 		for (j = 0; j < n; j++) {
 			/* insert in every permutation */
-			lx_modifyl(heap, insert_into_tree, i, a);
-			lx_modifyl(heap, duplicate_root);
+
+			lx_start(s, heap);
+			tree = lx_empty_tree();
+			for (k = 0; k < i; k++) {
+				key = lx_valuei(insert_order[k]);
+				entry = lx_pair(s, key, lx_valuei(k));
+				tree = lx_tree_cons(s, entry, tree);
+			}
+			lx_end(s, tree.value);
 
 			/* remove for every permutation */
-			memcpy(b, a, sizeof a);
+			memcpy(remove_order, insert_order, sizeof insert_order);
 			for (k = 0; k < n; k++) {
 				/* remove in every permutation */
-				for (l = 1; l <= i; l++) {
-					result = lx_modifyl(heap, remove_from_tree, l, b);
-					assert_tag_eq(result.value.tag, lx_list_tag);
-					assert_int_eq(lx_length(lx_list(result.value)), 2);
-					tree = lx_tree(lx_nth(lx_list(result.value), 1));
-					assert_tag_eq(tree.value.tag, lx_tree_tag);
-
-					assert_int_eq(lx_tree_size(tree), i - l);
-					/* check deleted and remaining entries */
-					for (m = 0; m < i; m++) {
-						key = lx_valuei(b[m]);
-						entry = lx_tree_assoc(key, tree);
-						if (m < l) {
-							assert_list_eq(lx_empty_list(), entry);
-						} else {
-							assert_eq(lx_car(entry), key);
-						}
-					}
-				}
-				int_permute(i, b);
+				remove_in_order(heap, i, remove_order);
+				int_permute(i, remove_order);
 			}
-			int_permute(i, a);
+			int_permute(i, insert_order);
 		}
 	}
 	lx_free_heap(heap);
 
 	return 0;
-}
-
-static struct lxvalue parse(struct lxstate *s, struct lxvalue val, va_list ap)
-{
-	struct lxread res;
-	char const *p;
-
-	p = va_arg(ap, char const *);
-	res = lx_read(s, p);
-	return lx_cons(s, res.value, lx_list(val)).value;
-}
-
-static struct lxvalue tree_op(struct lxstate *s, struct lxvalue val, va_list ap)
-{
-	typedef struct lxtree op(struct lxstate *, struct lxtree, struct lxtree);
-	struct lxtree a, b;
-	op *f;
-
-	a = lx_tree(lx_nth(lx_list(val), 0));
-	b = lx_tree(lx_nth(lx_list(val), 1));
-	f = va_arg(ap, op *);
-
-	return lx_cons(s, f(s, a, b).value, lx_drop(lx_list(val), 2)).value;
-}
-
-static struct lxvalue filter_op(struct lxstate *s, struct lxvalue val, va_list ap)
-{
-	typedef bool op(struct lxlist, void *);
-	struct lxtree a, b;
-	op *f;
-	void *arg;
-
-	a = lx_tree(lx_car(lx_list(val)));
-	f = va_arg(ap, op *);
-	arg = va_arg(ap, void *);
-
-	b = lx_tree_filter(s, a, f, arg);
-
-	return lx_cons(s, b.value, lx_cdr(lx_list(val))).value;
-}
-
-static struct lxvalue stringify(struct lxstate *s, struct lxvalue val, va_list ap)
-{
-	struct lxstring str;
-	(void)ap;
-	str = lx_write(s, lx_car(lx_list(val)));
-	return lx_cons(s, str.value, lx_cdr(lx_list(val))).value;
 }
 
 #define tree_a "{\n" \
@@ -335,25 +270,26 @@ static struct lxvalue stringify(struct lxstate *s, struct lxvalue val, va_list a
 int test_tree_union(void)
 {
 	struct lxheap *heap;
+	struct lxstate s[1];
+	struct lxtree a, b, c;
 	char const *string;
 	
 	heap = lx_make_heap(0, 0);
 
-	lx_modifyl(heap, parse, tree_b);
-	lx_modifyl(heap, parse, tree_a);
-	lx_modifyl(heap, tree_op, lx_tree_union);
+	lx_start(s, heap);
+	a.value = lx_read(s, tree_a).value;
+	b.value = lx_read(s, tree_b).value;
+	c.value = lx_tree_union(s, a, b).value;
+	string = lx_write(s, c.value).value.s;
 
-	string = lx_car(lx_list(lx_modifyl(heap, stringify).value)).s;
 	assert_str_eq(string,
 		"{(a left) (b left) (c right)"
 		" (d left) (e left) (f right)"
 		" (g left) (h left) (i right)}");
 
-	lx_modifyl(heap, parse, tree_a);
-	lx_modifyl(heap, parse, tree_b);
-	lx_modifyl(heap, tree_op, lx_tree_union);
+	c.value = lx_tree_union(s, b, a).value;
+	string = lx_write(s, c.value).value.s;
 
-	string = lx_car(lx_list(lx_modifyl(heap, stringify).value)).s;
 	assert_str_eq(string,
 		"{(a left) (b left) (c right)"
 		" (d left) (e right) (f right)"
@@ -366,22 +302,22 @@ int test_tree_union(void)
 int test_tree_isect(void)
 {
 	struct lxheap *heap;
+	struct lxstate s[1];
+	struct lxtree a, b, c;
 	char const *string;
 	
 	heap = lx_make_heap(0, 0);
 
-	lx_modifyl(heap, parse, tree_b);
-	lx_modifyl(heap, parse, tree_a);
-	lx_modifyl(heap, tree_op, lx_tree_isect);
+	lx_start(s, heap);
+	a.value = lx_read(s, tree_a).value;
+	b.value = lx_read(s, tree_b).value;
+	c.value = lx_tree_isect(s, a, b).value;
+	string = lx_write(s, c.value).value.s;
 
-	string = lx_car(lx_list(lx_modifyl(heap, stringify).value)).s;
 	assert_str_eq(string, "{(e left) (h left)}");
 
-	lx_modifyl(heap, parse, tree_a);
-	lx_modifyl(heap, parse, tree_b);
-	lx_modifyl(heap, tree_op, lx_tree_isect);
-
-	string = lx_car(lx_list(lx_modifyl(heap, stringify).value)).s;
+	c.value = lx_tree_isect(s, b, a).value;
+	string = lx_write(s, c.value).value.s;
 	assert_str_eq(string, "{(e right) (h right)}");
 
 	lx_free_heap(heap);
@@ -391,15 +327,17 @@ int test_tree_isect(void)
 int test_tree_diff(void)
 {
 	struct lxheap *heap;
+	struct lxstate s[1];
+	struct lxtree a, b, c;
 	char const *string;
 	
 	heap = lx_make_heap(0, 0);
 
-	lx_modifyl(heap, parse, tree_b);
-	lx_modifyl(heap, parse, tree_a);
-	lx_modifyl(heap, tree_op, lx_tree_diff);
-
-	string = lx_car(lx_list(lx_modifyl(heap, stringify).value)).s;
+	lx_start(s, heap);
+	a.value = lx_read(s, tree_a).value;
+	b.value = lx_read(s, tree_b).value;
+	c.value = lx_tree_diff(s, a, b).value;
+	string = lx_write(s, c.value).value.s;
 
 	assert_str_eq(string, "{(a left) (b left) (d left) (g left)}");
 
@@ -416,16 +354,20 @@ static bool str_key_limit(struct lxlist entry, void *upper)
 int test_tree_filter(void)
 {
 	struct lxheap *heap;
+	struct lxstate s[1];
+	struct lxtree a, b, c;
 	char const *string;
 	
 	heap = lx_make_heap(0, 0);
 
-	lx_modifyl(heap, parse, tree_a);
-	lx_modifyl(heap, parse, tree_b);
-	lx_modifyl(heap, tree_op, lx_tree_union);
-	lx_modifyl(heap, filter_op, str_key_limit, "g");
+	lx_start(s, heap);
+	a.value = lx_read(s, tree_a).value;
+	b.value = lx_read(s, tree_b).value;
+	c.value = lx_tree_union(s, b, a).value;
+	c = lx_tree_filter(s, c, str_key_limit, "g");
 
-	string = lx_car(lx_list(lx_modifyl(heap, stringify).value)).s;
+	string = lx_write(s, c.value).value.s;
+
 	assert_str_eq(string,
 		"{(a left) (b left) (c right)"
 		" (d left) (e right) (f right)}");

@@ -64,7 +64,7 @@ static int read_string(
 	while (*q != '\"') {
 		if (*q == '\0') { return LX_READ_INCOMPLETE; }
 		if (s == smax) {
-			longjmp(state->escape, state->oom);
+			lx_handle_out_of_memory(state);
 		}
 		if (*q == '\\') {
 			switch (*++q) {
@@ -258,27 +258,18 @@ struct lxread lx_read(struct lxstate *s, char const *str)
 	}
 }
 
-static struct lxvalue read_it(struct lxstate *s, struct lxvalue val, va_list ap)
-{
-	char const *str;
-	struct lxread *r;
-
-	(void)val;
-	r = va_arg(ap, struct lxread *);
-	str = va_arg(ap, char const *);
-
-	*r = lx_read(s, str);
-	return r->value;
-}
-
 struct lxread lx_heap_read(struct lxheap *heap, char const *str)
 {
 	struct lxread read;
+	struct lxstate s[1];
 
-	if (lx_modifyl(heap, read_it, &read, str).status) {
+	if (lx_start(s, heap) < 0) {
 		read.status = LX_READ_HEAP_SIZE;
 		read.where = str;
 		read.value = lx_valueb(false);
+	} else {
+		read = lx_read(s, str);
+		lx_end(s, read.value);
 	}
 	return read;
 }
