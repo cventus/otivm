@@ -10,7 +10,6 @@
 
 static struct lxheap *heap;
 static struct lxstate s[1];
-static char const *string;
 
 void before_each_test(void)
 {

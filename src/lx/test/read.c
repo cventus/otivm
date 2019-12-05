@@ -103,6 +103,21 @@ int test_read_one_token(void)
 	return 0;
 }
 
+int test_read_nil(void)
+{
+	assert_eq(do_read("nil", lx_nil_tag), lx_nil());
+	assert_eq(do_read(" nil ", lx_nil_tag), lx_nil());
+	assert_eq(lx_car(lx_list(do_read("(nil)", lx_list_tag))), lx_nil());
+	return 0;
+}
+
+int test_read_the_string_nil(void)
+{
+	char const *p = do_read("\"nil\"", lx_string_tag).s;
+	assert_str_eq(p, "nil");
+	return 0;
+}
+
 int test_read_empty_list(void)
 {
 	assert_eq(do_read("()", lx_list_tag), lx_empty_list().value);

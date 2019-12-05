@@ -390,6 +390,18 @@ static inline struct lxvalue lx_valuef(lxfloat f)
 	return (struct lxvalue) { .tag = lx_float_tag, .offset = 0, .f = f };
 }
 
+static inline struct lxvalue lx_nil(void)
+{
+	return (struct lxvalue) {
+		.tag = lx_nil_tag, .offset = 0, .s = 0
+	};
+}
+
+static inline bool lx_is_nil(struct lxvalue value)
+{
+	return value.tag == lx_nil_tag;
+}
+
 /* create an empty list value */
 static inline struct lxlist lx_empty_list(void)
 {

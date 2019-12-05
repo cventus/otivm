@@ -19,6 +19,7 @@ struct lxvalue lx_car(struct lxlist list)
 {
 	switch (list_car_tag(list)) {
 	default: abort();
+	case lx_nil_tag: return lx_nil();
 	case lx_list_tag: return deref_list(list_car(list)).value;
 	case lx_tree_tag: return deref_tree(list_car(list)).value;
 	case lx_string_tag: return deref_string(list_car(list)).value;
@@ -126,6 +127,7 @@ struct lxlist lx_cons(
 	if (lx_reserve_tagged(&s->alloc, len == 0 ? 2 : 1, &ref)) {
 		lx_handle_out_of_memory(s);
 	}
+	ref.tag = lx_list_tag;
 	*ref_tag(ref) = mktag(len, val.tag);
 	lx_set_cell_data(ref_data(ref), val);
 	if (len == 0) {
@@ -133,7 +135,6 @@ struct lxlist lx_cons(
 		*ref_tag(cdr) = mktag(1, lx_list_tag);
 		setref(ref_data(cdr), list.value);
 	}
-	ref.tag = lx_list_tag;
 	return ref_to_list(ref);
 }
 

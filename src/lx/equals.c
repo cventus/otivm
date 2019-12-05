@@ -59,6 +59,8 @@ bool lx_equals(struct lxvalue a, struct lxvalue b)
 {
 	switch (a.tag) {
 	default: abort();
+	case lx_nil_tag:
+		return b.tag == lx_nil_tag;
 	case lx_list_tag:
 		if (b.tag != lx_list_tag) { return false; }
 		return list_equals(lx_list(a), lx_list(b));

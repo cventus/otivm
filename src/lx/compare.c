@@ -113,45 +113,62 @@ int lx_compare(struct lxvalue a, struct lxvalue b)
 	case SAMETYPE(lx_tree_tag):
 		return treecmp(lx_tree(a), lx_tree(b));
 
-	/* type precedence: bool < number < string < list < tree */
+	/* nil */
+	case SAMETYPE(lx_nil_tag):
+		return 0;
+
+	/* type precedence: bool < number < string < list < tree < nil */
 	case TYPEPAIR(lx_bool_tag, lx_int_tag):
 	case TYPEPAIR(lx_bool_tag, lx_float_tag):
 	case TYPEPAIR(lx_bool_tag, lx_string_tag):
 	case TYPEPAIR(lx_bool_tag, lx_list_tag):
 	case TYPEPAIR(lx_bool_tag, lx_tree_tag):
+	case TYPEPAIR(lx_bool_tag, lx_nil_tag):
 
 	case TYPEPAIR(lx_int_tag, lx_string_tag):
 	case TYPEPAIR(lx_int_tag, lx_list_tag):
 	case TYPEPAIR(lx_int_tag, lx_tree_tag):
+	case TYPEPAIR(lx_int_tag, lx_nil_tag):
 
 	case TYPEPAIR(lx_float_tag, lx_string_tag):
 	case TYPEPAIR(lx_float_tag, lx_list_tag):
 	case TYPEPAIR(lx_float_tag, lx_tree_tag):
+	case TYPEPAIR(lx_float_tag, lx_nil_tag):
 
 	case TYPEPAIR(lx_string_tag, lx_list_tag):
 	case TYPEPAIR(lx_string_tag, lx_tree_tag):
+	case TYPEPAIR(lx_string_tag, lx_nil_tag):
 
 	case TYPEPAIR(lx_list_tag, lx_tree_tag):
+	case TYPEPAIR(lx_list_tag, lx_nil_tag):
+
+	case TYPEPAIR(lx_tree_tag, lx_nil_tag):
 		return -1;
 
-	/* type precedence: tree > list > string > number > bool */
+	/* type precedence: nil > tree > list > string > number > bool */
+	case TYPEPAIR(lx_nil_tag, lx_tree_tag):
+	case TYPEPAIR(lx_nil_tag, lx_list_tag):
+	case TYPEPAIR(lx_nil_tag, lx_string_tag):
+	case TYPEPAIR(lx_nil_tag, lx_float_tag):
+	case TYPEPAIR(lx_nil_tag, lx_int_tag):
+	case TYPEPAIR(lx_nil_tag, lx_bool_tag):
+
 	case TYPEPAIR(lx_tree_tag, lx_list_tag):
 	case TYPEPAIR(lx_tree_tag, lx_string_tag):
 	case TYPEPAIR(lx_tree_tag, lx_float_tag):
 	case TYPEPAIR(lx_tree_tag, lx_int_tag):
 	case TYPEPAIR(lx_tree_tag, lx_bool_tag):
 
-	case TYPEPAIR(lx_list_tag, lx_bool_tag):
-	case TYPEPAIR(lx_list_tag, lx_int_tag):
-	case TYPEPAIR(lx_list_tag, lx_float_tag):
 	case TYPEPAIR(lx_list_tag, lx_string_tag):
+	case TYPEPAIR(lx_list_tag, lx_float_tag):
+	case TYPEPAIR(lx_list_tag, lx_int_tag):
+	case TYPEPAIR(lx_list_tag, lx_bool_tag):
 
-	case TYPEPAIR(lx_string_tag, lx_bool_tag):
-	case TYPEPAIR(lx_string_tag, lx_int_tag):
 	case TYPEPAIR(lx_string_tag, lx_float_tag):
+	case TYPEPAIR(lx_string_tag, lx_int_tag):
+	case TYPEPAIR(lx_string_tag, lx_bool_tag):
 
 	case TYPEPAIR(lx_float_tag, lx_bool_tag):
-
 	case TYPEPAIR(lx_int_tag, lx_bool_tag):
 		return 1;
 

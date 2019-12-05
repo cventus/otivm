@@ -152,3 +152,15 @@ int test_write_trees(void)
 	assert_str_eq(do_write(expr), expr);
 	return 0;
 }
+
+int test_write_nil(void)
+{
+	assert_str_eq(do_write("nil"), "nil");
+	return 0;
+}
+
+int test_write_string_containing_nil(void)
+{
+	assert_str_eq(do_write("\"nil\""), "\"nil\"");
+	return 0;
+}

@@ -123,6 +123,19 @@ static int read_float(
 	return 0;
 }
 
+static int read_keyword(
+	char const *str,
+	char const **end,
+	struct lxvalue *val)
+{
+	if (strncmp(str, "nil", 3) == 0 && is_separator(str[3])) {
+		*val = lx_nil();
+		*end += strlen("nil");
+		return 0;
+	}
+	return -1;
+}
+
 static int read_atom(
 	struct lxstate *s,
 	char const *str,
@@ -132,12 +145,20 @@ static int read_atom(
 	size_t n;
 
 	assert(!is_separator(*str));
-	if (read_int(str, end, val, 10) && read_float(str, end, val)) {
-		n = strcspn(str, SEPARATORS);
-		assert(n > 0);
-		*val = lx_strndup(s, str, n).value;
-		*end = str + n;
+
+	if (read_int(str, end, val, 10) == 0) {
+		return 0;
 	}
+	if (read_float(str, end, val) == 0) {
+		return 0;
+	}
+	if (read_keyword(str, end, val) == 0) {
+		return 0;
+	}
+	n = strcspn(str, SEPARATORS);
+	assert(n > 0);
+	*val = lx_strndup(s, str, n).value;
+	*end = str + n;
 	return 0;
 }
 

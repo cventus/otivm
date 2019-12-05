@@ -82,6 +82,7 @@ static void copy_data(
 			break;
 		}
 		/* else fall-through */
+	case lx_nil_tag:
 	case lx_bool_tag:
 	case lx_int_tag:
 	case lx_float_tag:
@@ -244,6 +245,7 @@ static struct lxvalue cheney70(
 			}
 			setref(to_data, ref);
 			break;
+		case lx_nil_tag:
 		case lx_string_tag:
 		case lx_bool_tag:
 		case lx_int_tag:

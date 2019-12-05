@@ -155,6 +155,11 @@ static bool put_str(struct wstate *w, lxint n, char const *q)
 	lxint i, len;
 	bool res;
 
+	// keywords must be quoted
+	if (strcmp(q, "nil") == 0) {
+		return put_raw_str(w, 5, "\"nil\"");
+	}
+
 	if (w->n < n) { return false; }
 
 	if (n == 0) {
@@ -245,6 +250,9 @@ static bool write_brief(struct wstate *w, struct lxvalue val, int maxdepth)
 	case lx_string_tag:
 		assert(val.offset == 0);
 		return put_str(w, lx_strlen(ref_to_string(val)), val.s);
+
+	case lx_nil_tag:
+		return put_raw_str(w, 3, "nil");
 	}
 }
 
@@ -335,6 +343,12 @@ tree_entry:
 			out_of_memory(w);
 		}
 		break;
+
+	case lx_nil_tag:
+		if (!put_raw_str(w, 3, "nil")) {
+			out_of_memory(w);
+		}
+		break;
 	}
 }
 
@@ -385,6 +399,7 @@ struct lxstring lx_write(struct lxstate *s, struct lxvalue value)
 
 	w.s = s;
 	w.stack = s->alloc.tag_free;
+	w.stack.tag = lx_list_tag;
 	w.p = begin = (char *)(s->alloc.raw_free + 1);
 	w.n = ((char *)ref_cell(s->alloc.tag_free) - begin) - 1;
 	w.indent = 0;
@@ -415,6 +430,7 @@ struct lxstring lx_write_pretty(struct lxstate *s, struct lxvalue value)
 
 	w.s = s;
 	w.stack = s->alloc.tag_free;
+	w.stack.tag = lx_list_tag;
 	w.p = begin = (char *)(s->alloc.raw_free + 1);
 	w.n = ((char *)ref_cell(s->alloc.tag_free) - begin) - 1;
 	w.indent = 0;

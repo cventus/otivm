@@ -60,5 +60,6 @@ void lx_set_cell_data(union lxcell *data, struct lxvalue val)
 	case lx_bool_tag: data->i = val.b; break;
 	case lx_int_tag: data->i = val.i; break;
 	case lx_float_tag: data->f = val.f; break;
+	case lx_nil_tag: data->i = 0; break;
 	}
 }
