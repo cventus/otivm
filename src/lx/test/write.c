@@ -146,9 +146,9 @@ int test_write_lists(void)
 	return 0;
 }
 
-int test_write_trees(void)
+int test_write_maps(void)
 {
-	char const *expr = "(one () {(a {}) (b (string list)) (c {(x y)})})";
+	char const *expr = "(one () {a {}  b (string list)  c {x y}})";
 	assert_str_eq(do_write(expr), expr);
 	return 0;
 }

@@ -53,7 +53,7 @@ void lx_set_cell_data(union lxcell *data, struct lxvalue val)
 	switch (val.tag) {
 	default: abort();
 	case lx_list_tag:
-	case lx_tree_tag:
+	case lx_map_tag:
 	case lx_string_tag:
 		setref(data, val);
 		break;

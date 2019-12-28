@@ -57,26 +57,26 @@ static int listcmp(struct lxlist a, struct lxlist b)
 	}
 }
 
-static int treecmp(struct lxtree a, struct lxtree b)
+static int mapcmp(struct lxmap a, struct lxmap b)
 {
 	int cmp;
-	struct lxtree p, q;
+	struct lxmap p, q;
 	size_t i, asz, bsz, sz;
 
 	p = a;
 	q = b;
 
-	if (tree_eq(p, q)) { return 0; }
+	if (map_eq(p, q)) { return 0; }
 	if (!p.value.s) { return -1; }
 	if (!q.value.s) { return 1; }
 
-	asz = lx_tree_size(a);
-	bsz = lx_tree_size(b);
+	asz = lx_map_size(a);
+	bsz = lx_map_size(b);
 	sz = asz < bsz ? asz : bsz;
 
-	/* tree_nth = O(logn) -> O(nlogn) */
+	/* map_nth = O(logn) -> O(nlogn) */
 	for (i = 0; i < sz; i++) {
-		cmp = listcmp(lx_tree_nth(p, i), lx_tree_nth(q, i));
+		cmp = listcmp(lx_map_nth(p, i), lx_map_nth(q, i));
 		if (cmp != 0) { return cmp; }
 	}
 	return asz == bsz ? 0 : icmp(asz, bsz);
@@ -109,55 +109,55 @@ int lx_compare(struct lxvalue a, struct lxvalue b)
 	case SAMETYPE(lx_list_tag):
 		return listcmp(lx_list(a), lx_list(b));
 
-	/* tree */
-	case SAMETYPE(lx_tree_tag):
-		return treecmp(lx_tree(a), lx_tree(b));
+	/* map */
+	case SAMETYPE(lx_map_tag):
+		return mapcmp(lx_map(a), lx_map(b));
 
 	/* nil */
 	case SAMETYPE(lx_nil_tag):
 		return 0;
 
-	/* type precedence: bool < number < string < list < tree < nil */
+	/* type precedence: bool < number < string < list < map < nil */
 	case TYPEPAIR(lx_bool_tag, lx_int_tag):
 	case TYPEPAIR(lx_bool_tag, lx_float_tag):
 	case TYPEPAIR(lx_bool_tag, lx_string_tag):
 	case TYPEPAIR(lx_bool_tag, lx_list_tag):
-	case TYPEPAIR(lx_bool_tag, lx_tree_tag):
+	case TYPEPAIR(lx_bool_tag, lx_map_tag):
 	case TYPEPAIR(lx_bool_tag, lx_nil_tag):
 
 	case TYPEPAIR(lx_int_tag, lx_string_tag):
 	case TYPEPAIR(lx_int_tag, lx_list_tag):
-	case TYPEPAIR(lx_int_tag, lx_tree_tag):
+	case TYPEPAIR(lx_int_tag, lx_map_tag):
 	case TYPEPAIR(lx_int_tag, lx_nil_tag):
 
 	case TYPEPAIR(lx_float_tag, lx_string_tag):
 	case TYPEPAIR(lx_float_tag, lx_list_tag):
-	case TYPEPAIR(lx_float_tag, lx_tree_tag):
+	case TYPEPAIR(lx_float_tag, lx_map_tag):
 	case TYPEPAIR(lx_float_tag, lx_nil_tag):
 
 	case TYPEPAIR(lx_string_tag, lx_list_tag):
-	case TYPEPAIR(lx_string_tag, lx_tree_tag):
+	case TYPEPAIR(lx_string_tag, lx_map_tag):
 	case TYPEPAIR(lx_string_tag, lx_nil_tag):
 
-	case TYPEPAIR(lx_list_tag, lx_tree_tag):
+	case TYPEPAIR(lx_list_tag, lx_map_tag):
 	case TYPEPAIR(lx_list_tag, lx_nil_tag):
 
-	case TYPEPAIR(lx_tree_tag, lx_nil_tag):
+	case TYPEPAIR(lx_map_tag, lx_nil_tag):
 		return -1;
 
-	/* type precedence: nil > tree > list > string > number > bool */
-	case TYPEPAIR(lx_nil_tag, lx_tree_tag):
+	/* type precedence: nil > map > list > string > number > bool */
+	case TYPEPAIR(lx_nil_tag, lx_map_tag):
 	case TYPEPAIR(lx_nil_tag, lx_list_tag):
 	case TYPEPAIR(lx_nil_tag, lx_string_tag):
 	case TYPEPAIR(lx_nil_tag, lx_float_tag):
 	case TYPEPAIR(lx_nil_tag, lx_int_tag):
 	case TYPEPAIR(lx_nil_tag, lx_bool_tag):
 
-	case TYPEPAIR(lx_tree_tag, lx_list_tag):
-	case TYPEPAIR(lx_tree_tag, lx_string_tag):
-	case TYPEPAIR(lx_tree_tag, lx_float_tag):
-	case TYPEPAIR(lx_tree_tag, lx_int_tag):
-	case TYPEPAIR(lx_tree_tag, lx_bool_tag):
+	case TYPEPAIR(lx_map_tag, lx_list_tag):
+	case TYPEPAIR(lx_map_tag, lx_string_tag):
+	case TYPEPAIR(lx_map_tag, lx_float_tag):
+	case TYPEPAIR(lx_map_tag, lx_int_tag):
+	case TYPEPAIR(lx_map_tag, lx_bool_tag):
 
 	case TYPEPAIR(lx_list_tag, lx_string_tag):
 	case TYPEPAIR(lx_list_tag, lx_float_tag):

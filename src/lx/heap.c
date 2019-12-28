@@ -170,7 +170,7 @@ static bool is_ref_value(struct lxvalue val)
 {
 	switch (val.tag) {
 	case lx_list_tag: return !lx_is_empty_list(lx_list(val));
-	case lx_tree_tag: return !lx_is_empty_tree(lx_tree(val));
+	case lx_map_tag: return !lx_is_empty_map(lx_map(val));
 	case lx_string_tag: return true;
 	default: return false;
 	}

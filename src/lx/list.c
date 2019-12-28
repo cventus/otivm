@@ -21,7 +21,7 @@ struct lxvalue lx_car(struct lxlist list)
 	default: abort();
 	case lx_nil_tag: return lx_nil();
 	case lx_list_tag: return deref_list(list_car(list)).value;
-	case lx_tree_tag: return deref_tree(list_car(list)).value;
+	case lx_map_tag: return deref_map(list_car(list)).value;
 	case lx_string_tag: return deref_string(list_car(list)).value;
 	case lx_bool_tag: return lx_valueb(list_car(list)->i);
 	case lx_int_tag: return lx_valuei(list_car(list)->i);

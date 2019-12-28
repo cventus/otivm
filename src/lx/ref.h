@@ -17,13 +17,13 @@ static inline union lxcell *ref_cell(struct lxvalue ref)
 
 static inline lxtag *ref_tag(struct lxvalue ref)
 {
-	assert(ref.tag == lx_list_tag || ref.tag == lx_tree_tag);
+	assert(ref.tag == lx_list_tag || ref.tag == lx_map_tag);
 	return ref_cell(ref)->t + ref.offset;
 }
 
 static inline union lxcell *ref_data(struct lxvalue ref)
 {
-	assert(ref.tag == lx_list_tag || ref.tag == lx_tree_tag);
+	assert(ref.tag == lx_list_tag || ref.tag == lx_map_tag);
 	return ref_cell(ref) + ref.offset + 1;
 }
 

@@ -16,79 +16,79 @@
 #include "tree.h"
 
 struct split {
-	struct lxtree l, r;
+	struct lxmap l, r;
 	struct lxlist e;
 };
 
-static struct lxlist tree_as_list(struct lxtree tree)
+static struct lxlist map_as_list(struct lxmap map)
 {
 	struct lxlist result;
-	result.value = tree.value;
+	result.value = map.value;
 	result.value.tag = lx_list_tag;
 	return result;
 }
 
-size_t lx_tree_size(struct lxtree tree)
+size_t lx_map_size(struct lxmap map)
 {
-	return lx_is_empty_tree(tree) ? 0 : (size_t)ref_data(tree.value)->i;
+	return lx_is_empty_map(map) ? 0 : (size_t)ref_data(map.value)->i;
 }
 
-struct lxlist lx_tree_entry(struct lxtree tree)
+struct lxlist lx_map_entry(struct lxmap map)
 {
-	return lx_cdr(tree_as_list(tree));
+	return lx_cdr(map_as_list(map));
 }
 
-struct lxtree lx_tree_left(struct lxtree tree)
+struct lxmap lx_map_left(struct lxmap map)
 {
-	return is_leaf_node(tree)
-		? lx_empty_tree()
-		: deref_tree(ref_data(backward(backward(tree.value))));
+	return is_leaf_node(map)
+		? lx_empty_map()
+		: deref_map(ref_data(backward(backward(map.value))));
 }
 
-struct lxtree lx_tree_right(struct lxtree tree)
+struct lxmap lx_map_right(struct lxmap map)
 {
-	return is_leaf_node(tree)
-		? lx_empty_tree()
-		: deref_tree(ref_data(backward(tree.value)));
+	return is_leaf_node(map)
+		? lx_empty_map()
+		: deref_map(ref_data(backward(map.value)));
 }
 
 static void destructure(
-	struct lxtree tree,
-	struct lxtree *left,
-	struct lxtree *right,
+	struct lxmap map,
+	struct lxmap *left,
+	struct lxmap *right,
 	struct lxlist *entry)
 {
 	struct lxlist list;
 	union lxcell const *sz;
-	assert(!lx_is_empty_tree(tree));
-	list = tree_as_list(tree);
+	assert(!lx_is_empty_map(map));
+	list = map_as_list(map);
 	*entry = lx_cdr(list);
-	if (is_leaf_node(tree)) {
-		*left = *right = lx_empty_tree();
+	if (is_leaf_node(map)) {
+		*left = *right = lx_empty_map();
 	} else {
 		list.value = backward(list.value);
 		sz = ref_data(list.value);
-		*right = isnilref(sz) ? lx_empty_tree() : deref_tree(sz);
+		*right = isnilref(sz) ? lx_empty_map() : deref_map(sz);
 		list.value = backward(list.value);
 		sz = ref_data(list.value);
-		*left = isnilref(sz) ? lx_empty_tree() : deref_tree(sz);
+		*left = isnilref(sz) ? lx_empty_map() : deref_map(sz);
 	}
 }
 
-struct lxlist lx_tree_nth(struct lxtree tree, lxint n)
+struct lxlist lx_map_nth(struct lxmap map, lxint n)
 {
-	struct lxtree t, l, r;
+	struct lxmap t, l, r;
 	struct lxlist e;
 	size_t sz;
 
-	if (lx_is_empty_tree(tree)) {
+	if (lx_is_empty_map(map)) {
 		return lx_empty_list();
 	}
 
-	t = tree;
+	t = map;
 	do {
 		destructure(t, &l, &r, &e);
-		sz = lx_tree_size(l);
+		sz = lx_map_size(l);
 		if ((size_t)n < sz) {
 			t = l;
 		} else if ((size_t)n > sz) {
@@ -101,14 +101,14 @@ struct lxlist lx_tree_nth(struct lxtree tree, lxint n)
 	return e;
 }
 
-struct lxlist lx_tree_assoc(struct lxvalue key, struct lxtree tree)
+struct lxlist lx_map_assoc(struct lxmap map, struct lxvalue key)
 {
 	int cmp;
-	struct lxtree t, l, r;
+	struct lxmap t, l, r;
 	struct lxlist e;
 
-	t = tree;
-	while (!lx_is_empty_tree(t)) {
+	t = map;
+	while (!lx_is_empty_map(t)) {
 		destructure(t, &l, &r, &e);
 		cmp = lx_compare(key, lx_car(e));
 		if (cmp < 0) t = l;
@@ -118,41 +118,67 @@ struct lxlist lx_tree_assoc(struct lxvalue key, struct lxtree tree)
 	return lx_empty_list();
 }
 
-static bool is_balanced(struct lxtree a, struct lxtree b)
+struct lxvalue lx_map_ref(struct lxmap map, struct lxvalue key)
+{
+	struct lxlist e;
+
+	e = lx_map_assoc(map, key);
+	if (lx_is_empty_list(e)) {
+		return lx_nil();
+	} else {
+		return lx_nth(e, 1);
+	}
+}
+
+bool lx_map_has(struct lxmap map, struct lxvalue key, struct lxvalue *value)
+{
+	struct lxlist e;
+
+	e = lx_map_assoc(map, key);
+	if (lx_is_empty_list(e)) {
+		if (value) { *value = lx_nil(); }
+		return false;
+	} else {
+		if (value) { *value = lx_nth(e, 1); }
+		return true;
+	}
+}
+
+static bool is_balanced(struct lxmap a, struct lxmap b)
 {
 	/* No risk of size_t overflow:
-	 * - each tree node requires four tagged cells
+	 * - each map node requires four tagged cells
 	 * - for 16 bit
-	 *   - 2 segments per tree node
-	 *   - less than 2^14/3 tree nodes in a heap
+	 *   - 2 segments per map node
+	 *   - less than 2^14/3 map nodes in a heap
 	 *   -> 3 * (size(a) + 1) < 3*(2^14/3 + 1) < 2^16
 	 * - for 32 bit
-	 *   - 1 segments per tree node
-	 *   - less than 2^31/5 tree nodes in a heap
+	 *   - 1 segments per map node
+	 *   - less than 2^31/5 map nodes in a heap
 	 *   -> 3 * (size(a) + 1) < 3*(2^31/5 + 1) < 2^32
 	 * - for 64 bit
-	 *   - two tree nodes per segment
-	 *   - less than 2^64/9 tree nodes in a heap
+	 *   - two map nodes per segment
+	 *   - less than 2^64/9 map nodes in a heap
 	 *   -> 3 * (size(a) + 1) < 3*(2^64/5 + 1) = 2^64/3 + 3 < 2^64
 	 */
 	/* delta = 3 */
-	return 3 * (lx_tree_size(a) + 1) >= lx_tree_size(b) + 1;
+	return 3 * (lx_map_size(a) + 1) >= lx_map_size(b) + 1;
 }
 
-static bool is_single(struct lxtree a, struct lxtree b)
+static bool is_single(struct lxmap a, struct lxmap b)
 {
 	/* if 3*(size(x) + 1) doesn't overflow, neither does 2*size(b) */
 	/* gamma = 2 */
-	return lx_tree_size(a) + 1 < 2 * (lx_tree_size(b) + 1);
+	return lx_map_size(a) + 1 < 2 * (lx_map_size(b) + 1);
 }
 
-static struct lxtree make_leaf_node(struct lxstate *s, struct lxlist entry)
+static struct lxmap make_leaf_node(struct lxstate *s, struct lxlist entry)
 {
 	struct lxvalue tuple;
 	assert(!lx_is_empty_list(entry));
 	tuple = lx_cons(s, lx_valuei(1), entry).value;
-	tuple.tag = lx_tree_tag;
-	return ref_to_tree(tuple);
+	tuple.tag = lx_map_tag;
+	return ref_to_map(tuple);
 }
 
 static inline lxtag next_length(lxtag len) {
@@ -165,23 +191,23 @@ static inline lxtag next_length(lxtag len) {
 	}
 }
 
-static struct lxtree make_node(
+static struct lxmap make_node(
 	struct lxstate *s,
-	struct lxtree l,
-	struct lxtree r,
+	struct lxmap l,
+	struct lxmap r,
 	struct lxlist e)
 {
-	struct lxtree size, left, right, data;
+	struct lxmap size, left, right, data;
 	lxint len, entry_len;
 	bool is_adjacent;
 	struct lxvalue car;
 
 	assert(!lx_is_empty_list(e));
-	assert(l.value.tag == lx_tree_tag);
-	assert(r.value.tag == lx_tree_tag);
+	assert(l.value.tag == lx_map_tag);
+	assert(r.value.tag == lx_map_tag);
 	assert(e.value.tag == lx_list_tag);
 
-	if (lx_is_empty_tree(l) && lx_is_empty_tree(r)) {
+	if (lx_is_empty_map(l) && lx_is_empty_map(r)) {
 		return make_leaf_node(s, e);
 	}
 
@@ -191,17 +217,17 @@ static struct lxtree make_node(
 		lx_handle_out_of_memory(s);
 	}
 
-	/* initialize tree structure fields */
-	left.value.tag = lx_tree_tag;
+	/* initialize map structure fields */
+	left.value.tag = lx_map_tag;
 	right.value = forward(left.value);
 	size.value = forward(right.value);
-	ref_data(size.value)->i = 1 + lx_tree_size(l) + lx_tree_size(r);
-	if (lx_is_empty_tree(l)) {
+	ref_data(size.value)->i = 1 + lx_map_size(l) + lx_map_size(r);
+	if (lx_is_empty_map(l)) {
 		setnilref(ref_data(left.value));
 	} else {
 		setref(ref_data(left.value), l.value);
 	}
-	if (lx_is_empty_tree(r)) {
+	if (lx_is_empty_map(r)) {
 		setnilref(ref_data(right.value));
 	} else {
 		setref(ref_data(right.value), r.value);
@@ -228,9 +254,9 @@ static struct lxtree make_node(
 
 	*ref_tag(size.value) = mktag(len, lx_int_tag);
 	len = next_length(len);
-	*ref_tag(right.value) = mktag(len, lx_tree_tag);
+	*ref_tag(right.value) = mktag(len, lx_map_tag);
 	len = next_length(len);
-	*ref_tag(left.value) = mktag(len, lx_tree_tag);
+	*ref_tag(left.value) = mktag(len, lx_map_tag);
 
 	return size;
 }
@@ -238,13 +264,13 @@ static struct lxtree make_node(
 /* create a balanced tree node with the given sub-trees and entry, when a
    single node has recently been added to the right sub-tree or removed from the
    left sub-tree, possibly by rotating left to restore balance */
-static struct lxtree balance_left(
+static struct lxmap balance_left(
 	struct lxstate *s,
-	struct lxtree l,
-	struct lxtree r,
+	struct lxmap l,
+	struct lxmap r,
 	struct lxlist e)
 {
-	struct lxtree nl, nr, rl, rll, rlr, rr;
+	struct lxmap nl, nr, rl, rll, rlr, rr;
 	struct lxlist re, rle;
 
 	if (is_balanced(l, r)) {
@@ -252,7 +278,7 @@ static struct lxtree balance_left(
 	}
 
 	/* rotate left */
-	assert(!lx_is_empty_tree(r));
+	assert(!lx_is_empty_map(r));
 	destructure(r, &rl, &rr, &re);
 	if (is_single(rl, rr)) {
 		/*
@@ -275,7 +301,7 @@ static struct lxtree balance_left(
 		 *   RLL  RLR
 		 */
 
-		assert(!lx_is_empty_tree(rl));
+		assert(!lx_is_empty_map(rl));
 		destructure(rl, &rll, &rlr, &rle);
 
 		nl = make_node(s, l, rll, e);
@@ -288,13 +314,13 @@ static struct lxtree balance_left(
 /* create a balanced tree node with the given sub-trees and entry, when a
    single node has recently been added to the left sub-tree or removed from the
    right sub-tree, possibly by rotating right to restore balance */
-static struct lxtree balance_right(
+static struct lxmap balance_right(
 	struct lxstate *s,
-	struct lxtree l,
-	struct lxtree r,
+	struct lxmap l,
+	struct lxmap r,
 	struct lxlist e)
 {
-	struct lxtree nl, nr, lr, ll, lrl, lrr;
+	struct lxmap nl, nr, lr, ll, lrl, lrr;
 	struct lxlist le, lre;
 
 	if (is_balanced(l, r)) {
@@ -302,7 +328,7 @@ static struct lxtree balance_right(
 	}
 
 	/* rotate right */
-	assert(!lx_is_empty_tree(l));
+	assert(!lx_is_empty_map(l));
 	destructure(l, &ll, &lr, &le);
 	if (is_single(ll, lr)) {
 		/*
@@ -325,7 +351,7 @@ static struct lxtree balance_right(
 		 *     LRL  LRR
 		 */
 
-		assert(!lx_is_empty_tree(lr));
+		assert(!lx_is_empty_map(lr));
 		destructure(lr, &lrl, &lrr, &lre);
 
 		nl = make_node(s, ll, lrl, le);
@@ -335,43 +361,45 @@ static struct lxtree balance_right(
 	}
 }
 
-struct lxtree lx_tree_cons(
+struct lxmap lx_map_set(
 	struct lxstate *s,
-	struct lxlist entry,
-	struct lxtree tree)
+	struct lxmap map,
+	struct lxvalue key,
+	struct lxvalue value)
 {
-	struct lxtree l, r, v;
+	struct lxmap l, r, v;
 	struct lxlist e;
 	int cmp;
 
-	if (lx_is_empty_list(entry)) { return tree; }
-	if (lx_is_empty_tree(tree)) { return make_leaf_node(s, entry); }
+	if (lx_is_empty_map(map)) {
+		return make_leaf_node(s, lx_pair(s, key, value));
+	}
 
-	destructure(tree, &l, &r, &e);
-	cmp = lx_compare(lx_car(entry), lx_car(e));
+	destructure(map, &l, &r, &e);
+	cmp = lx_compare(key, lx_car(e));
 	if (cmp < 0) {
-		v = lx_tree_cons(s, entry, l);
+		v = lx_map_set(s, l, key, value);
 		return balance_right(s, v, r, e);
 	}
 	if (cmp > 0) {
-		v = lx_tree_cons(s, entry, r);
+		v = lx_map_set(s, r, key, value);
 		return balance_left(s, l, v, e);
 	}
-	return make_node(s, l, r, entry);
+	return make_node(s, l, r, lx_pair(s, key, value));
 }
 
-static struct lxtree extract_min(
+static struct lxmap extract_min(
 	struct lxstate *s,
-	struct lxtree tree,
+	struct lxmap map,
 	struct lxlist *min_entry)
 {
-	struct lxtree l, r;
+	struct lxmap l, r;
 	struct lxlist e;
 
-	assert(!lx_is_empty_tree(tree));
+	assert(!lx_is_empty_map(map));
 
-	destructure(tree, &l, &r, &e);
-	if (lx_is_empty_tree(l)) {
+	destructure(map, &l, &r, &e);
+	if (lx_is_empty_map(l)) {
 		*min_entry = e;
 		return r;
 	} else {
@@ -380,18 +408,18 @@ static struct lxtree extract_min(
 	}
 }
 
-static struct lxtree extract_max(
+static struct lxmap extract_max(
 	struct lxstate *s,
-	struct lxtree tree,
+	struct lxmap map,
 	struct lxlist *max_entry)
 {
-	struct lxtree l, r;
+	struct lxmap l, r;
 	struct lxlist e;
 
-	assert(!lx_is_empty_tree(tree));
+	assert(!lx_is_empty_map(map));
 
-	destructure(tree, &l, &r, &e);
-	if (lx_is_empty_tree(r)) {
+	destructure(map, &l, &r, &e);
+	if (lx_is_empty_map(r)) {
 		*max_entry = e;
 		return l;
 	} else {
@@ -400,21 +428,21 @@ static struct lxtree extract_max(
 	}
 }
 
-static struct lxtree remove_rec(
+static struct lxmap remove_rec(
 	struct lxstate *s,
 	struct lxvalue key,
-	struct lxtree tree,
+	struct lxmap map,
 	jmp_buf not_found)
 {
-	struct lxtree l, r;
+	struct lxmap l, r;
 	struct lxlist e;
 	int cmp;
 
-	if (lx_is_empty_tree(tree)) {
+	if (lx_is_empty_map(map)) {
 		longjmp(not_found, 1);
 	}
 
-	destructure(tree, &l, &r, &e);
+	destructure(map, &l, &r, &e);
 	cmp = lx_compare(key, lx_car(e));
 	if (cmp < 0) {
 		l = remove_rec(s, key, l, not_found);
@@ -426,11 +454,11 @@ static struct lxtree remove_rec(
 	}
 
 	/* zero/one child */
-	if (lx_is_empty_tree(l)) { return r; }
-	if (lx_is_empty_tree(r)) { return l; }
+	if (lx_is_empty_map(l)) { return r; }
+	if (lx_is_empty_map(r)) { return l; }
 
 	/* two children */
-	if (lx_tree_size(l) > lx_tree_size(r)) {
+	if (lx_map_size(l) > lx_map_size(r)) {
 		l = extract_max(s, l, &e);
 	} else {
 		r = extract_min(s, r, &e);
@@ -438,27 +466,27 @@ static struct lxtree remove_rec(
 	return make_node(s, l, r, e);
 }
 
-struct lxtree lx_tree_remove(
+struct lxmap lx_map_remove(
 	struct lxstate *s,
-	struct lxvalue key,
-	struct lxtree tree)
+	struct lxmap map,
+	struct lxvalue key)
 {
 	jmp_buf not_found;
 
 	if (setjmp(not_found)) {
-		return tree;
+		return map;
 	} else {
-		return remove_rec(s, key, tree, not_found);
+		return remove_rec(s, key, map, not_found);
 	}
 }
 
-static struct lxtree join_left(
+static struct lxmap join_left(
 	struct lxstate *s,
-	struct lxtree l,
-	struct lxtree r,
+	struct lxmap l,
+	struct lxmap r,
 	struct lxlist e)
 {
-	struct lxtree rr, rl;
+	struct lxmap rr, rl;
 	struct lxlist re;
 
   	if (is_balanced(l, r)) {
@@ -470,13 +498,13 @@ static struct lxtree join_left(
 	}
 }
 
-static struct lxtree join_right(
+static struct lxmap join_right(
 	struct lxstate *s,
-	struct lxtree l,
-	struct lxtree r,
+	struct lxmap l,
+	struct lxmap r,
 	struct lxlist e)
 {
-	struct lxtree lr, ll;
+	struct lxmap lr, ll;
 	struct lxlist le;
 
   	if (is_balanced(l, r)) {
@@ -491,16 +519,16 @@ static struct lxtree join_right(
 /* create a tree from trees `l` and `r`, and entry `e` where the keys of `l`
    are smaller then the key of `e` and the keys of `r` are greater than the key
    of `e`. */
-static struct lxtree join(
+static struct lxmap join(
 	struct lxstate *s,
-	struct lxtree l,
-	struct lxtree r,
+	struct lxmap l,
+	struct lxmap r,
 	struct lxlist e)
 {
 	size_t lsz, rsz;
 
-	lsz = lx_tree_size(l);
-	rsz = lx_tree_size(r);
+	lsz = lx_map_size(l);
+	rsz = lx_map_size(r);
 
 	if (lsz > rsz) {
 		return join_right(s, l, r, e);
@@ -512,11 +540,11 @@ static struct lxtree join(
 }
 
 /* join two trees where each key in `l` is smaller than each key in `r` */
-static struct lxtree join2(struct lxstate *s, struct lxtree l, struct lxtree r)
+static struct lxmap join2(struct lxstate *s, struct lxmap l, struct lxmap r)
 {
 	struct lxlist e;
 
-	if (lx_is_empty_tree(l)) return r;
+	if (lx_is_empty_map(l)) return r;
 	l = extract_max(s, l, &e);
 	return join(s, l, r, e);
 }
@@ -526,19 +554,19 @@ static struct lxtree join2(struct lxstate *s, struct lxtree l, struct lxtree r)
    store it in .e, otherwise it is empty. */
 static struct split split(
 	struct lxstate *state,
-	struct lxtree tree,
+	struct lxmap map,
 	struct lxvalue key)
 {
 	struct split s;
-	struct lxtree l, r;
+	struct lxmap l, r;
 	struct lxlist e;
 	int cmp;
 
-	if (lx_is_empty_tree(tree)) {
-		s.l = s.r = lx_empty_tree();
+	if (lx_is_empty_map(map)) {
+		s.l = s.r = lx_empty_map();
 		s.e = lx_empty_list();
 	} else {
-		destructure(tree, &l, &r, &e);
+		destructure(map, &l, &r, &e);
 		cmp = lx_compare(key, lx_car(e));
 		if (cmp < 0) {
 			s = split(state, l, key);
@@ -555,43 +583,43 @@ static struct split split(
 	return s;
 }
 
-struct lxtree lx_tree_union(
+struct lxmap lx_map_union(
 	struct lxstate *state,
-	struct lxtree lhs,
-	struct lxtree rhs)
+	struct lxmap lhs,
+	struct lxmap rhs)
 {
 	struct split s;
-	struct lxtree l, r;
+	struct lxmap l, r;
 	struct lxlist e;
 
-	if (lx_is_empty_tree(lhs)) { return rhs; }
-	if (lx_is_empty_tree(rhs)) { return lhs; }
+	if (lx_is_empty_map(lhs)) { return rhs; }
+	if (lx_is_empty_map(rhs)) { return lhs; }
 
 	destructure(rhs, &l, &r, &e);
 	s = split(state, lhs, lx_car(e));
-	l = lx_tree_union(state, s.l, l);
-	r = lx_tree_union(state, s.r, r);
+	l = lx_map_union(state, s.l, l);
+	r = lx_map_union(state, s.r, r);
 	/* prefer entry(lhs) over entry(rhs) */
 	if (!lx_is_empty_list(s.e)) { e = s.e; }
 	return join(state, l, r, e);
 }
 
-struct lxtree lx_tree_isect(
+struct lxmap lx_map_isect(
 	struct lxstate *state,
-	struct lxtree lhs,
-	struct lxtree rhs)
+	struct lxmap lhs,
+	struct lxmap rhs)
 {
 	struct split s;
-	struct lxtree l, r;
+	struct lxmap l, r;
 	struct lxlist e;
 
-	if (lx_is_empty_tree(lhs) || lx_is_empty_tree(rhs)) {
-		return lx_empty_tree();
+	if (lx_is_empty_map(lhs) || lx_is_empty_map(rhs)) {
+		return lx_empty_map();
 	}
 	destructure(rhs, &l, &r, &e);
 	s = split(state, lhs, lx_car(e));
-	l = lx_tree_isect(state, s.l, l);
-	r = lx_tree_isect(state, s.r, r);
+	l = lx_map_isect(state, s.l, l);
+	r = lx_map_isect(state, s.r, r);
 	if (lx_is_empty_list(s.e)) {
 		return join2(state, l, r);
 	} else {
@@ -599,39 +627,39 @@ struct lxtree lx_tree_isect(
 	}
 }
 
-struct lxtree lx_tree_diff(
+struct lxmap lx_map_diff(
 	struct lxstate *state,
-	struct lxtree lhs,
-	struct lxtree rhs)
+	struct lxmap lhs,
+	struct lxmap rhs)
 {
 	struct split s;
-	struct lxtree l, r;
+	struct lxmap l, r;
 	struct lxlist e;
 
-	if (lx_is_empty_tree(lhs)) { return lx_empty_tree(); }
-	if (lx_is_empty_tree(rhs)) { return lhs; }
+	if (lx_is_empty_map(lhs)) { return lx_empty_map(); }
+	if (lx_is_empty_map(rhs)) { return lhs; }
 
 	destructure(rhs, &l, &r, &e);
 	s = split(state, lhs, lx_car(e));
-	l = lx_tree_diff(state, s.l, l);
-	r = lx_tree_diff(state, s.r, r);
+	l = lx_map_diff(state, s.l, l);
+	r = lx_map_diff(state, s.r, r);
 	return join2(state, l, r);
 }
 
-struct lxtree lx_tree_filter(
+struct lxmap lx_map_filter(
 	struct lxstate *s,
-	struct lxtree tree,
-	bool predicate(struct lxlist, void *),
+	struct lxmap map,
+	bool predicate(struct lxvalue key, struct lxvalue value, void *),
 	void *param)
 {
-	struct lxtree l, r;
+	struct lxmap l, r;
 	struct lxlist e;
 
-	if (lx_is_empty_tree(tree)) { return lx_empty_tree(); }
-	destructure(tree, &l, &r, &e);
-	l = lx_tree_filter(s, l, predicate, param);
-	r = lx_tree_filter(s, r, predicate, param);
-	if (predicate(e, param)) {
+	if (lx_is_empty_map(map)) { return lx_empty_map(); }
+	destructure(map, &l, &r, &e);
+	l = lx_map_filter(s, l, predicate, param);
+	r = lx_map_filter(s, r, predicate, param);
+	if (predicate(lx_car(e), lx_nth(e, 1), param)) {
 		return join(s, l, r, e);
 	} else {
 		return join2(s, l, r);

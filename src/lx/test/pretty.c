@@ -65,38 +65,37 @@ int test_long_lists_should_break_into_several_lines(void)
 
 int test_single_element_trees_are_on_one_line(void)
 {
-	char const *expr = "{(foo bar)}";
+	char const *expr = "{foo bar}";
 	assert_str_eq(do_write(expr), expr);
 	return 0;
 }
 
 int test_each_tree_entry_should_go_on_their_own_line(void)
 {
-	char const *expr = "{(first line) (second line)}";
+	char const *expr = "{first line  second line}";
 	char const *expected =
-		"{(first line)\n"
-		" (second line)}";
+		"{first line\n"
+		" second line}";
 	assert_str_eq(do_write(expr), expected);
 	return 0;
 }
 
 int test_nested_structure_accumulate_indentation(void)
 {
-	char const *expr = "{(key-1 {(one 1) (two 2) (three 3)}) (key-2) (key-3 \"long list\" with a lot of string elements)}";
+	char const *expr = "{key-1 {one 1  two 2  three 3}  key-123 nil  key-1234 (\"long list\" with a lot of string elements)}";
 	char const *expected =
-		"{(key-1\n"
-		"  {(one 1)\n"
-		"   (three 3)\n"
-		"   (two 2)})\n"
-		" (key-2)\n"
-		" (key-3\n"
-		"  \"long list\"\n"
-		"  with\n"
-		"  a\n"
-		"  lot\n"
-		"  of\n"
-		"  string\n"
-		"  elements)}";
+		"{key-1 {one 1\n"
+		"        three 3\n"
+		"        two 2}\n"
+		" key-123 nil\n"
+		" key-1234\n"
+		"   (\"long list\"\n"
+		"    with\n"
+		"    a\n"
+		"    lot\n"
+		"    of\n"
+		"    string\n"
+		"    elements)}";
 	assert_str_eq(do_write(expr), expected);
 	return 0;
 }

@@ -73,7 +73,7 @@ static void copy_data(
 		setref(ref_data(dest), copy_string(car, to));
 		break;
 	case lx_list_tag:
-	case lx_tree_tag:
+	case lx_map_tag:
 		if (!isnilref(ref_data(src))) {
 			/* Copy cross reference into to-space which will be
 			   upated as the "scan" pointer advances. */
@@ -206,7 +206,7 @@ static struct lxvalue cheney70(
 	ref_data(to->tag_free)->i = 0;
 	to->tag_free = forward(to->tag_free);
 
-	if (root.tag == lx_list_tag || is_leaf_node(lx_tree(root))) {
+	if (root.tag == lx_list_tag || is_leaf_node(lx_map(root))) {
 		scan = copy_list(root, from, to, bitset);
 		result = scan;
 	} else {
@@ -221,9 +221,9 @@ static struct lxvalue cheney70(
 		switch (tag) {
 		default: abort();
 		case lx_list_tag:
-		case lx_tree_tag:
+		case lx_map_tag:
 			if (isnilref(ref_data(scan))) {
-				/* don't copy empty list/tree */
+				/* don't copy empty list/map */
 				break;
 			}
 			/* Data of element contains cross-reference to source
@@ -236,7 +236,7 @@ static struct lxvalue cheney70(
 				   from-apace */
 				from_data = ref_data(ref);
 				ref = dexref(from_data, to->min_addr, tag);
-			} else if (tag == lx_tree_tag && !is_leaf_node(ref_to_tree(ref))) {
+			} else if (tag == lx_map_tag && !is_leaf_node(ref_to_map(ref))) {
 				ref = backward(backward(ref));
 				ref = copy_list(ref, from, to, bitset);
 				ref = forward(forward(ref));
@@ -284,12 +284,12 @@ struct lxvalue lx_compact(
 		if (lx_is_empty_list(ref_to_list(root))) { return root; }
 		break;
 
-	case lx_tree_tag:
-		if (lx_is_empty_tree(ref_to_tree(root))) { return root; }
+	case lx_map_tag:
+		if (lx_is_empty_map(ref_to_map(root))) { return root; }
 		break;
 	}
 
-	/* tree or list */
+	/* map or list */
 	memset(bitset, 0, bitset_size);
 	/* use to-space as a stack while marking */
 	lx_count_refs(root, from, to->max_addr, bitset);

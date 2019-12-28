@@ -22,8 +22,8 @@
 #define mklist(cell, offset) \
        ref_to_list(mkref(lx_list_tag, offset, cell))
 
-#define mktree(cell, offset) \
-       ref_to_tree(mkref(lx_tree_tag, offset, cell))
+#define mkmap(cell, offset) \
+       ref_to_map(mkref(lx_map_tag, offset, cell))
 
 #define mkstr(cell) \
        ref_to_string(mkref(lx_string_tag, 0, cell))
@@ -153,7 +153,7 @@ static inline int _assert_ref_eq(
 static void _print_value(struct lxvalue val)
 {
 	struct lxlist l;
-	struct lxtree t;
+	struct lxmap t;
 	size_t i;
 	switch (val.tag) {
 	default: abort();
@@ -167,12 +167,15 @@ static void _print_value(struct lxvalue val)
 		}
 		printf(")");
 		break;
-	case lx_tree_tag:
+	case lx_map_tag:
 		printf("{");
-		t = ref_to_tree(val);
-		for (i = 0; i < lx_tree_size(t); i++) {
+		t = ref_to_map(val);
+		for (i = 0; i < lx_map_size(t); i++) {
 			if (i > 0) { printf(" "); }
-			_print_value(lx_tree_nth(t, i).value);
+			l = lx_map_nth(t, i);
+			_print_value(lx_car(l));
+			printf(" ");
+			_print_value(lx_nth(l, 1));
 		}
 		printf("}");
 		break;

@@ -51,13 +51,13 @@ void before_each_test(void)
 	list_1234 = mklist(state + list_1234_cell, list_1234_offset).value;
 	list_2 = mklist(state + list_2_cell, list_2_offset).value;
 
-	tree_1 = mktree(state + tree_1_cell, tree_1_offset).value;
-	tree_3 = mktree(state + tree_3_cell, tree_3_offset).value;
-	tree_4 = mktree(state + tree_4_cell, tree_4_offset).value;
-	tree_1234_a = mktree(state + tree_1234_a_cell, tree_1234_a_offset).value;
-	tree_1234_b = mktree(state + tree_1234_b_cell, tree_1234_b_offset).value;
-	tree_123 = mktree(state + tree_123_cell, tree_123_offset).value;
-	tree_124 = mktree(state + tree_124_cell, tree_124_offset).value;
+	tree_1 = mkmap(state + tree_1_cell, tree_1_offset).value;
+	tree_3 = mkmap(state + tree_3_cell, tree_3_offset).value;
+	tree_4 = mkmap(state + tree_4_cell, tree_4_offset).value;
+	tree_1234_a = mkmap(state + tree_1234_a_cell, tree_1234_a_offset).value;
+	tree_1234_b = mkmap(state + tree_1234_b_cell, tree_1234_b_offset).value;
+	tree_123 = mkmap(state + tree_123_cell, tree_123_offset).value;
+	tree_124 = mkmap(state + tree_124_cell, tree_124_offset).value;
 }
 
 #define assert_order(lt, gt) \
@@ -121,7 +121,7 @@ int test_compare_lists_lexicographically(void)
 	return 0;
 }
 
-int test_compare_trees_lexicographically(void)
+int test_compare_maps_lexicographically(void)
 {
 	assert_order(tree_1, tree_123);
 	assert_order(tree_1, tree_1234_a);

@@ -136,6 +136,19 @@ static int read_keyword(
 	return -1;
 }
 
+static struct lxlist last(struct lxlist list)
+{
+	struct lxlist p;
+	
+	assert(!lx_is_empty_list(list));
+	p = list;
+	while (!lx_is_empty_list(lx_cdr(p))) {
+		p = lx_cdr(p);
+	}
+	assert(lx_length(p) == 1);
+	return p;
+}
+
 static int read_atom(
 	struct lxstate *s,
 	char const *str,
@@ -164,10 +177,16 @@ static int read_atom(
 
 struct lxread lx_read(struct lxstate *s, char const *str)
 {
+	/* The stack is a list of lists, where the list of the top contains the
+	   items of the current data structure that's being built. The lists in
+	   the stack should also be treated as stacks and a newly parsed value
+	   can simply be pushed onto them. They are initialized with an int
+	   value (which ends up at the end of the list) that should be
+	   interpreted as a tag (lx_list_tag or lx_map_tag). */
+	struct lxlist stack, list;
+	struct lxmap map;
+	struct lxvalue key, val;
 	char const *p, *q;
-	struct lxvalue val, top;
-	struct lxlist stack;
-	enum lx_tag tag;
 	int err;
 
 	stack = lx_empty_list();
@@ -191,43 +210,73 @@ struct lxread lx_read(struct lxstate *s, char const *str)
 			} else {
 				/* push new list on top of stack and start
 				   parsing the next value */
-				stack = lx_cons(s, val, stack);
-				p = q;
-				continue;
-			}
-
-		case '{':
-			val = lx_empty_tree().value;
-			q = skip_ws(p + 1);
-
-			if (*q == '}') {
-				/* micro optimization: avoid pushing onto the
-				   stack if we're parsing an empty tree */
-				q++;
-				break;
-			} else {
-				/* push new tree on top of stack and start
-				   parsing the first entry */
-				stack = lx_cons(s, val, stack);
+				list = lx_single(s, lx_valuei(lx_list_tag));
+				stack = lx_cons(s, list.value, stack);
 				p = q;
 				continue;
 			}
 
 		case ')':
+			if (lx_is_empty_list(stack)) {
+				return read_err(LX_READ_UNEXPECTED, p);
+			}
+			list = lx_list(lx_car(stack));
+			list = lx_reverse(s, list);
+			if (lx_cari(list) != lx_list_tag) {
+				return read_err(LX_READ_UNEXPECTED, p);
+			}
+			val = lx_cdr(list).value;
+			stack = lx_cdr(stack); /* pop stack */
+			q = p + 1;
+			break;
+
+		case '{':
+			q = skip_ws(p + 1);
+			if (*q == '}') {
+				/* micro optimization: avoid pushing onto the
+				   stack if we're parsing an empty map */
+				val = lx_empty_map().value;
+				q++;
+				break;
+			} else {
+				/* start collecting key-values in a new list on
+				   top of the stack */
+				list = lx_single(s, lx_valuei(lx_map_tag));
+				stack = lx_cons(s, list.value, stack);
+				p = q;
+				continue;
+			}
+
 		case '}':
 			if (lx_is_empty_list(stack)) {
 				return read_err(LX_READ_UNEXPECTED, p);
 			}
-			val = lx_car(stack);
-			tag = *p == ')' ? lx_list_tag : lx_tree_tag;
-			if (val.tag != tag) {
+			list = lx_list(lx_car(stack));
+			if (lx_cari(last(list)) != lx_map_tag) {
 				return read_err(LX_READ_UNEXPECTED, p);
 			}
-			if (tag == lx_list_tag) {
-				/* lists are built in reverse; reverse the
-				   result and get it linearized as a bonus */
-				val = lx_reverse(s, lx_list(val)).value;
+
+			/* list should be of odd length */
+			map = lx_empty_map();
+			while (true) {
+				/* list is reverse of declared values,
+				   values/keys */
+				val = lx_car(list);
+				list = lx_cdr(list);
+				if (lx_is_empty_list(list)) {
+					/* reached stack frame tag */
+					break;
+				}
+				key = lx_car(list);
+				list = lx_cdr(list);
+				if (lx_is_empty_list(list)) {
+					/* even numbered elements in list: odd
+					   number of items in input */
+					return read_err(LX_READ_ENTRY, p);
+				}
+				map = lx_map_set(s, map, key, val);
 			}
+			val = map.value;
 			stack = lx_cdr(stack); /* pop stack */
 			q = p + 1;
 			break;
@@ -246,35 +295,24 @@ struct lxread lx_read(struct lxstate *s, char const *str)
 			break;
 
 		default:
-			/* atom: string, integer, float */
+			/* atom: nil, string, integer, float */
 			err = read_atom(s, p, &q, &val);
 			if (err) { return read_err(err, p); }
 			break;
 		}
 
-		/* a new value has been read; either insert into a list or
-		   tree, or return a top level value */
+		/* a new value has been read; either insert into a list or map,
+		   or return a top level value */
 		if (lx_is_empty_list(stack)) {
 			return read_ok(val, q);
 		}
-		top = lx_car(stack);
-		if (top.tag == lx_list_tag) {
-			/* build new list in reverse */
-			top = lx_cons(s, val, lx_list(top)).value;
-		} else {
-			assert(top.tag == lx_tree_tag);
-			if (val.tag != lx_list_tag) {
-				return read_err(LX_READ_ENTRY, p);
-			}
-			if (lx_is_empty_list(lx_list(val))) {
-				return read_err(LX_READ_ENTRY, p);
-			}
-			top = lx_tree_cons(s,
-				lx_list(val),
-				lx_tree(top)).value;
-		}
-		/* replace top of stack with new list or tree */
-		stack = lx_cons(s, top, lx_cdr(stack));
+
+		/* push new value to top-most list */
+		list = lx_list(lx_car(stack));
+		list = lx_cons(s, val, list);
+
+		/* replace top of stack with new list or map */
+		stack = lx_cons(s, list.value, lx_cdr(stack));
 		p = q;
 	}
 }

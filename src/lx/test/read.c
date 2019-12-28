@@ -134,31 +134,31 @@ int test_read_list(void)
 	return 0;
 }
 
-int test_read_empty_tree(void)
+int test_read_empty_map(void)
 {
-	assert_eq(do_read("{}", lx_tree_tag), lx_empty_tree().value);
+	assert_eq(do_read("{}", lx_map_tag), lx_empty_map().value);
 	return 0;
 }
 
-int test_read_tree(void)
+int test_read_map(void)
 {
-	struct lxtree t;
+	struct lxmap t;
 	struct lxlist l;
 
-	t = lx_tree(do_read("{(1 a) (2 b) (3 c)}", lx_tree_tag));
-	assert_int_eq(lx_tree_size(t), 3);
+	t = lx_map(do_read("{1 a  2 b  3 c}", lx_map_tag));
+	assert_int_eq(lx_map_size(t), 3);
 
-	l = lx_tree_nth(t, 0);
+	l = lx_map_nth(t, 0);
 	assert_int_eq(lx_length(l), 2);
 	assert_eq(lx_nth(l, 0), lx_valuei(1));
 	assert_str_eq(lx_nth(l, 1).s, "a");
 
-	l = lx_tree_nth(t, 1);
+	l = lx_map_nth(t, 1);
 	assert_int_eq(lx_length(l), 2);
 	assert_eq(lx_nth(l, 0), lx_valuei(2));
 	assert_str_eq(lx_nth(l, 1).s, "b");
 
-	l = lx_tree_nth(t, 2);
+	l = lx_map_nth(t, 2);
 	assert_int_eq(lx_length(l), 2);
 	assert_eq(lx_nth(l, 0), lx_valuei(3));
 	assert_str_eq(lx_nth(l, 1).s, "c");

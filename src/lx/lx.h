@@ -30,7 +30,7 @@
 
 /* reference values */
 #define lxlist MANGLE(list)
-#define lxtree MANGLE(tree)
+#define lxmap MANGLE(map)
 #define lxstring MANGLE(string)
 
 /* value constructors */
@@ -41,8 +41,8 @@
 /* conversion functions */
 #define lx_list MANGLE(list)
 #define lx_is_list MANGLE(is_list)
-#define lx_tree MANGLE(tree)
-#define lx_is_tree MANGLE(is_tree)
+#define lx_map MANGLE(map)
+#define lx_is_map MANGLE(is_map)
 #define lx_string MANGLE(string)
 #define lx_is_string MANGLE(is_string)
 #define lx_bool MANGLE(bool)
@@ -94,21 +94,22 @@
 #define lx_pair MANGLE(pair)
 #define lx_triple MANGLE(triple)
 
-/* tree API */
-#define lx_empty_tree MANGLE(empty_tree)
-#define lx_is_empty_tree MANGLE(is_empty_tree)
-#define lx_tree_size MANGLE(tree_size)
-#define lx_tree_cons MANGLE(tree_cons)
-#define lx_tree_assoc MANGLE(tree_assoc)
-#define lx_tree_remove MANGLE(tree_remove)
-#define lx_tree_entry MANGLE(tree_entry)
-#define lx_tree_left MANGLE(tree_left)
-#define lx_tree_right MANGLE(tree_right)
-#define lx_tree_nth MANGLE(tree_nth)
-#define lx_tree_filter MANGLE(tree_filter)
-#define lx_tree_union MANGLE(tree_union)
-#define lx_tree_isect MANGLE(tree_isect)
-#define lx_tree_diff MANGLE(tree_diff)
+/* map API */
+#define lx_empty_map MANGLE(empty_map)
+#define lx_is_empty_map MANGLE(is_empty_map)
+#define lx_map_size MANGLE(map_size)
+#define lx_map_set MANGLE(map_set)
+#define lx_map_assoc MANGLE(map_assoc)
+#define lx_map_ref MANGLE(map_ref)
+#define lx_map_remove MANGLE(map_remove)
+#define lx_map_entry MANGLE(map_entry)
+#define lx_map_left MANGLE(map_left)
+#define lx_map_right MANGLE(map_right)
+#define lx_map_nth MANGLE(map_nth)
+#define lx_map_filter MANGLE(map_filter)
+#define lx_map_union MANGLE(map_union)
+#define lx_map_isect MANGLE(map_isect)
+#define lx_map_diff MANGLE(map_diff)
 
 /* string API */
 #define lx_strlen MANGLE(strlen)
@@ -175,7 +176,7 @@ struct lxvalue
 };
 
 struct lxlist { struct lxvalue value; };
-struct lxtree { struct lxvalue value; };
+struct lxmap { struct lxvalue value; };
 struct lxstring { struct lxvalue value; };
 
 struct lxread {
@@ -311,10 +312,10 @@ static inline struct lxlist lx_list(struct lxvalue value)
 	return (struct lxlist) { .value = value };
 }
 
-static inline struct lxtree lx_tree(struct lxvalue value)
+static inline struct lxmap lx_map(struct lxvalue value)
 {
-	assert(value.tag == lx_tree_tag);
-	return (struct lxtree) { .value = value };
+	assert(value.tag == lx_map_tag);
+	return (struct lxmap) { .value = value };
 }
 
 static inline bool lx_bool(struct lxvalue value)
@@ -347,9 +348,9 @@ static inline bool lx_is_list(struct lxvalue value, struct lxlist *out)
 	return value.tag == lx_list_tag && (*out = lx_list(value), 1);
 }
 
-static inline bool lx_is_tree(struct lxvalue value, struct lxtree *out)
+static inline bool lx_is_map(struct lxvalue value, struct lxmap *out)
 {
-	return value.tag == lx_tree_tag && (*out = lx_tree(value), 1);
+	return value.tag == lx_map_tag && (*out = lx_map(value), 1);
 }
 
 static inline bool lx_is_bool(struct lxvalue value, bool *out)
@@ -417,39 +418,49 @@ static inline bool lx_is_empty_list(struct lxlist list)
 }
 
 /* create an empty list value */
-static inline struct lxtree lx_empty_tree(void)
+static inline struct lxmap lx_empty_map(void)
 {
-	return (struct lxtree) {
-		.value = { .tag = lx_tree_tag, .offset = 0, .s = 0 }
+	return (struct lxmap) {
+		.value = { .tag = lx_map_tag, .offset = 0, .s = 0 }
 	};
 }
 
 /* compare a list against the empty list */
-static inline bool lx_is_empty_tree(struct lxtree tree)
+static inline bool lx_is_empty_map(struct lxmap map)
 {
-	return tree.value.s == NULL;
+	return map.value.s == NULL;
 }
 
-size_t lx_tree_size(struct lxtree);
+size_t lx_map_size(struct lxmap);
 
-struct lxtree lx_tree_cons(struct lxstate *, struct lxlist entry, struct lxtree);
-struct lxtree lx_tree_remove(struct lxstate *, struct lxvalue key, struct lxtree);
+struct lxmap lx_map_set(
+	struct lxstate *,
+	struct lxmap m,
+	struct lxvalue key,
+	struct lxvalue value);
 
-struct lxlist lx_tree_assoc(struct lxvalue key, struct lxtree tree);
-struct lxlist lx_tree_nth(struct lxtree tree, lxint n);
+struct lxlist lx_map_assoc(struct lxmap, struct lxvalue key);
+struct lxvalue lx_map_ref(struct lxmap, struct lxvalue key);
+bool lx_map_has(struct lxmap, struct lxvalue key, struct lxvalue *value);
+struct lxmap lx_map_remove(struct lxstate *, struct lxmap, struct lxvalue key);
+
+struct lxmap lx_map_merge(struct lxstate *, struct lxmap, struct lxmap);
+
+
+struct lxlist lx_map_nth(struct lxmap map, lxint n);
 
 /* set operations */
-struct lxtree lx_tree_union(struct lxstate *, struct lxtree, struct lxtree);
-struct lxtree lx_tree_isect(struct lxstate *, struct lxtree, struct lxtree);
-struct lxtree lx_tree_diff(struct lxstate *, struct lxtree, struct lxtree);
+struct lxmap lx_map_union(struct lxstate *, struct lxmap, struct lxmap);
+struct lxmap lx_map_isect(struct lxstate *, struct lxmap, struct lxmap);
+struct lxmap lx_map_diff(struct lxstate *, struct lxmap, struct lxmap);
 
 /* low level API for traversal */
-struct lxlist lx_tree_entry(struct lxtree);
-struct lxtree lx_tree_left(struct lxtree);
-struct lxtree lx_tree_right(struct lxtree);
+struct lxlist lx_map_entry(struct lxmap);
+struct lxmap lx_map_left(struct lxmap);
+struct lxmap lx_map_right(struct lxmap);
 
-struct lxtree lx_tree_filter(
+struct lxmap lx_map_filter(
 	struct lxstate *,
-	struct lxtree tree,
-	bool predicate(struct lxlist, void *),
+	struct lxmap map,
+	bool predicate(struct lxvalue key, struct lxvalue value, void *),
 	void *param);

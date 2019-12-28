@@ -32,23 +32,23 @@ static bool list_equals(struct lxlist a, struct lxlist b)
 	return list_eq(p, q);
 }
 
-static bool tree_equals(struct lxtree a, struct lxtree b)
+static bool map_equals(struct lxmap a, struct lxmap b)
 {
-	struct lxtree p, q;
+	struct lxmap p, q;
 	size_t i, sz;
 
 	p = a;
 	q = b;
 
-	if (tree_eq(p, q)) { return true; }
+	if (map_eq(p, q)) { return true; }
 	if (!p.value.s || !q.value.s) { return false; }
 
-	sz = lx_tree_size(a);
-	if (sz != lx_tree_size(b)) { return false; }
+	sz = lx_map_size(a);
+	if (sz != lx_map_size(b)) { return false; }
 
-	/* tree_nth = O(logn) -> O(nlogn) */
+	/* map_nth = O(logn) -> O(nlogn) */
 	for (i = 0; i < sz; i++) {
-		if (!list_equals(lx_tree_nth(p, i), lx_tree_nth(q, i))) {
+		if (!list_equals(lx_map_nth(p, i), lx_map_nth(q, i))) {
 			return false;
 		}
 	}
@@ -64,9 +64,9 @@ bool lx_equals(struct lxvalue a, struct lxvalue b)
 	case lx_list_tag:
 		if (b.tag != lx_list_tag) { return false; }
 		return list_equals(lx_list(a), lx_list(b));
-	case lx_tree_tag:
-		if (b.tag != lx_tree_tag) { return false; }
-		return tree_equals(lx_tree(a), lx_tree(b));
+	case lx_map_tag:
+		if (b.tag != lx_map_tag) { return false; }
+		return map_equals(lx_map(a), lx_map(b));
 	case lx_string_tag:
 		if (b.tag != lx_string_tag) { return false; }
 		return a.s == b.s || strcmp(a.s, b.s) == 0;

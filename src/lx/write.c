@@ -21,19 +21,31 @@
 #define ESCAPE_CHARS "\"\\\r\n\t\v"
 #define SHORT_LIST 40
 
+enum state {
+	top_level,
+	list_member,
+	map_key,
+	map_value,
+};
+
 struct wstate {
 	struct lxvalue stack;
 	struct lxstate *s;
-	char *p;
-	lxint n, indent;
+	char *begin, *p;
+	lxint n, offset, indent;
+	enum state state;
 };
+
+static lxint char_offset(struct wstate *w) {
+	return w->p - w->begin;
+}
 
 static void out_of_memory(struct wstate *w)
 {
 	lx_handle_out_of_memory(w->s);
 }
 
-static void push(struct wstate *w, struct lxvalue val)
+static void push(struct wstate *w, struct lxvalue val, unsigned loc)
 {
 	union lxcell const *c;
 
@@ -46,14 +58,15 @@ static void push(struct wstate *w, struct lxvalue val)
 	} else {
 		out_of_memory(w);
 	}
-	*ref_tag(w->stack) = val.tag;
+	*ref_tag(w->stack) = mktag(loc, val.tag);
 	lx_set_cell_data(ref_data(w->stack), val);
 }
 
-static struct lxvalue pop(struct wstate *w)
+static struct lxvalue pop(struct wstate *w, unsigned *loc)
 {
 	struct lxvalue result;
 	result = lx_car(ref_to_list(w->stack));
+	*loc = lxtag_len(*ref_tag(w->stack));
 	w->stack = forward(w->stack);
 	if (w->stack.offset == 0) {
 		w->n += SPAN_LENGTH*CELL_SIZE;
@@ -66,14 +79,15 @@ static bool is_empty_stack(struct wstate *w)
 	return ref_eq(w->s->alloc.tag_free, w->stack);
 }
 
-static void push_tree_min(struct wstate *w, struct lxtree tree)
+static void push_map_min(struct wstate *w, struct lxmap map)
 {
-	struct lxtree t;
+	struct lxmap p;
 
-	t = tree;
-	while (!lx_is_empty_tree(t)) {
-		push(w, t.value);
-		t = lx_tree_left(t);
+	p = map;
+	while (!lx_is_empty_map(p)) {
+		push(w, lx_valuei(w->indent), w->state);
+		push(w, p.value, 0);
+		p = lx_map_left(p);
 	}
 }
 
@@ -196,8 +210,9 @@ static bool put_str(struct wstate *w, lxint n, char const *q)
 static bool write_brief(struct wstate *w, struct lxvalue val, int maxdepth)
 {
 	bool res;
+	struct lxvalue key, value;
 	struct lxlist list;
-	struct lxtree tree;
+	struct lxmap map;
 
 	if (maxdepth == 0) {
 		return false;
@@ -224,16 +239,18 @@ static bool write_brief(struct wstate *w, struct lxvalue val, int maxdepth)
 			return res && put_ch(w, ')');
 		}
 
-	case lx_tree_tag:
-		tree = ref_to_tree(val);
-		if (lx_is_empty_tree(tree)) {
+	case lx_map_tag:
+		map = ref_to_map(val);
+		if (lx_is_empty_map(map)) {
 			return put_raw_str(w, 2, "{}");
-		} else if (lx_tree_size(tree) == 1) {
+		} else if (lx_map_size(map) == 1) {
+			list = lx_map_entry(map);
+			key = lx_car(list);
+			value = lx_car(lx_cdr(list));
 			return put_ch(w, '{') &&
-				write_brief(
-					w,
-					lx_tree_entry(tree).value,
-					maxdepth - 1) &&
+				write_brief(w, key, maxdepth - 1) &&
+				put_ch(w, ' ') &&
+				write_brief(w, value, maxdepth - 1) &&
 				put_ch(w, '}');
 		}
 		return false;
@@ -256,26 +273,59 @@ static bool write_brief(struct wstate *w, struct lxvalue val, int maxdepth)
 	}
 }
 
+static void newline_indent(struct wstate *w, lxint indent)
+{
+	if (w->n < indent + 1) {
+		out_of_memory(w);
+	}
+	*w->p = '\n';
+	memset(w->p + 1, ' ', indent);
+	w->n -= indent + 1;
+	w->p += indent + 1;
+}
+
+static void write_space(struct wstate *w, bool break_lines)
+{
+	unsigned offset, diff;
+
+	if (!break_lines) {
+		if (w->state == map_key) {
+			if (!put_ch(w, ' ')) { out_of_memory(w); }
+		}
+		if (!put_ch(w, ' ')) { out_of_memory(w); }
+		return;
+	}
+
+	if (w->state == map_value) {
+		offset = char_offset(w);
+		diff = offset - w->offset;
+		if (diff > 7) {
+			w->indent += 2;
+			newline_indent(w, w->indent);
+		} else {
+			w->indent += diff + 1;
+			if (!put_ch(w, ' ')) { out_of_memory(w); }
+		}
+	} else {
+		newline_indent(w, w->indent);
+	}
+}
+
 static void write_value(struct wstate *w, struct lxvalue val, bool break_lines)
 {
 	struct wstate u;
 	struct lxlist list;
-	struct lxtree tree;
+	struct lxmap map;
+	unsigned ignore;
 
 	if (w->indent > 0) {
-		if (break_lines) {
-			if (w->n < w->indent + 1) {
-				out_of_memory(w);
-			}
-			*w->p = '\n';
-			memset(w->p + 1, ' ', w->indent);
-			w->n -= w->indent + 1;
-			w->p += w->indent + 1;
-		} else {
-			if (!put_ch(w, ' ')) { out_of_memory(w); }
-		}
+		write_space(w, break_lines);
 	}
+
 next:
+	if (w->state == map_key) {
+		w->offset = char_offset(w);
+	}
 	switch (val.tag) {
 	default: abort();
 
@@ -285,7 +335,6 @@ next:
 			if (!put_raw_str(w, 2, "()")) { out_of_memory(w); }
 			break;
 		} else {
-tree_entry:
 			if (break_lines) {
 				u = *w;
 				if (u.n > SHORT_LIST) {
@@ -298,29 +347,50 @@ tree_entry:
 				}
 			}
 			if (!put_ch(w, '(')) { out_of_memory(w); }
+			push(w, lx_valuei(char_offset(w)), 0);
+			push(w, lx_valuei(w->indent), w->state);
+			push(w, lx_cdr(list).value, 0);
 			w->indent++;
-			push(w, lx_cdr(list).value);
+			w->state = list_member;
+			w->offset = char_offset(w);
 			val = lx_car(list);
 			goto next;
 		}
 
-	case lx_tree_tag:
-		tree = ref_to_tree(val);
-		if (lx_is_empty_tree(tree)) {
+	case lx_map_tag:
+		map = ref_to_map(val);
+		if (lx_is_empty_map(map)) {
 			if (!put_raw_str(w, 2, "{}")) { out_of_memory(w); }
 			break;
 		} else {
 			if (!put_ch(w, '{')) { out_of_memory(w); }
+
+			/* Save key offset and write state, popped by pop_value
+			   below */
+			push(w, lx_valuei(char_offset(w)), 0);
+			push(w, lx_valuei(w->indent), w->state);
+
 			w->indent++;
-			push(w, lx_empty_tree().value);
-			push_tree_min(w, tree);
-			val = pop(w);
-			tree = lx_tree(val);
-			push_tree_min(w, lx_tree_right(tree));
-			list = lx_tree_entry(tree);
-			val = list.value;
-			assert(!lx_is_empty_list(list));
-			goto tree_entry;
+			w->state = map_key;
+
+			/* push empty map as marker for end-of-map */
+			push(w, lx_empty_map().value, 0);
+
+			/* get min value */
+			push_map_min(w, map);
+
+			val = pop(w, &ignore);
+			map = lx_map(val);
+			assert(lx_is_empty_map(lx_map_left(map)));
+			pop(w, &ignore); /* remove indentation */
+
+			/* push path to second to smallest value */
+			push_map_min(w, lx_map_right(map));
+
+			list = lx_map_entry(map);
+			val = lx_car(list);
+			push(w, map.value, 1);
+			goto next;
 		}
 
 	case lx_bool_tag:
@@ -352,45 +422,75 @@ tree_entry:
 	}
 }
 
-/* fetch the next list or tree element, if any, from stack and write closing
+/* fetch the next list or map element, if any, from stack and write closing
    bracket(s) along the way */
-static bool next_value(struct wstate *w, struct lxvalue *next)
+static bool pop_value(struct wstate *w, struct lxvalue *next)
 {
 	struct lxvalue top;
 	struct lxlist list;
-	struct lxtree tree;
+	struct lxmap map;
+	unsigned loc;
 
 	while (!is_empty_stack(w)) {
-		top = pop(w);
+		top = pop(w, &loc);
 		if (top.tag == lx_list_tag) {
+			assert(loc == 0);
+			/* restore state after last value was printed */
+			assert(w->state == list_member);
 			list = ref_to_list(top);
 			if (!lx_is_empty_list(list)) {
 				*next = lx_car(list);
-				push(w, lx_cdr(list).value);
+				push(w, lx_cdr(list).value, 0);
 				return true;
 			}
 			if (!put_ch(w, ')')) { out_of_memory(w); }
-			w->indent--;
 		} else {
-			assert(top.tag == lx_tree_tag);
-			tree = ref_to_tree(top);
-			if (!lx_is_empty_tree(tree)) {
-				/* we've visited the left sub-tree: visit this
-				   entry next, and push everything up until the
-				   minimum value of the right sub-tree */ 
-				*next = lx_tree_entry(tree).value;
-				push_tree_min(w, lx_tree_right(tree));
+			assert(top.tag == lx_map_tag);
+			map = ref_to_map(top);
+			if (!lx_is_empty_map(map)) {
+				if (loc == 0) {
+					/* restore indentation which might have
+					   been altered for the value */
+					top = pop(w, &loc);
+					w->indent = top.i;
+
+					/* put tree node back on the stack so
+					   that it can be visited again to
+					   write the value */
+					w->state = map_key;
+					*next = lx_car(lx_map_entry(map));
+					push(w, map.value, 1);
+				} else {
+					assert(loc == 1);
+					/* second visit to this node: write the
+					   value */
+					w->state = map_value;
+					*next = lx_nth(lx_map_entry(map), 1);
+
+					/* we've visited the left sub-tree and
+					   written the key, the value of this
+					   entry will be written next, and then
+					   let's visit right sub-tree */
+					push_map_min(w, lx_map_right(map));
+				}
 				return true;
 			}
 			/* add closing bracket and pop more */
 			if (!put_ch(w, '}')) { out_of_memory(w); }
-			w->indent--;
 		}
+		top = pop(w, &loc);
+		w->indent = top.i;
+		w->state = loc;
+		top = pop(w, &loc);
+		w->offset = top.i;
 	}
 	return false;
 }
 
-struct lxstring lx_write(struct lxstate *s, struct lxvalue value)
+static struct lxstring do_write(
+	struct lxstate *s,
+	struct lxvalue value,
+	bool break_lines)
 {
 	struct lxvalue ref;
 	struct lxvalue val;
@@ -400,15 +500,16 @@ struct lxstring lx_write(struct lxstate *s, struct lxvalue value)
 	w.s = s;
 	w.stack = s->alloc.tag_free;
 	w.stack.tag = lx_list_tag;
-	w.p = begin = (char *)(s->alloc.raw_free + 1);
+	w.begin = w.p = begin = (char *)(s->alloc.raw_free + 1);
 	w.n = ((char *)ref_cell(s->alloc.tag_free) - begin) - 1;
 	w.indent = 0;
+	w.state = top_level;
 
 	ref = mkref(lx_string_tag, 0, s->alloc.raw_free + 1);
 
 	val = value;
-	do write_value(&w, val, false);
-	while (next_value(&w, &val));
+	do write_value(&w, val, break_lines);
+	while (pop_value(&w, &val));
 
 	put_ch(&w, '\0');
 
@@ -421,33 +522,12 @@ struct lxstring lx_write(struct lxstate *s, struct lxvalue value)
 	return ref_to_string(ref);
 }
 
+struct lxstring lx_write(struct lxstate *s, struct lxvalue value)
+{
+	return do_write(s, value, false);
+}
+
 struct lxstring lx_write_pretty(struct lxstate *s, struct lxvalue value)
 {
-	struct lxvalue ref;
-	struct lxvalue val;
-	struct wstate w;
-	char *begin;
-
-	w.s = s;
-	w.stack = s->alloc.tag_free;
-	w.stack.tag = lx_list_tag;
-	w.p = begin = (char *)(s->alloc.raw_free + 1);
-	w.n = ((char *)ref_cell(s->alloc.tag_free) - begin) - 1;
-	w.indent = 0;
-
-	ref = mkref(lx_string_tag, 0, s->alloc.raw_free + 1);
-
-	val = value;
-	do write_value(&w, val, true);
-	while (next_value(&w, &val));
-
-	put_ch(&w, '\0');
-
-	/* store string length */
-	s->alloc.raw_free->i = w.p - begin - 1;
-
-	/* advance raw free pointer */
-	s->alloc.raw_free += 1 + ceil_div(s->alloc.raw_free->i + 1, CELL_SIZE);
-
-	return ref_to_string(ref);
+	return do_write(s, value, true);
 }

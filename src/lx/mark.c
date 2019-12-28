@@ -18,7 +18,7 @@
 
 static bool is_ref(enum lx_tag tag)
 {
-	return tag == lx_list_tag || tag == lx_tree_tag;
+	return tag == lx_list_tag || tag == lx_map_tag;
 }
 
 static void push_ref(
@@ -26,7 +26,7 @@ static void push_ref(
 	union lxcell const *from,
 	union lxcell **stack)
 {
-	if (ref.tag == lx_tree_tag && !is_leaf_node(ref_to_tree(ref))) {
+	if (ref.tag == lx_map_tag && !is_leaf_node(ref_to_map(ref))) {
 		ref = backward(backward(ref));
 	}
 	setxref(--(*stack), from, ref);
