@@ -309,11 +309,26 @@ struct lxlist lx_list_set(
 struct lxlist lx_set_to_list(struct lxstate *, struct lxset);
 struct lxlist lx_map_to_list(struct lxstate *, struct lxmap);
 
+struct lxlist lx_sort(
+	struct lxstate *,
+	struct lxlist,
+	int cmp(struct lxvalue, struct lxvalue));
+
 /* reverse list */
 struct lxlist lx_reverse(struct lxstate *, struct lxlist list);
 
+/* find first tail of list which car is val */
+struct lxlist lx_member(struct lxlist list, struct lxvalue val);
+
+/* retrieve association from association list */
+struct lxlist lx_assoc(struct lxlist alist, struct lxvalue key);
+
 /* number of elements in list */
 lxint lx_length(struct lxlist list);
+
+/* compare length of list against len, maybe not having to compute the whole
+   length of the list */
+lxint lx_length_cmp(struct lxlist list, lxint len);
 
 /* strlen(3) of string value */
 size_t lx_strlen(struct lxstring string);
@@ -463,6 +478,12 @@ static inline struct lxmap lx_empty_map(void)
 struct lxvalue lx_set_entry(struct lxset);
 struct lxset lx_set_left(struct lxset);
 struct lxset lx_set_right(struct lxset);
+
+struct lxmap lx_map_filter(
+	struct lxstate *,
+	struct lxmap map,
+	bool predicate(struct lxvalue key, struct lxvalue value, void *),
+	void *param);
 
 /* compare a list against the empty list */
 static inline bool lx_is_empty_map(struct lxmap map)
