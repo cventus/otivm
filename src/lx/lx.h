@@ -31,6 +31,7 @@
 /* reference values */
 #define lxlist MANGLE(list)
 #define lxmap MANGLE(map)
+#define lxset MANGLE(set)
 #define lxstring MANGLE(string)
 
 /* value constructors */
@@ -177,6 +178,7 @@ struct lxvalue
 
 struct lxlist { struct lxvalue value; };
 struct lxmap { struct lxvalue value; };
+struct lxset { struct lxvalue value; };
 struct lxstring { struct lxvalue value; };
 
 struct lxread {
@@ -256,6 +258,20 @@ struct lxstring lx_write(struct lxstate *, struct lxvalue value);
 /* pretty print value into string */
 struct lxstring lx_write_pretty(struct lxstate *, struct lxvalue value);
 
+/* create an empty list value */
+static inline struct lxlist lx_empty_list(void)
+{
+	return (struct lxlist) {
+		.value = { .tag = lx_list_tag, .offset = 0, .s = 0 }
+	};
+}
+
+/* compare a list against the empty list */
+static inline bool lx_is_empty_list(struct lxlist list)
+{
+	return list.value.s == NULL;
+}
+
 /* prepend an element to a list */
 struct lxlist lx_cons(struct lxstate *, struct lxvalue, struct lxlist);
 
@@ -283,6 +299,15 @@ struct lxvalue lx_nth(struct lxlist list, lxint i);
 bool lx_nthb(struct lxlist list, lxint i);
 lxint lx_nthi(struct lxlist list, lxint i);
 lxfloat lx_nthf(struct lxlist list, lxint i);
+
+struct lxlist lx_list_set(
+	struct lxstate *,
+	struct lxlist l,
+	lxint i,
+	struct lxvalue value);
+
+struct lxlist lx_set_to_list(struct lxstate *, struct lxset);
+struct lxlist lx_map_to_list(struct lxstate *, struct lxmap);
 
 /* reverse list */
 struct lxlist lx_reverse(struct lxstate *, struct lxlist list);
@@ -403,19 +428,29 @@ static inline bool lx_is_nil(struct lxvalue value)
 	return value.tag == lx_nil_tag;
 }
 
-/* create an empty list value */
-static inline struct lxlist lx_empty_list(void)
+/* create an empty set value */
+static inline struct lxset lx_empty_set(void)
 {
-	return (struct lxlist) {
-		.value = { .tag = lx_list_tag, .offset = 0, .s = 0 }
+	return (struct lxset) {
+		.value = { .tag = lx_set_tag, .offset = 0, .s = 0 }
 	};
 }
 
-/* compare a list against the empty list */
-static inline bool lx_is_empty_list(struct lxlist list)
+/* compare a set against the empty set */
+static inline bool lx_is_empty_set(struct lxset set)
 {
-	return list.value.s == NULL;
+	return set.value.s == NULL;
 }
+
+size_t lx_set_size(struct lxset);
+struct lxset lx_list_to_set(struct lxstate *, struct lxlist);
+bool lx_set_has(struct lxset, struct lxvalue);
+struct lxvalue lx_set_nth(struct lxset set, lxint n);
+struct lxset lx_set_add(struct lxstate *, struct lxset, struct lxvalue);
+struct lxset lx_set_remove(struct lxstate *, struct lxset, struct lxvalue);
+struct lxset lx_set_union(struct lxstate *, struct lxset, struct lxset);
+struct lxset lx_set_isect(struct lxstate *, struct lxset, struct lxset);
+struct lxset lx_set_diff(struct lxstate *, struct lxset, struct lxset);
 
 /* create an empty list value */
 static inline struct lxmap lx_empty_map(void)
@@ -424,6 +459,10 @@ static inline struct lxmap lx_empty_map(void)
 		.value = { .tag = lx_map_tag, .offset = 0, .s = 0 }
 	};
 }
+
+struct lxvalue lx_set_entry(struct lxset);
+struct lxset lx_set_left(struct lxset);
+struct lxset lx_set_right(struct lxset);
 
 /* compare a list against the empty list */
 static inline bool lx_is_empty_map(struct lxmap map)
@@ -439,20 +478,18 @@ struct lxmap lx_map_set(
 	struct lxvalue key,
 	struct lxvalue value);
 
+struct lxmap lx_list_to_map(struct lxstate *, struct lxlist alist);
+
 struct lxlist lx_map_assoc(struct lxmap, struct lxvalue key);
 struct lxvalue lx_map_ref(struct lxmap, struct lxvalue key);
 bool lx_map_has(struct lxmap, struct lxvalue key, struct lxvalue *value);
 struct lxmap lx_map_remove(struct lxstate *, struct lxmap, struct lxvalue key);
+struct lxmap lx_map_diff(struct lxstate *, struct lxmap, struct lxset);
 
 struct lxmap lx_map_merge(struct lxstate *, struct lxmap, struct lxmap);
-
+struct lxset lx_map_keys(struct lxstate *, struct lxmap);
 
 struct lxlist lx_map_nth(struct lxmap map, lxint n);
-
-/* set operations */
-struct lxmap lx_map_union(struct lxstate *, struct lxmap, struct lxmap);
-struct lxmap lx_map_isect(struct lxstate *, struct lxmap, struct lxmap);
-struct lxmap lx_map_diff(struct lxstate *, struct lxmap, struct lxmap);
 
 /* low level API for traversal */
 struct lxlist lx_map_entry(struct lxmap);

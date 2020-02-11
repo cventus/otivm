@@ -28,30 +28,6 @@ static struct lxlist map_as_list(struct lxmap map)
 	return result;
 }
 
-size_t lx_map_size(struct lxmap map)
-{
-	return lx_is_empty_map(map) ? 0 : (size_t)ref_data(map.value)->i;
-}
-
-struct lxlist lx_map_entry(struct lxmap map)
-{
-	return lx_cdr(map_as_list(map));
-}
-
-struct lxmap lx_map_left(struct lxmap map)
-{
-	return is_leaf_node(map)
-		? lx_empty_map()
-		: deref_map(ref_data(backward(backward(map.value))));
-}
-
-struct lxmap lx_map_right(struct lxmap map)
-{
-	return is_leaf_node(map)
-		? lx_empty_map()
-		: deref_map(ref_data(backward(map.value)));
-}
-
 static void destructure(
 	struct lxmap map,
 	struct lxmap *left,
@@ -72,75 +48,6 @@ static void destructure(
 		list.value = backward(list.value);
 		sz = ref_data(list.value);
 		*left = isnilref(sz) ? lx_empty_map() : deref_map(sz);
-	}
-}
-
-struct lxlist lx_map_nth(struct lxmap map, lxint n)
-{
-	struct lxmap t, l, r;
-	struct lxlist e;
-	size_t sz;
-
-	if (lx_is_empty_map(map)) {
-		return lx_empty_list();
-	}
-
-	t = map;
-	do {
-		destructure(t, &l, &r, &e);
-		sz = lx_map_size(l);
-		if ((size_t)n < sz) {
-			t = l;
-		} else if ((size_t)n > sz) {
-			t = r;
-			n -= sz + 1;
-		} else {
-			break;
-		}
-	} while (true);
-	return e;
-}
-
-struct lxlist lx_map_assoc(struct lxmap map, struct lxvalue key)
-{
-	int cmp;
-	struct lxmap t, l, r;
-	struct lxlist e;
-
-	t = map;
-	while (!lx_is_empty_map(t)) {
-		destructure(t, &l, &r, &e);
-		cmp = lx_compare(key, lx_car(e));
-		if (cmp < 0) t = l;
-		else if (cmp > 0) t = r;
-		else return e;
-	}
-	return lx_empty_list();
-}
-
-struct lxvalue lx_map_ref(struct lxmap map, struct lxvalue key)
-{
-	struct lxlist e;
-
-	e = lx_map_assoc(map, key);
-	if (lx_is_empty_list(e)) {
-		return lx_nil();
-	} else {
-		return lx_nth(e, 1);
-	}
-}
-
-bool lx_map_has(struct lxmap map, struct lxvalue key, struct lxvalue *value)
-{
-	struct lxlist e;
-
-	e = lx_map_assoc(map, key);
-	if (lx_is_empty_list(e)) {
-		if (value) { *value = lx_nil(); }
-		return false;
-	} else {
-		if (value) { *value = lx_nth(e, 1); }
-		return true;
 	}
 }
 
@@ -358,6 +265,99 @@ static struct lxmap balance_right(
 		nr = make_node(s, lrr, r, e);
 
 		return make_node(s, nl, nr, lre);
+	}
+}
+
+size_t lx_map_size(struct lxmap map)
+{
+	return lx_is_empty_map(map) ? 0 : (size_t)ref_data(map.value)->i;
+}
+
+struct lxlist lx_map_entry(struct lxmap map)
+{
+	return lx_cdr(map_as_list(map));
+}
+
+struct lxmap lx_map_left(struct lxmap map)
+{
+	return is_leaf_node(map)
+		? lx_empty_map()
+		: deref_map(ref_data(backward(backward(map.value))));
+}
+
+struct lxmap lx_map_right(struct lxmap map)
+{
+	return is_leaf_node(map)
+		? lx_empty_map()
+		: deref_map(ref_data(backward(map.value)));
+}
+
+struct lxlist lx_map_nth(struct lxmap map, lxint n)
+{
+	struct lxmap t, l, r;
+	struct lxlist e;
+	size_t sz;
+
+	if (lx_is_empty_map(map)) {
+		return lx_empty_list();
+	}
+
+	t = map;
+	do {
+		destructure(t, &l, &r, &e);
+		sz = lx_map_size(l);
+		if ((size_t)n < sz) {
+			t = l;
+		} else if ((size_t)n > sz) {
+			t = r;
+			n -= sz + 1;
+		} else {
+			break;
+		}
+	} while (true);
+	return e;
+}
+
+struct lxlist lx_map_assoc(struct lxmap map, struct lxvalue key)
+{
+	int cmp;
+	struct lxmap t, l, r;
+	struct lxlist e;
+
+	t = map;
+	while (!lx_is_empty_map(t)) {
+		destructure(t, &l, &r, &e);
+		cmp = lx_compare(key, lx_car(e));
+		if (cmp < 0) t = l;
+		else if (cmp > 0) t = r;
+		else return e;
+	}
+	return lx_empty_list();
+}
+
+struct lxvalue lx_map_ref(struct lxmap map, struct lxvalue key)
+{
+	struct lxlist e;
+
+	e = lx_map_assoc(map, key);
+	if (lx_is_empty_list(e)) {
+		return lx_nil();
+	} else {
+		return lx_nth(e, 1);
+	}
+}
+
+bool lx_map_has(struct lxmap map, struct lxvalue key, struct lxvalue *value)
+{
+	struct lxlist e;
+
+	e = lx_map_assoc(map, key);
+	if (lx_is_empty_list(e)) {
+		if (value) { *value = lx_nil(); }
+		return false;
+	} else {
+		if (value) { *value = lx_nth(e, 1); }
+		return true;
 	}
 }
 
@@ -581,6 +581,11 @@ static struct split split(
 		}
 	}
 	return s;
+}
+
+size_t lx_set_size(struct lxmap map)
+{
+	return lx_is_empty_map(map) ? 0 : (size_t)ref_data(map.value)->i;
 }
 
 struct lxmap lx_map_union(
