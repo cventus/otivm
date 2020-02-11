@@ -93,6 +93,11 @@ void *wbuf_swrite(struct wbuf *buf, void const *data, size_t size);
    never attempts to reallocate or free the underlying buffer. */
 int wbuf_retract(struct wbuf *buf, size_t size);
 
+/* Remove `size` bytes of content from the beginning of the buffer. Return
+   non-zero if `size` is greater than the size of the underlying buffer. This
+   function never attempts to reallocate or free the underlying buffer. */
+int wbuf_consume(struct wbuf *buf, size_t size);
+
 /* Copy the last `size` bytes from the end of the buffer into `data`, and then
    retract by `size` bytes. Returns non-zero if `size` is greater than the size
    of the buffer. This function never attempts to reallocate or free the

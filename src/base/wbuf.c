@@ -35,7 +35,7 @@ void wbuf_init_buffer(struct wbuf *buf, void *buffer, size_t size)
 {
 	assert(buffer != NULL);
 	buf->begin = buf->end = buffer;
-	buf->bound = (char *)buffer + size;
+	buf->bound = (unsigned char *)buffer + size;
 }
 
 void wbuf_rewind(struct wbuf *buf)
@@ -78,7 +78,7 @@ int wbuf_trim(struct wbuf *buf)
 {
 	assert(buf != NULL);
 	size_t use = wbuf_size(buf);
-	char *p = realloc(buf->begin, use);
+	unsigned char *p = realloc(buf->begin, use);
 	if (!p) { return -1; }
 	buf->begin = p;
 	buf->end = buf->bound = p + use;
@@ -121,7 +121,7 @@ size_t wbuf_capacity(struct wbuf const *buf)
 void *wbuf_get(struct wbuf const *buf, size_t offset)
 {
 	assert(buf != NULL);
-	return (char *)buf->begin + offset;
+	return (unsigned char *)buf->begin + offset;
 }
 
 static int do_align(
@@ -152,7 +152,7 @@ void *wbuf_alloc(struct wbuf *buf, size_t size)
 		result = NULL;
 	} else {
 		result = buf->end;
-		buf->end = (char*)buf->end + size;
+		buf->end = (unsigned char*)buf->end + size;
 	}
 	return result;
 }
@@ -178,7 +178,7 @@ void *wbuf_salloc(struct wbuf *buf, size_t size)
 	assert(buf != NULL);
 	if (wbuf_available(buf) < size) { return NULL; }
 	result = buf->end;
-	buf->end = (char*)buf->end + size;
+	buf->end = (unsigned char*)buf->end + size;
 	return result;
 }
 
@@ -194,7 +194,16 @@ int wbuf_retract(struct wbuf *buf, size_t size)
 {
 	assert(buf != NULL);
 	if (size > wbuf_size(buf)) { return -1; }
-	buf->end = (char *)buf->end - size;
+	buf->end = (unsigned char *)buf->end - size;
+	return 0;
+}
+
+int wbuf_consume(struct wbuf *buf, size_t size)
+{
+	assert(buf != NULL);
+	if (size > wbuf_size(buf)) { return -1; }
+	(void)memmove(buf->begin, (unsigned char *)buf->begin + size, size);
+	buf->end = (unsigned char *)buf->end - size;
 	return 0;
 }
 
